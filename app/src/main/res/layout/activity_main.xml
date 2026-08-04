@@ -475,12 +475,14 @@
     <com.google.android.material.bottomnavigation.BottomNavigationView
         android:id="@+id/bottomNavigation"
         android:layout_width="match_parent"
-        android:layout_height="64dp"
+        android:layout_height="76dp"
         android:layout_alignParentBottom="true"
         android:background="?attr/appCardColor"
         app:elevation="8dp"
-        app:itemIconTint="@color/primary_accent"
-        app:itemTextColor="@color/primary_accent"
+        app:itemIconSize="22dp"
+        app:itemIconTint="@color/nav_item_color"
+        app:itemTextColor="@color/nav_item_color"
+        app:itemActiveIndicatorStyle="@null"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu" />
 

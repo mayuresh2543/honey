@@ -7,28 +7,28 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    
+
     <!-- Legacy Color Aliases -->
-    <color name="card_bg">#1E1E24</color>
-    <color name="text_primary">#F5F5F7</color>
-    <color name="dark_bg">#121214</color>
+    <color name="card_bg">#1E293B</color>
+    <color name="text_primary">#F8FAFC</color>
+    <color name="dark_bg">#0F172A</color>
 
-    <!-- Modern Color Palette -->
-    <color name="primary_accent">#FF9800</color>
-    <color name="primary_accent_light">#F57C00</color>
-    <color name="success_green">#4CAF50</color>
-    <color name="alert_red">#F44336</color>
+    <!-- Cybersecurity Modern Accent Palette -->
+    <color name="primary_accent">#38BDF8</color>
+    <color name="primary_accent_light">#0284C7</color>
+    <color name="success_green">#22C55E</color>
+    <color name="alert_red">#EF4444</color>
 
-    <!-- Dark Mode Colors -->
-    <color name="dark_card_bg">#1E1E24</color>
-    <color name="dark_card_stroke">#2E2E38</color>
-    <color name="dark_text_primary">#F5F5F7</color>
-    <color name="dark_text_secondary">#9A9AA0</color>
+    <!-- Dark Mode Palette (Slate & Cyan) -->
+    <color name="dark_card_bg">#1E293B</color>
+    <color name="dark_card_stroke">#334155</color>
+    <color name="dark_text_primary">#F8FAFC</color>
+    <color name="dark_text_secondary">#94A3B8</color>
 
-    <!-- Light Mode Colors -->
-    <color name="light_bg">#F8F9FA</color>
+    <!-- Light Mode Palette (Porcelain & Slate) -->
+    <color name="light_bg">#F8FAFC</color>
     <color name="light_card_bg">#FFFFFF</color>
-    <color name="light_card_stroke">#E0E0E6</color>
-    <color name="light_text_primary">#1C1B1F</color>
-    <color name="light_text_secondary">#606066</color>
+    <color name="light_card_stroke">#E2E8F0</color>
+    <color name="light_text_primary">#0F172A</color>
+    <color name="light_text_secondary">#64748B</color>
 </resources>

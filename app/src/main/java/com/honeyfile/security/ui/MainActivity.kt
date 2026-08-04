@@ -39,21 +39,34 @@ class MainActivity : AppCompatActivity() {
     private lateinit var faceAuthManager: FaceAuthManager
     private lateinit var intruderCaptureManager: IntruderCaptureManager
     private lateinit var emailAlertManager: EmailAlertManager
-    private lateinit var themeManager: ThemeManager
+    private lateinit var folderScannerManager: com.honeyfile.security.scanner.FolderScannerManager
+    private var selectedFolderUri: android.net.Uri? = null
 
-    private val logAdapter = LogAdapter()
-    private lateinit var galleryAdapter: CapturedImageAdapter
+    private val folderPickerLauncher = registerForActivityResult(
+        ActivityResultContracts.OpenDocumentTree()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                contentResolver.takePersistableUriPermission(
+                    uri,
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION
+                )
+            } catch (e: Exception) {
+                Log.w(TAG, "Persistable permission warning: ${e.message}")
+            }
+            selectedFolderUri = uri
+            getSharedPreferences("honey_prefs", MODE_PRIVATE)
+                .edit()
+                .putString("monitored_folder_uri", uri.toString())
+                .apply()
 
-    private var currentFrameBitmap: Bitmap? = null
-    private val cameraExecutor = Executors.newSingleThreadExecutor()
+            Toast.makeText(this, "Selected folder for monitoring!", Toast.LENGTH_SHORT).show()
 
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        if (permissions[Manifest.permission.CAMERA] == true) {
-            startCameraPreview()
-        } else {
-            Toast.makeText(this, "Camera permission is required for security checks", Toast.LENGTH_LONG).show()
+            if (binding.switchAutoScan.isChecked) {
+                folderScannerManager.startContinuousScanning(uri)
+            } else {
+                binding.switchAutoScan.isChecked = true
+            }
         }
     }
 
@@ -69,10 +82,13 @@ class MainActivity : AppCompatActivity() {
         faceAuthManager = FaceAuthManager(this)
         intruderCaptureManager = IntruderCaptureManager(this)
         emailAlertManager = EmailAlertManager()
+        folderScannerManager = com.honeyfile.security.scanner.FolderScannerManager(this)
 
         setupUI()
+        setupFolderScanner()
         checkAndRequestPermissions()
         observeDatabase()
+        observeFolderScanner()
         refreshGallery()
     }
 
@@ -94,6 +110,54 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnTrigger.setOnClickListener {
             onTriggerAccessClicked()
+        }
+    }
+
+    private fun setupFolderScanner() {
+        val savedUriStr = getSharedPreferences("honey_prefs", MODE_PRIVATE)
+            .getString("monitored_folder_uri", null)
+
+        if (savedUriStr != null) {
+            selectedFolderUri = android.net.Uri.parse(savedUriStr)
+        }
+
+        binding.btnSelectFolder.setOnClickListener {
+            folderPickerLauncher.launch(null)
+        }
+
+        binding.switchAutoScan.setOnCheckedChangeListener { _, isChecked ->
+            val uri = selectedFolderUri
+            if (isChecked) {
+                if (uri != null) {
+                    folderScannerManager.startContinuousScanning(uri)
+                } else {
+                    binding.switchAutoScan.isChecked = false
+                    Toast.makeText(this, "Please select a folder first!", Toast.LENGTH_SHORT).show()
+                    folderPickerLauncher.launch(null)
+                }
+            } else {
+                folderScannerManager.stopScanning()
+            }
+        }
+
+        // Auto-start scanning if folder was previously saved
+        selectedFolderUri?.let { uri ->
+            binding.switchAutoScan.isChecked = true
+            folderScannerManager.startContinuousScanning(uri)
+        }
+    }
+
+    private fun observeFolderScanner() {
+        lifecycleScope.launch {
+            folderScannerManager.scanResult.collect { result ->
+                if (result.folderUri.isNotEmpty()) {
+                    binding.tvSelectedFolder.text = "Monitored: ${result.folderName}"
+                    binding.tvScanStats.text = "Scanned: ${result.totalFilesScanned} files | Honeyfiles: ${result.honeyFilesFound} (Last: ${result.lastScanTime})"
+                } else {
+                    binding.tvSelectedFolder.text = getString(com.honeyfile.security.R.string.no_folder_selected)
+                    binding.tvScanStats.text = "Scanned Files: 0 | Honeyfiles Detected: 0"
+                }
+            }
         }
     }
 
@@ -158,8 +222,8 @@ class MainActivity : AppCompatActivity() {
             val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
             val isAuthenticated = authResult?.isAuthenticated ?: false
             val adminName = authResult?.adminName ?: "Admin"
-            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-            val filename = "admin_passwords.txt"
+            val detectedHoneyName = folderScannerManager.scanResult.value.honeyFileNames.firstOrNull()
+            val filename = detectedHoneyName ?: "admin_passwords.txt"
 
             if (isAuthenticated) {
                 Log.d(TAG, "$adminName verified ✅")

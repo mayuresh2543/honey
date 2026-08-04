@@ -13,4 +13,11 @@
     <string name="real_title">🔑 Admin Confidential File</string>
     <string name="camera_permission_required">Camera permission is required for face authentication and security verification.</string>
     <string name="theme_toggle_label">🌙 Dark Mode</string>
+    <string name="folder_scanner_title">📂 Monitored Folder Scanner</string>
+    <string name="btn_select_folder">Choose Directory to Monitor</string>
+    <string name="selected_folder_prefix">Monitored: </string>
+    <string name="no_folder_selected">No custom folder selected (using default honeyfiles)</string>
+    <string name="auto_scan_label">Continuous Auto-Scan</string>
+    <string name="scan_status_idle">Status: Idle</string>
+    <string name="scan_status_active">Status: Active Scanning</string>
 </resources>

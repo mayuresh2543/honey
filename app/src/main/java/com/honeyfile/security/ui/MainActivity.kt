@@ -133,7 +133,15 @@ class MainActivity : AppCompatActivity() {
                     imageProxy.close()
                 }
 
-                val cameraSelector = CameraSelector.DEFAULT_FRONT_CAMERA
+                val cameraSelector = when {
+                    cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
+                    cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
+                    else -> {
+                        Log.e(TAG, "No camera available on this device or emulator")
+                        Toast.makeText(this, "No camera available on device/emulator", Toast.LENGTH_LONG).show()
+                        return@addListener
+                    }
+                }
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis)
             } catch (e: Exception) {

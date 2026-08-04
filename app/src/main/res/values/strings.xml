@@ -20,4 +20,6 @@
     <string name="auto_scan_label">Continuous Auto-Scan</string>
     <string name="scan_status_idle">Status: Idle</string>
     <string name="scan_status_active">Status: Active Scanning</string>
+    <string name="file_activity_title">📝 Real-Time File Modification Activity</string>
+    <string name="no_changes_yet">No file modifications or additions detected yet.</string>
 </resources>

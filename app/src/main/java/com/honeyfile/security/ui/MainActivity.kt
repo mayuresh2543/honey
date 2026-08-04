@@ -171,11 +171,47 @@ class MainActivity : AppCompatActivity() {
                 if (result.folderUri.isNotEmpty()) {
                     binding.tvSelectedFolder.text = "Monitored: ${result.folderName}"
                     binding.tvScanStats.text = "Scanned: ${result.totalFilesScanned} files | Honeyfiles: ${result.honeyFilesFound} (Last: ${result.lastScanTime})"
+                    binding.tvLatestFileChange.text = "📝 ${result.latestChangeSummary}"
                 } else {
                     binding.tvSelectedFolder.text = getString(com.honeyfile.security.R.string.no_folder_selected)
                     binding.tvScanStats.text = "Scanned Files: 0 | Honeyfiles Detected: 0"
+                    binding.tvLatestFileChange.text = getString(com.honeyfile.security.R.string.no_changes_yet)
                 }
             }
+        }
+
+        lifecycleScope.launch {
+            folderScannerManager.fileChangeEvents.collect { event ->
+                Log.w(TAG, "File change event detected: ${event.fileName} (${event.eventType})")
+                Toast.makeText(this@MainActivity, "🚨 Alert: File '${event.fileName}' ${event.eventType.lowercase()}!", Toast.LENGTH_LONG).show()
+                handleFileModificationDetection(event)
+            }
+        }
+    }
+
+    private suspend fun handleFileModificationDetection(event: com.honeyfile.security.scanner.FileChangeEvent) {
+        val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
+        val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
+        val isAuthenticated = authResult?.isAuthenticated ?: false
+        val adminName = authResult?.adminName ?: "Admin"
+        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+
+        if (isAuthenticated) {
+            Log.d(TAG, "File change by verified $adminName ✅")
+            database.logDao().insertLog(AccessLog(file = event.fileName, user = adminName, timestamp = timestamp))
+        } else {
+            Log.w(TAG, "Unauthorized file change by Intruder 🚨")
+            database.logDao().insertLog(AccessLog(file = event.fileName, user = "Intruder", timestamp = timestamp))
+
+            val photoFile = intruderCaptureManager.captureIntruderImage(frame)
+
+            emailAlertManager.sendAlert(
+                subject = "Intruder modified monitored file: ${event.fileName}",
+                body = "Unauthorized file modification detected at ${event.timestamp}.\n\nDetails:\n${event.changeDetails}",
+                imageFile = photoFile
+            )
+
+            refreshGallery()
         }
     }
 

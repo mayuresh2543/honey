@@ -179,6 +179,18 @@
                     android:textStyle="bold"
                     android:layout_marginTop="4dp" />
 
+                <TextView
+                    android:id="@+id/tvLatestFileChange"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/no_changes_yet"
+                    android:textColor="?attr/appTextColorPrimary"
+                    android:textSize="12sp"
+                    android:textStyle="italic"
+                    android:layout_marginTop="4dp"
+                    android:ellipsize="end"
+                    android:maxLines="2" />
+
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btnSelectFolder"
                     style="@style/Widget.Material3.Button.OutlinedButton"

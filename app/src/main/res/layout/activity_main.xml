@@ -3,7 +3,7 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/dark_bg"
+    android:background="?attr/appBackgroundColor"
     android:fillViewport="true">
 
     <LinearLayout
@@ -12,15 +12,47 @@
         android:orientation="vertical"
         android:padding="16dp">
 
-        <!-- Header -->
-        <TextView
-            android:layout_width="wrap_content"
+        <!-- Top Header & Theme Switcher Bar -->
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/dashboard_title"
-            android:textColor="@color/text_primary"
-            android:textSize="20sp"
-            android:textStyle="bold"
-            android:layout_marginBottom="16dp" />
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dashboard_title"
+                    android:textColor="?attr/appTextColorPrimary"
+                    android:textSize="20sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/dashboard_subtitle"
+                    android:textColor="?attr/appTextColorSecondary"
+                    android:textSize="12sp" />
+
+            </LinearLayout>
+
+            <com.google.android.material.materialswitch.MaterialSwitch
+                android:id="@+id/switchTheme"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/theme_toggle_label"
+                android:textColor="?attr/appTextColorPrimary"
+                android:textSize="12sp"
+                app:thumbIcon="@drawable/ic_theme_toggle_icon" />
+
+        </LinearLayout>
 
         <!-- Camera Preview Container -->
         <FrameLayout
@@ -49,7 +81,7 @@
             android:textSize="16sp"
             android:textStyle="bold"
             app:backgroundTint="@color/primary_accent"
-            app:cornerRadius="12dp"
+            app:cornerRadius="14dp"
             android:layout_marginBottom="16dp" />
 
         <!-- Security Stats Cards Grid -->
@@ -64,8 +96,10 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginEnd="4dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="12dp">
+                app:cardBackgroundColor="?attr/appCardColor"
+                app:cardCornerRadius="14dp"
+                app:strokeColor="?attr/appCardStrokeColor"
+                app:strokeWidth="1dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -77,14 +111,14 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="0"
-                        android:textColor="@color/text_primary"
+                        android:textColor="?attr/appTextColorPrimary"
                         android:textSize="22sp"
                         android:textStyle="bold" />
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Total Logs"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/appTextColorSecondary"
                         android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -94,8 +128,10 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginHorizontal="4dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="12dp">
+                app:cardBackgroundColor="?attr/appCardColor"
+                app:cardCornerRadius="14dp"
+                app:strokeColor="?attr/appCardStrokeColor"
+                app:strokeWidth="1dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -114,7 +150,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Admin"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/appTextColorSecondary"
                         android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -124,8 +160,10 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:layout_marginStart="4dp"
-                app:cardBackgroundColor="@color/card_bg"
-                app:cardCornerRadius="12dp">
+                app:cardBackgroundColor="?attr/appCardColor"
+                app:cardCornerRadius="14dp"
+                app:strokeColor="?attr/appCardStrokeColor"
+                app:strokeWidth="1dp">
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -144,7 +182,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Intruder"
-                        android:textColor="@color/text_secondary"
+                        android:textColor="?attr/appTextColorSecondary"
                         android:textSize="11sp" />
                 </LinearLayout>
             </com.google.android.material.card.MaterialCardView>
@@ -156,7 +194,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/gallery_section_title"
-            android:textColor="@color/text_primary"
+            android:textColor="?attr/appTextColorPrimary"
             android:textSize="16sp"
             android:textStyle="bold"
             android:layout_marginBottom="8dp" />
@@ -173,7 +211,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/logs_section_title"
-            android:textColor="@color/text_primary"
+            android:textColor="?attr/appTextColorPrimary"
             android:textSize="16sp"
             android:textStyle="bold"
             android:layout_marginBottom="8dp" />

@@ -34,7 +34,7 @@ class LogAdapter : RecyclerView.Adapter<LogAdapter.LogViewHolder>() {
             binding.tvTime.text = log.timestamp
             binding.tvUserBadge.text = log.user
 
-            if (log.user.equals("Admin", ignoreCase = true)) {
+            if (log.user.startsWith("Admin", ignoreCase = true)) {
                 binding.tvUserBadge.setBackgroundResource(R.drawable.badge_admin_bg)
             } else {
                 binding.tvUserBadge.setBackgroundResource(R.drawable.badge_intruder_bg)

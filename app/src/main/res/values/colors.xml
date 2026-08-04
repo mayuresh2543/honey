@@ -8,11 +8,23 @@
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
     
-    <color name="dark_bg">#121214</color>
-    <color name="card_bg">#1E1E24</color>
+    <!-- Modern Color Palette -->
     <color name="primary_accent">#FF9800</color>
+    <color name="primary_accent_light">#F57C00</color>
     <color name="success_green">#4CAF50</color>
     <color name="alert_red">#F44336</color>
-    <color name="text_primary">#F5F5F7</color>
-    <color name="text_secondary">#9A9AA0</color>
+
+    <!-- Dark Mode Colors -->
+    <color name="dark_bg">#121214</color>
+    <color name="dark_card_bg">#1E1E24</color>
+    <color name="dark_card_stroke">#2E2E38</color>
+    <color name="dark_text_primary">#F5F5F7</color>
+    <color name="dark_text_secondary">#9A9AA0</color>
+
+    <!-- Light Mode Colors -->
+    <color name="light_bg">#F8F9FA</color>
+    <color name="light_card_bg">#FFFFFF</color>
+    <color name="light_card_stroke">#E0E0E6</color>
+    <color name="light_text_primary">#1C1B1F</color>
+    <color name="light_text_secondary">#606066</color>
 </resources>

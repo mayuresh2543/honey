@@ -1,0 +1,16 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <style name="Theme.HoneyfileSecurity" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary_accent</item>
+        <item name="colorOnPrimary">@color/black</item>
+        <item name="colorSecondary">@color/teal_200</item>
+        <item name="android:statusBarColor">@color/dark_bg</item>
+        <item name="android:windowBackground">@color/dark_bg</item>
+
+        <!-- Dynamic Theme Color References -->
+        <item name="appBackgroundColor">@color/dark_bg</item>
+        <item name="appCardColor">@color/dark_card_bg</item>
+        <item name="appCardStrokeColor">@color/dark_card_stroke</item>
+        <item name="appTextColorPrimary">@color/dark_text_primary</item>
+        <item name="appTextColorSecondary">@color/dark_text_secondary</item>
+    </style>
+</resources>

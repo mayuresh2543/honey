@@ -12,7 +12,6 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
@@ -20,6 +19,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.honeyfile.security.alert.EmailAlertManager
 import com.honeyfile.security.auth.FaceAuthManager
+import com.honeyfile.security.auth.ThemeManager
 import com.honeyfile.security.camera.IntruderCaptureManager
 import com.honeyfile.security.data.AccessLog
 import com.honeyfile.security.data.AppDatabase
@@ -27,7 +27,6 @@ import com.honeyfile.security.databinding.ActivityMainBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -40,6 +39,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var faceAuthManager: FaceAuthManager
     private lateinit var intruderCaptureManager: IntruderCaptureManager
     private lateinit var emailAlertManager: EmailAlertManager
+    private lateinit var themeManager: ThemeManager
 
     private val logAdapter = LogAdapter()
     private lateinit var galleryAdapter: CapturedImageAdapter
@@ -58,6 +58,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        themeManager = ThemeManager(this)
+        themeManager.applyTheme()
+
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
@@ -74,6 +77,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUI() {
+        // Theme switch listener
+        binding.switchTheme.isChecked = themeManager.isDarkMode
+        binding.switchTheme.setOnCheckedChangeListener { _, isChecked ->
+            themeManager.isDarkMode = isChecked
+        }
+
         binding.rvLogs.layoutManager = LinearLayoutManager(this)
         binding.rvLogs.adapter = logAdapter
 
@@ -136,16 +145,18 @@ class MainActivity : AppCompatActivity() {
     private fun onTriggerAccessClicked() {
         val frame = currentFrameBitmap
         lifecycleScope.launch {
-            Toast.makeText(this@MainActivity, "Analyzing face authentication...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@MainActivity, "Analyzing multi-admin facial authentication...", Toast.LENGTH_SHORT).show()
 
-            val isAdmin = frame?.let { faceAuthManager.authenticateFace(it) } ?: false
+            val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
+            val isAuthenticated = authResult?.isAuthenticated ?: false
+            val adminName = authResult?.adminName ?: "Admin"
             val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
             val filename = "admin_passwords.txt"
 
-            if (isAdmin) {
-                Log.d(TAG, "Admin verified ✅")
-                database.logDao().insertLog(AccessLog(file = filename, user = "Admin", timestamp = timestamp))
-                Toast.makeText(this@MainActivity, "Admin Verified ✅ Opening Confidential File", Toast.LENGTH_SHORT).show()
+            if (isAuthenticated) {
+                Log.d(TAG, "$adminName verified ✅")
+                database.logDao().insertLog(AccessLog(file = filename, user = adminName, timestamp = timestamp))
+                Toast.makeText(this@MainActivity, "$adminName Verified ✅ Opening Confidential File", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@MainActivity, RealFileViewerActivity::class.java))
             } else {
                 Log.d(TAG, "Intruder detected 🚨")

@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions[Manifest.permission.CAMERA] == true) {
-            startCameraPreview()
+            initializeBackgroundCamera()
         } else {
             Toast.makeText(this, "Camera permission is required for security checks", Toast.LENGTH_LONG).show()
         }
@@ -178,6 +178,8 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var imageCapture: ImageCapture? = null
+
     private fun checkAndRequestPermissions() {
         val permissions = mutableListOf(Manifest.permission.CAMERA)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
@@ -191,50 +193,44 @@ class MainActivity : AppCompatActivity() {
         if (missing.isNotEmpty()) {
             requestPermissionLauncher.launch(missing.toTypedArray())
         } else {
-            startCameraPreview()
+            initializeBackgroundCamera()
         }
     }
 
-    private fun startCameraPreview() {
+    private fun initializeBackgroundCamera() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             try {
                 val cameraProvider = cameraProviderFuture.get()
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(binding.previewView.surfaceProvider)
-                }
 
-                val imageAnalysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                imageCapture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
-
-                imageAnalysis.setAnalyzer(cameraExecutor) { imageProxy ->
-                    val bitmap = imageProxy.toBitmap()
-                    currentFrameBitmap = bitmap
-                    imageProxy.close()
-                }
 
                 val cameraSelector = when {
                     cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
                     cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
                     else -> {
-                        Log.e(TAG, "No camera available on this device or emulator")
-                        Toast.makeText(this, "No camera available on device/emulator", Toast.LENGTH_LONG).show()
+                        Log.e(TAG, "No camera available on device/emulator")
                         return@addListener
                     }
                 }
+
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageAnalysis)
+                cameraProvider.bindToLifecycle(this, cameraSelector, imageCapture)
+                Log.d(TAG, "Background CameraX silent capture initialized")
             } catch (e: Exception) {
-                Log.e(TAG, "Camera initialization failed", e)
+                Log.e(TAG, "Background camera initialization failed", e)
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
     private fun onTriggerAccessClicked() {
-        val frame = currentFrameBitmap
         lifecycleScope.launch {
-            Toast.makeText(this@MainActivity, "Analyzing multi-admin facial authentication...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this@MainActivity, "Capturing photo & verifying security...", Toast.LENGTH_SHORT).show()
+
+            // Silently capture photo in background
+            val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
 
             val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
             val isAuthenticated = authResult?.isAuthenticated ?: false
@@ -258,7 +254,7 @@ class MainActivity : AppCompatActivity() {
                 // Dispatch Email alert
                 emailAlertManager.sendAlert(
                     subject = "Intruder tried opening honeyfile!",
-                    body = "Unauthorized access attempt detected at $timestamp.",
+                    body = "Unauthorized access attempt detected at $timestamp on file: $filename.",
                     imageFile = photoFile
                 )
 

@@ -50,6 +50,38 @@ class IntruderCaptureManager(private val context: Context) {
         }
     }
 
+    /**
+     * Asynchronously captures a photo in the background without UI camera preview.
+     */
+    suspend fun takeSilentPhoto(imageCapture: ImageCapture?, executor: java.util.concurrent.Executor): Bitmap? = suspendCancellableCoroutine { continuation ->
+        if (imageCapture == null) {
+            Log.e(TAG, "ImageCapture is not initialized")
+            continuation.resume(null)
+            return@suspendCancellableCoroutine
+        }
+
+        imageCapture.takePicture(
+            executor,
+            object : ImageCapture.OnImageCapturedCallback() {
+                override fun onCaptureSuccess(imageProxy: ImageProxy) {
+                    val bitmap = imageProxy.toBitmap()
+                    imageProxy.close()
+                    Log.d(TAG, "Silent photo captured successfully: ${bitmap.width}x${bitmap.height}")
+                    if (continuation.isActive) {
+                        continuation.resume(bitmap)
+                    }
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    Log.e(TAG, "Silent photo capture error: ${exception.message}", exception)
+                    if (continuation.isActive) {
+                        continuation.resume(null)
+                    }
+                }
+            }
+        )
+    }
+
     fun getCapturedImages(): List<File> {
         if (!capturedFolder.exists()) return emptyList()
         return capturedFolder.listFiles()

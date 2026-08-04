@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
@@ -128,6 +129,41 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnTrigger.setOnClickListener {
             onTriggerAccessClicked()
+        }
+
+        // Bottom Navigation Tab Listener
+        binding.bottomNavigation.setOnItemSelectedListener { item ->
+            when (item.itemId) {
+                com.honeyfile.security.R.id.nav_dashboard -> {
+                    binding.tabOverview.visibility = View.VISIBLE
+                    binding.tabScanner.visibility = View.GONE
+                    binding.tabVault.visibility = View.GONE
+                    binding.tabLogs.visibility = View.GONE
+                    true
+                }
+                com.honeyfile.security.R.id.nav_scanner -> {
+                    binding.tabOverview.visibility = View.GONE
+                    binding.tabScanner.visibility = View.VISIBLE
+                    binding.tabVault.visibility = View.GONE
+                    binding.tabLogs.visibility = View.GONE
+                    true
+                }
+                com.honeyfile.security.R.id.nav_vault -> {
+                    binding.tabOverview.visibility = View.GONE
+                    binding.tabScanner.visibility = View.GONE
+                    binding.tabVault.visibility = View.VISIBLE
+                    binding.tabLogs.visibility = View.GONE
+                    true
+                }
+                com.honeyfile.security.R.id.nav_logs -> {
+                    binding.tabOverview.visibility = View.GONE
+                    binding.tabScanner.visibility = View.GONE
+                    binding.tabVault.visibility = View.GONE
+                    binding.tabLogs.visibility = View.VISIBLE
+                    true
+                }
+                else -> false
+            }
         }
     }
 

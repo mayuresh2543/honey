@@ -381,6 +381,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun refreshGallery() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            val files = intruderCaptureManager.getCapturedImages()
+            withContext(Dispatchers.Main) {
+                galleryAdapter.submitList(files)
+            }
+        }
+    }
+
     private fun deployDecoyFilesToMonitoredFolder() {
         val uri = selectedFolderUri
         if (uri == null) {

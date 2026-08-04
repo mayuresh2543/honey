@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Honeyfile Security</string>
+    <string name="dashboard_title">🛡️ Security & Deception Dashboard</string>
+    <string name="trigger_button_text">⚡ Access Monitored Honeyfile</string>
+    <string name="stat_total_logs">Total Logs</string>
+    <string name="stat_admin_access">Admin Access</string>
+    <string name="stat_intruder_access">Intruder Alerts</string>
+    <string name="stat_captured_photos">Captured Photos</string>
+    <string name="logs_section_title">📜 Access Logs</string>
+    <string name="gallery_section_title">📷 Captured Intruder Gallery</string>
+    <string name="decoy_title">🔒 Protected Document Viewer</string>
+    <string name="real_title">🔑 Admin Confidential File</string>
+    <string name="camera_permission_required">Camera permission is required for face authentication and security verification.</string>
+</resources>

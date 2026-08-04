@@ -204,26 +204,41 @@ class MainActivity : AppCompatActivity() {
             try {
                 val cameraProvider = cameraProviderFuture.get()
 
-                imageCapture = ImageCapture.Builder()
+                val preview = Preview.Builder().build().also {
+                    it.setSurfaceProvider(binding.hiddenPreviewView.surfaceProvider)
+                }
+
+                val capture = ImageCapture.Builder()
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
+
+                this.imageCapture = capture
 
                 val cameraSelector = when {
                     cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
                     cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) -> CameraSelector.DEFAULT_BACK_CAMERA
                     else -> {
-                        Log.e(TAG, "No camera available on device/emulator")
+                        Log.e(TAG, "No camera available on device")
+                        Toast.makeText(this, "No camera available on device", Toast.LENGTH_SHORT).show()
                         return@addListener
                     }
                 }
 
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, imageCapture)
-                Log.d(TAG, "Background CameraX silent capture initialized")
+                cameraProvider.bindToLifecycle(this, cameraSelector, preview, capture)
+                Log.d(TAG, "Background CameraX silent capture initialized with hardware surface stream")
             } catch (e: Exception) {
                 Log.e(TAG, "Background camera initialization failed", e)
+                Toast.makeText(this, "Camera initialization error: ${e.message}", Toast.LENGTH_SHORT).show()
             }
         }, ContextCompat.getMainExecutor(this))
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            initializeBackgroundCamera()
+        }
     }
 
     private fun onTriggerAccessClicked() {

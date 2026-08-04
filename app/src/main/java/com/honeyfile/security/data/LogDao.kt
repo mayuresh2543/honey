@@ -14,6 +14,9 @@ interface LogDao {
     @Query("SELECT * FROM access_logs ORDER BY id DESC")
     fun getAllLogs(): LiveData<List<AccessLog>>
 
+    @Query("SELECT * FROM access_logs ORDER BY id DESC")
+    suspend fun getAllLogsList(): List<AccessLog>
+
     @Query("SELECT COUNT(*) FROM access_logs WHERE LOWER(user) = 'admin'")
     fun getAdminCount(): LiveData<Int>
 

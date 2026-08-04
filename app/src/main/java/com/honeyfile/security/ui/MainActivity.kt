@@ -121,14 +121,24 @@ class MainActivity : AppCompatActivity() {
         binding.rvLogs.layoutManager = LinearLayoutManager(this)
         binding.rvLogs.adapter = logAdapter
 
+        // Open Intruder Photo Evidence Detail Dialog on item click
         galleryAdapter = CapturedImageAdapter { file ->
-            Toast.makeText(this, "Captured photo: ${file.name}", Toast.LENGTH_SHORT).show()
+            PhotoDetailDialogFragment.newInstance(file)
+                .show(supportFragmentManager, PhotoDetailDialogFragment.TAG)
         }
         binding.rvGallery.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
         binding.rvGallery.adapter = galleryAdapter
 
         binding.btnTrigger.setOnClickListener {
             onTriggerAccessClicked()
+        }
+
+        binding.btnDeployDecoys.setOnClickListener {
+            deployDecoyFilesToMonitoredFolder()
+        }
+
+        binding.btnExportCsv.setOnClickListener {
+            exportAuditLogsToCsv()
         }
 
         // Bottom Navigation Tab Listener
@@ -184,6 +194,7 @@ class MainActivity : AppCompatActivity() {
             if (isChecked) {
                 if (uri != null) {
                     folderScannerManager.startContinuousScanning(uri)
+                    com.honeyfile.security.service.HoneyMonitoringService.startService(this, uri)
                 } else {
                     binding.switchAutoScan.isChecked = false
                     Toast.makeText(this, "Please select a folder first!", Toast.LENGTH_SHORT).show()
@@ -191,6 +202,7 @@ class MainActivity : AppCompatActivity() {
                 }
             } else {
                 folderScannerManager.stopScanning()
+                com.honeyfile.security.service.HoneyMonitoringService.stopService(this)
             }
         }
 
@@ -198,6 +210,7 @@ class MainActivity : AppCompatActivity() {
         selectedFolderUri?.let { uri ->
             binding.switchAutoScan.isChecked = true
             folderScannerManager.startContinuousScanning(uri)
+            com.honeyfile.security.service.HoneyMonitoringService.startService(this, uri)
         }
     }
 
@@ -368,11 +381,97 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun refreshGallery() {
+    private fun deployDecoyFilesToMonitoredFolder() {
+        val uri = selectedFolderUri
+        if (uri == null) {
+            Toast.makeText(this, "Select a monitored directory first!", Toast.LENGTH_SHORT).show()
+            folderPickerLauncher.launch(null)
+            return
+        }
+
         lifecycleScope.launch(Dispatchers.IO) {
-            val files = intruderCaptureManager.getCapturedImages()
-            withContext(Dispatchers.Main) {
-                galleryAdapter.submitList(files)
+            try {
+                val docDir = androidx.documentfile.provider.DocumentFile.fromTreeUri(this@MainActivity, uri)
+                if (docDir != null && docDir.exists()) {
+                    val decoys = listOf(
+                        "admin_passwords.txt" to "CONFIDENTIAL: ROOT ADMIN PASSWORDS & ACCESS KEYS\nServer Root: Rj39!#x829\nDB Master: H0neyP0t_2026",
+                        "salary_records.xlsx" to "CONFIDENTIAL PAYROLL & SALARY DISBURSEMENTS 2026",
+                        "secret_api_keys.json" to "{\n  \"AWS_SECRET\": \"AKIAIOSFODNN7EXAMPLE\",\n  \"STRIPE_KEY\": \"sk_test_4eC39HqLyjWDarjtT1zdp7dc\"\n}"
+                    )
+
+                    var createdCount = 0
+                    for ((fileName, content) in decoys) {
+                        val existing = docDir.findFile(fileName)
+                        if (existing == null) {
+                            val mime = if (fileName.endsWith(".json")) "application/json" else "text/plain"
+                            val newFile = docDir.createFile(mime, fileName)
+                            newFile?.uri?.let { fileUri ->
+                                contentResolver.openOutputStream(fileUri)?.use { out ->
+                                    out.write(content.toByteArray())
+                                }
+                                createdCount++
+                            }
+                        }
+                    }
+
+                    withContext(Dispatchers.Main) {
+                        if (createdCount > 0) {
+                            Toast.makeText(this@MainActivity, "Deployed $createdCount Decoy Honeyfiles into folder! 🍯", Toast.LENGTH_LONG).show()
+                        } else {
+                            Toast.makeText(this@MainActivity, "Decoy honeyfiles already present in folder!", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error deploying decoy honeyfiles", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Failed to deploy decoys: ${e.message}", Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+    private fun exportAuditLogsToCsv() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val logs = database.logDao().getAllLogsList()
+                if (logs.isEmpty()) {
+                    withContext(Dispatchers.Main) {
+                        Toast.makeText(this@MainActivity, "No audit logs available to export!", Toast.LENGTH_SHORT).show()
+                    }
+                    return@launch
+                }
+
+                val csvHeader = "Log ID,Target File,User Identity,Timestamp\n"
+                val csvBody = logs.joinToString("\n") { log ->
+                    "${log.id},\"${log.file}\",\"${log.user}\",\"${log.timestamp}\""
+                }
+
+                val csvFile = java.io.File(cacheDir, "honeyfile_security_audit_logs.csv")
+                csvFile.writeText(csvHeader + csvBody)
+
+                val uri = androidx.core.content.FileProvider.getUriForFile(
+                    this@MainActivity,
+                    "$packageName.fileprovider",
+                    csvFile
+                )
+
+                val shareIntent = Intent(Intent.ACTION_SEND).apply {
+                    type = "text/csv"
+                    putExtra(Intent.EXTRA_STREAM, uri)
+                    putExtra(Intent.EXTRA_SUBJECT, "📊 Honeyfile Security Audit Logs Export")
+                    putExtra(Intent.EXTRA_TEXT, "Exported Security Access Logs from Honeyfile Security System.")
+                    addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+                }
+
+                withContext(Dispatchers.Main) {
+                    startActivity(Intent.createChooser(shareIntent, "Export Security Audit Logs CSV via"))
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error exporting CSV logs", e)
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@MainActivity, "Failed to export CSV: ${e.message}", Toast.LENGTH_LONG).show()
+                }
             }
         }
     }

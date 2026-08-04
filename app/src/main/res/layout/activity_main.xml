@@ -413,6 +413,18 @@
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnDeployDecoys"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:text="🍯 Deploy Decoy Honeyfiles into Directory"
+                        android:textColor="@color/black"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:backgroundTint="@color/primary_accent"
+                        app:cornerRadius="14dp"
+                        android:layout_marginBottom="16dp" />
+
                 </LinearLayout>
 
                 <!-- TAB 3: INTRUDER PHOTO VAULT -->
@@ -449,14 +461,32 @@
                     android:orientation="vertical"
                     android:visibility="gone">
 
-                    <TextView
-                        android:layout_width="wrap_content"
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="📜 Security Access Audit Logs"
-                        android:textColor="?attr/appTextColorPrimary"
-                        android:textSize="16sp"
-                        android:textStyle="bold"
-                        android:layout_marginBottom="12dp" />
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+
+                        <TextView
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="📜 Security Audit Logs"
+                            android:textColor="?attr/appTextColorPrimary"
+                            android:textSize="16sp"
+                            android:textStyle="bold" />
+
+                        <com.google.android.material.button.MaterialButton
+                            android:id="@+id/btnExportCsv"
+                            style="@style/Widget.Material3.Button.OutlinedButton"
+                            android:layout_width="wrap_content"
+                            android:layout_height="40dp"
+                            android:text="📊 Export CSV"
+                            android:textSize="11sp"
+                            app:cornerRadius="10dp" />
+
+                    </LinearLayout>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvLogs"

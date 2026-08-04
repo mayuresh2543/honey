@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">Honeyfile Security</string>
-    <string name="dashboard_title">🛡️ Security & Deception Dashboard</string>
+    <string name="dashboard_title">🛡️ Security &amp; Deception Dashboard</string>
     <string name="trigger_button_text">⚡ Access Monitored Honeyfile</string>
     <string name="stat_total_logs">Total Logs</string>
     <string name="stat_admin_access">Admin Access</string>

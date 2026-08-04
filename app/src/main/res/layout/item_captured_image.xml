@@ -4,9 +4,11 @@
     android:layout_width="100dp"
     android:layout_height="100dp"
     android:layout_margin="4dp"
-    app:cardCornerRadius="12dp"
+    app:cardCornerRadius="14dp"
     app:cardElevation="2dp"
-    app:cardBackgroundColor="@color/card_bg">
+    app:cardBackgroundColor="?attr/appCardColor"
+    app:strokeColor="?attr/appCardStrokeColor"
+    app:strokeWidth="1dp">
 
     <ImageView
         android:id="@+id/ivCaptured"

@@ -7,6 +7,7 @@ plugins {
 android {
     namespace = "com.honeyfile.security"
     compileSdk = 34
+    buildToolsVersion = "34.0.0"
 
     defaultConfig {
         applicationId = "com.honeyfile.security"

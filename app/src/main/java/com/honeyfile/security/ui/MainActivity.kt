@@ -39,8 +39,25 @@ class MainActivity : AppCompatActivity() {
     private lateinit var faceAuthManager: FaceAuthManager
     private lateinit var intruderCaptureManager: IntruderCaptureManager
     private lateinit var emailAlertManager: EmailAlertManager
+    private lateinit var themeManager: ThemeManager
     private lateinit var folderScannerManager: com.honeyfile.security.scanner.FolderScannerManager
+
+    private val logAdapter = LogAdapter()
+    private lateinit var galleryAdapter: CapturedImageAdapter
+
+    private var currentFrameBitmap: Bitmap? = null
+    private val cameraExecutor = Executors.newSingleThreadExecutor()
     private var selectedFolderUri: android.net.Uri? = null
+
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        if (permissions[Manifest.permission.CAMERA] == true) {
+            startCameraPreview()
+        } else {
+            Toast.makeText(this, "Camera permission is required for security checks", Toast.LENGTH_LONG).show()
+        }
+    }
 
     private val folderPickerLauncher = registerForActivityResult(
         ActivityResultContracts.OpenDocumentTree()

@@ -1,16 +1,58 @@
+# ==========================================
+# Android Studio & Gradle Build Artifacts
+# ==========================================
 *.iml
-.gradle
-/local.properties
-/.idea/
-.DS_Store
-/build
-/app/build
-/captures
-.externalNativeBuild
-.cxx
+.gradle/
+/build/
+/app/build/
+/captures/
+.externalNativeBuild/
+.cxx/
 local.properties
+.navigation/
+
+# IDE & Editor Settings
+.idea/
+.vscode/
+*.ipr
+*.iws
+
+# Android Signing Keys & Secrets
+*.keystore
+*.jks
+*.p12
+google-services.json
+secrets.properties
+
+# ==========================================
+# Python & Runtime Caches
+# ==========================================
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.env
+.venv
+env/
+venv/
+ENV/
+
+# ==========================================
+# Honeyfile App Sensitive Data & Logs
+# ==========================================
 logs.db
 captured/
+app/src/main/assets/captured/
 trigger.lock
+*.log
+
+# ==========================================
+# OS Generated Files
+# ==========================================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

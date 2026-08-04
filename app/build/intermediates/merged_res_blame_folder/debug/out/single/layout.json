@@ -1,0 +1,22 @@
+[
+    {
+        "merged": "com.honeyfile.security.app-mergeDebugResources-46:/layout/activity_main.xml",
+        "source": "com.honeyfile.security.app-main-49:/layout/activity_main.xml"
+    },
+    {
+        "merged": "com.honeyfile.security.app-mergeDebugResources-46:/layout/item_captured_image.xml",
+        "source": "com.honeyfile.security.app-main-49:/layout/item_captured_image.xml"
+    },
+    {
+        "merged": "com.honeyfile.security.app-mergeDebugResources-46:/layout/activity_decoy_viewer.xml",
+        "source": "com.honeyfile.security.app-main-49:/layout/activity_decoy_viewer.xml"
+    },
+    {
+        "merged": "com.honeyfile.security.app-mergeDebugResources-46:/layout/activity_real_file_viewer.xml",
+        "source": "com.honeyfile.security.app-main-49:/layout/activity_real_file_viewer.xml"
+    },
+    {
+        "merged": "com.honeyfile.security.app-mergeDebugResources-46:/layout/item_log.xml",
+        "source": "com.honeyfile.security.app-main-49:/layout/item_log.xml"
+    }
+]

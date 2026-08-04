@@ -239,6 +239,7 @@ class MainActivity : AppCompatActivity() {
             val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
             val isAuthenticated = authResult?.isAuthenticated ?: false
             val adminName = authResult?.adminName ?: "Admin"
+            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
             val detectedHoneyName = folderScannerManager.scanResult.value.honeyFileNames.firstOrNull()
             val filename = detectedHoneyName ?: "admin_passwords.txt"
 

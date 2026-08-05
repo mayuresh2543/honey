@@ -2,6 +2,7 @@ package com.honeyfile.security.camera
 
 import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.util.Log
 import androidx.camera.core.ImageCapture
@@ -65,12 +66,16 @@ class IntruderCaptureManager(private val context: Context) {
                     override fun onCaptureSuccess(imageProxy: ImageProxy) {
                         try {
                             val rotation = imageProxy.imageInfo.rotationDegrees
-                            val rawBitmap = imageProxy.toBitmap()
-                            val rotatedBitmap = rotateBitmap(rawBitmap, rotation)
+                            val rawBitmap = extractBitmapFromProxy(imageProxy)
                             imageProxy.close()
-                            Log.d(TAG, "Silent photo captured successfully: ${rotatedBitmap.width}x${rotatedBitmap.height}, rotation=$rotation")
-                            if (continuation.isActive) {
-                                continuation.resume(rotatedBitmap)
+
+                            if (rawBitmap != null) {
+                                val rotatedBitmap = rotateBitmap(rawBitmap, rotation)
+                                Log.d(TAG, "Silent photo captured successfully: ${rotatedBitmap.width}x${rotatedBitmap.height}, rotation=$rotation")
+                                if (continuation.isActive) continuation.resume(rotatedBitmap)
+                            } else {
+                                Log.e(TAG, "Failed extracting bitmap from ImageProxy")
+                                if (continuation.isActive) continuation.resume(null)
                             }
                         } catch (e: Exception) {
                             Log.e(TAG, "Failed converting imageProxy to bitmap", e)
@@ -87,6 +92,24 @@ class IntruderCaptureManager(private val context: Context) {
                     }
                 }
             )
+        }
+    }
+
+    private fun extractBitmapFromProxy(imageProxy: ImageProxy): Bitmap? {
+        return try {
+            imageProxy.toBitmap()
+        } catch (e: Exception) {
+            Log.w(TAG, "imageProxy.toBitmap failed, decoding plane buffer", e)
+            try {
+                val plane = imageProxy.planes[0]
+                val buffer = plane.buffer
+                val bytes = ByteArray(buffer.remaining())
+                buffer.get(bytes)
+                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            } catch (e2: Exception) {
+                Log.e(TAG, "Plane buffer decoding failed", e2)
+                null
+            }
         }
     }
 

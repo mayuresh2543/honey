@@ -58,6 +58,9 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
+        themeManager.applyInstant(binding.root, dialog?.window, themeManager.isDarkMode)
+
         binding.tvEnrollTitle.text = "📸 Admin $adminTarget Facial Enrollment"
         binding.tvEnrollSubtitle.text = "Align Admin $adminTarget's face in the camera preview below"
 

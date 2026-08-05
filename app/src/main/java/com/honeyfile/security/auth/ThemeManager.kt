@@ -129,9 +129,9 @@ class ThemeManager(context: Context) {
         return dr * dr + dg * dg + db * db
     }
 
-    fun applyInstant(rootView: View, window: Window, toDark: Boolean) {
+    fun applyInstant(rootView: View, window: Window? = null, toDark: Boolean = isDarkMode) {
         tagViewsInternal(rootView, toDark)
-        updateWindowStatusBar(window, toDark)
+        window?.let { updateWindowStatusBar(it, toDark) }
         applyColorsToHierarchy(
             rootView,
             bg = if (toDark) darkBg else lightBg,

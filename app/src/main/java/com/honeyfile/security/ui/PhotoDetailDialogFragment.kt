@@ -40,6 +40,9 @@ class PhotoDetailDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
+        themeManager.applyInstant(binding.root, dialog?.window, themeManager.isDarkMode)
+
         val filePath = arguments?.getString(ARG_FILE_PATH)
         if (filePath != null) {
             photoFile = File(filePath)

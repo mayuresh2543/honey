@@ -137,6 +137,9 @@ class MainActivity : AppCompatActivity() {
             if (themeManager.isDarkMode != isChecked) {
                 themeManager.isDarkMode = isChecked
                 themeManager.animateTransition(binding.root, window, isChecked, 150L)
+                logAdapter.notifyDataSetChanged()
+                directoryLogAdapter.notifyDataSetChanged()
+                galleryAdapter.notifyDataSetChanged()
             }
         }
 

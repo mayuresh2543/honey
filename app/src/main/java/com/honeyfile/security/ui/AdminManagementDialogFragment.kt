@@ -39,6 +39,9 @@ class AdminManagementDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
+        themeManager.applyInstant(binding.root, dialog?.window, themeManager.isDarkMode)
+
         updateAdminStatusUI()
 
         binding.btnEnrollAdmin1.setOnClickListener {

@@ -23,6 +23,8 @@ class LogAdapter : RecyclerView.Adapter<LogAdapter.LogViewHolder>() {
     }
 
     override fun onBindViewHolder(holder: LogViewHolder, position: Int) {
+        val themeManager = com.honeyfile.security.auth.ThemeManager(holder.itemView.context)
+        themeManager.applyInstant(holder.itemView, toDark = themeManager.isDarkMode)
         holder.bind(logsList[position])
     }
 

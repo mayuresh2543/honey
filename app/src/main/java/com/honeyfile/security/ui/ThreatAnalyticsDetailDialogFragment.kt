@@ -59,6 +59,9 @@ class ThreatAnalyticsDetailDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
+        themeManager.applyInstant(binding.root, dialog?.window, themeManager.isDarkMode)
+
         binding.btnClose.setOnClickListener { dismiss() }
 
         binding.rvSlotBreaches.layoutManager = LinearLayoutManager(requireContext())

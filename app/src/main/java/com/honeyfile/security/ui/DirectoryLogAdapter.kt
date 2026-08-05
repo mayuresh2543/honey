@@ -52,6 +52,9 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
         val log = getItem(position)
         val isExpanded = expandedPositions.contains(position)
 
+        val themeManager = com.honeyfile.security.auth.ThemeManager(holder.itemView.context)
+        themeManager.applyInstant(holder.itemView, toDark = themeManager.isDarkMode)
+
         holder.bind(log, isExpanded) {
             if (isExpanded) {
                 expandedPositions.remove(position)

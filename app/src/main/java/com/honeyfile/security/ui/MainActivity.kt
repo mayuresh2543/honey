@@ -101,41 +101,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         themeManager = ThemeManager(this)
-        themeManager.applyTheme()
 
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Configure Status Bar Light/Dark Icons Appearance
-        WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = !themeManager.isDarkMode
-
-        // Pre-populate UI state immediately to prevent placeholder 0 flash during theme recreation
-        savedInstanceState?.let { bundle ->
-            binding.tvAdminCount.text = bundle.getString("key_admin_count", "0")
-            binding.tvIntruderCount.text = bundle.getString("key_intruder_count", "0")
-            binding.tvTotalLogs.text = bundle.getString("key_total_logs", "0")
-            binding.tvSelectedFolder.text = bundle.getString("key_selected_folder", getString(com.honeyfile.security.R.string.no_folder_selected))
-            binding.tvScanStats.text = bundle.getString("key_scan_stats", "Scanned Files: 0 | Honeyfiles Detected: 0")
-        }
-
-        // Animate Theme Snapshot Overlay Cross-Fade (Zero Blank Screen Flash!)
-        val snapshot = ThemeSnapshotHolder.snapshotBitmap
-        if (snapshot != null) {
-            binding.ivThemeSnapshot.setImageBitmap(snapshot)
-            binding.ivThemeSnapshot.visibility = View.VISIBLE
-            binding.ivThemeSnapshot.alpha = 1.0f
-            ThemeSnapshotHolder.snapshotBitmap = null
-
-            binding.ivThemeSnapshot.animate()
-                .alpha(0.0f)
-                .setDuration(350)
-                .withEndAction {
-                    binding.ivThemeSnapshot.visibility = View.GONE
-                    binding.ivThemeSnapshot.setImageBitmap(null)
-                }
-                .start()
-        }
+        // Apply theme colors in-place instantly (zero window recreation, zero blank screen)
+        themeManager.applyInstant(binding.root, window, themeManager.isDarkMode)
 
         database = AppDatabase.getDatabase(this)
         faceAuthManager = FaceAuthManager(this)
@@ -151,32 +123,6 @@ class MainActivity : AppCompatActivity() {
         refreshGallery()
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putInt("key_selected_tab_id", binding.bottomNavigation.selectedItemId)
-        outState.putString("key_admin_count", binding.tvAdminCount.text.toString())
-        outState.putString("key_intruder_count", binding.tvIntruderCount.text.toString())
-        outState.putString("key_total_logs", binding.tvTotalLogs.text.toString())
-        outState.putString("key_selected_folder", binding.tvSelectedFolder.text.toString())
-        outState.putString("key_scan_stats", binding.tvScanStats.text.toString())
-    }
-
-    private fun toggleThemeWithSmoothSnapshot(newDarkMode: Boolean) {
-        binding.switchTheme.isEnabled = false // Prevent double toggles during transition
-        // Delay by 300ms so the MaterialSwitch thumb animation finishes visually without freezing
-        binding.switchTheme.postDelayed({
-            try {
-                val root = binding.root
-                val bitmap = root.drawToBitmap()
-                ThemeSnapshotHolder.snapshotBitmap = bitmap
-                ThemeSnapshotHolder.activeTabId = binding.bottomNavigation.selectedItemId
-            } catch (e: Exception) { }
-
-            themeManager.isDarkMode = newDarkMode
-            themeManager.applyTheme()
-        }, 300)
-    }
-
     private fun selectTab(tabId: Int) {
         binding.tabOverview.visibility = if (tabId == R.id.nav_dashboard) View.VISIBLE else View.GONE
         binding.tabScanner.visibility = if (tabId == R.id.nav_scanner) View.VISIBLE else View.GONE
@@ -185,11 +131,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun setupUI(savedInstanceState: Bundle?) {
-        // Theme switch listener with native DayNight theme switching and smooth snapshot cross-fade
+        // Theme switch listener — fast 150ms in-place color animation with ZERO window recreation or blank screen flash
         binding.switchTheme.isChecked = themeManager.isDarkMode
         binding.switchTheme.setOnCheckedChangeListener { _, isChecked ->
             if (themeManager.isDarkMode != isChecked) {
-                toggleThemeWithSmoothSnapshot(isChecked)
+                themeManager.isDarkMode = isChecked
+                themeManager.animateTransition(binding.root, window, isChecked, 150L)
             }
         }
 
@@ -273,21 +220,11 @@ class MainActivity : AppCompatActivity() {
             exportAuditLogsToCsv()
         }
 
-        // Bottom Navigation Tab Listener & Restoration
+        // Bottom Navigation Tab Listener
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             selectTab(item.itemId)
             true
         }
-
-        // Restore tab from ThemeSnapshotHolder (survives recreate perfectly) or savedInstanceState
-        val initialTabId = ThemeSnapshotHolder.activeTabId 
-            ?: savedInstanceState?.getInt("key_selected_tab_id", R.id.nav_dashboard) 
-            ?: R.id.nav_dashboard
-            
-        ThemeSnapshotHolder.activeTabId = null // clear after restoring
-
-        binding.bottomNavigation.selectedItemId = initialTabId
-        selectTab(initialTabId)
     }
 
     private fun setupFolderScanner() {
@@ -716,10 +653,5 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
     }
-}
-
-object ThemeSnapshotHolder {
-    var snapshotBitmap: Bitmap? = null
-    var activeTabId: Int? = null
 }
 

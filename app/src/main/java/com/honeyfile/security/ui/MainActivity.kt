@@ -386,7 +386,6 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 val capture = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
 
                 this.imageCapture = capture

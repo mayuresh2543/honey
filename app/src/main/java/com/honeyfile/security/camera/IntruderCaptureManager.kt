@@ -41,7 +41,12 @@ class IntruderCaptureManager(private val context: Context) {
             return@suspendCancellableCoroutine
         }
 
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+        val metadata = ImageCapture.OutputFileOptions.Metadata().apply {
+            isReversedHorizontal = true
+        }
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile)
+            .setMetadata(metadata)
+            .build()
 
         imageCapture.takePicture(
             outputOptions,

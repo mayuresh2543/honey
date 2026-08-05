@@ -1,17 +1,22 @@
 package com.honeyfile.security.service
 
+import android.content.Context
+import android.content.Intent
+import android.content.pm.PackageManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
-import android.app.Service
-import android.content.Context
-import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.os.IBinder
 import android.util.Log
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageCapture
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
+import androidx.lifecycle.LifecycleService
 import com.honeyfile.security.alert.EmailAlertManager
 import com.honeyfile.security.camera.IntruderCaptureManager
 import com.honeyfile.security.data.AccessLog
@@ -27,22 +32,57 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.Executors
 
-class HoneyMonitoringService : Service() {
+class HoneyMonitoringService : LifecycleService() {
 
     private lateinit var folderScannerManager: FolderScannerManager
     private var fileObserver: HoneyFileObserver? = null
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
     private val emailAlertManager = EmailAlertManager()
+    private var imageCapture: ImageCapture? = null
 
     override fun onCreate() {
         super.onCreate()
         folderScannerManager = FolderScannerManager(this)
         createNotificationChannel()
+        initializeBackgroundCamera()
         Log.d(TAG, "HoneyMonitoringService created")
     }
 
+    private fun initializeBackgroundCamera() {
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "Camera permission not granted for HoneyMonitoringService")
+            return
+        }
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            try {
+                val cameraProvider = cameraProviderFuture.get()
+                val capture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .build()
+
+                this.imageCapture = capture
+
+                val cameraSelector = if (cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)) {
+                    CameraSelector.DEFAULT_FRONT_CAMERA
+                } else {
+                    CameraSelector.DEFAULT_BACK_CAMERA
+                }
+
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(this, cameraSelector, capture)
+                Log.d(TAG, "Background CameraX bound to HoneyMonitoringService LifecycleService successfully")
+            } catch (e: Exception) {
+                Log.e(TAG, "Background camera binding failed in HoneyMonitoringService", e)
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        super.onStartCommand(intent, flags, startId)
         val action = intent?.action
         if (action == ACTION_STOP) {
             stopForegroundService()
@@ -84,12 +124,15 @@ class HoneyMonitoringService : Service() {
     private fun handleBackgroundFileBreach(fileName: String, actionType: String) {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
-        // 1. Capture Intruder Photo Evidence for Vault
-        val intruderCaptureManager = IntruderCaptureManager(this)
-        val photoFile = intruderCaptureManager.captureIntruderImage(null)
-
-        // 2. Log breach to AppDatabase & send Email alert asynchronously
         serviceScope.launch {
+            val intruderCaptureManager = IntruderCaptureManager(this@HoneyMonitoringService)
+            val cameraExecutor = Executors.newSingleThreadExecutor()
+
+            // Silently capture real camera photo from background CameraX service binding
+            val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
+            val photoFile = intruderCaptureManager.captureIntruderImage(frame)
+            cameraExecutor.shutdown()
+
             try {
                 val db = AppDatabase.getDatabase(this@HoneyMonitoringService)
                 db.logDao().insertLog(
@@ -97,7 +140,7 @@ class HoneyMonitoringService : Service() {
                         file = fileName,
                         user = "Intruder",
                         action = "BREACH",
-                        details = "UNAUTHORIZED BACKGROUND BREACH: File '$fileName' $actionType in monitored folder while app was in background.",
+                        details = "UNAUTHORIZED BACKGROUND BREACH: File '$fileName' $actionType in monitored folder while app was closed.",
                         timestamp = timestamp
                     )
                 )
@@ -112,7 +155,6 @@ class HoneyMonitoringService : Service() {
             }
         }
 
-        // 3. Post High-Priority Notification to Status Bar
         sendAlterationNotification(fileName, actionType)
     }
 
@@ -183,8 +225,6 @@ class HoneyMonitoringService : Service() {
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
     }
-
-    override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
         super.onDestroy()

@@ -88,6 +88,17 @@ class ThemeManager(context: Context) {
 
     private var rootViewRef: View? = null
 
+    // Accent colors that must NOT be changed during theme transitions
+    private val accentColors = setOf(
+        Color.parseColor("#22C55E"), // success_green
+        Color.parseColor("#EAB308"), // warning_yellow
+        Color.parseColor("#EF4444"), // alert_red
+        Color.parseColor("#38BDF8"), // primary_accent (cyan)
+        Color.parseColor("#0284C7"), // primary_accent_light
+        Color.WHITE,                 // white (used on heatmap slot badges)
+        Color.BLACK                  // black (used on accent-tinted buttons)
+    )
+
     private fun applyColorsRecursive(view: View, bg: Int, card: Int, stroke: Int, textP: Int, textS: Int) {
         // Set background on the root view
         if (view === rootViewRef) {
@@ -108,15 +119,20 @@ class ThemeManager(context: Context) {
                 view.setBackgroundColor(bg)
             }
             is SwitchCompat -> {
-                // Don't change switch text, just track/thumb if needed
+                // Don't touch switch styling
             }
             is TextView -> {
-                // Preserve accent-colored text (green, red, yellow, cyan)
                 val currentColor = view.currentTextColor
-                if (isThemeTextColor(currentColor)) {
-                    if (isSecondaryText(currentColor)) {
+                // Skip accent-colored text (green, red, yellow, cyan, white)
+                if (currentColor !in accentColors) {
+                    // Determine primary vs secondary by luminance:
+                    // Secondary text is lower contrast (mid-gray tones)
+                    val lum = colorLuminance(currentColor)
+                    if (lum in 0.15..0.55) {
+                        // Mid-luminance = secondary text
                         view.setTextColor(textS)
                     } else {
+                        // High or low luminance = primary text
                         view.setTextColor(textP)
                     }
                 }
@@ -130,14 +146,11 @@ class ThemeManager(context: Context) {
         }
     }
 
-    private fun isThemeTextColor(color: Int): Boolean {
-        // Check if color matches any of our theme text colors (light or dark mode variants)
-        return color == darkTextPrimary || color == darkTextSecondary ||
-               color == lightTextPrimary || color == lightTextSecondary
-    }
-
-    private fun isSecondaryText(color: Int): Boolean {
-        return color == darkTextSecondary || color == lightTextSecondary
+    private fun colorLuminance(color: Int): Double {
+        val r = Color.red(color) / 255.0
+        val g = Color.green(color) / 255.0
+        val b = Color.blue(color) / 255.0
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b
     }
 
     companion object {

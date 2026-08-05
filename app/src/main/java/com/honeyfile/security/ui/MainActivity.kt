@@ -324,8 +324,7 @@ class MainActivity : AppCompatActivity() {
         lastSecurityAlertTimeMs = now
 
         val captureInstance = getOrAwaitImageCapture()
-        val photoFile = intruderCaptureManager.captureIntruderPhotoDirect(captureInstance, cameraExecutor)
-        val frame = photoFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
+        val frame = intruderCaptureManager.takeSilentPhoto(captureInstance, cameraExecutor)
         val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
         val isAuthenticated = authResult?.isAuthenticated ?: false
         val adminName = authResult?.adminName ?: "Admin"
@@ -344,6 +343,8 @@ class MainActivity : AppCompatActivity() {
                     timestamp = timestamp
                 )
             )
+
+            val photoFile = intruderCaptureManager.captureIntruderImage(frame)
 
             emailAlertManager.sendAlert(
                 subject = "Intruder modified monitored file: ${event.fileName}",
@@ -461,8 +462,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this@MainActivity, "Capturing photo & verifying security...", Toast.LENGTH_SHORT).show()
 
             val captureInstance = getOrAwaitImageCapture()
-            val photoFile = intruderCaptureManager.captureIntruderPhotoDirect(captureInstance, cameraExecutor)
-            val frame = photoFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
+            val frame = intruderCaptureManager.takeSilentPhoto(captureInstance, cameraExecutor)
 
             val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
             val isAuthenticated = authResult?.isAuthenticated ?: false
@@ -495,6 +495,8 @@ class MainActivity : AppCompatActivity() {
                         timestamp = timestamp
                     )
                 )
+
+                val photoFile = intruderCaptureManager.captureIntruderImage(frame)
 
                 // Dispatch Email alert
                 emailAlertManager.sendAlert(

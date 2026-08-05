@@ -18,6 +18,7 @@ import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.content.res.ColorStateList
 import android.graphics.Color
@@ -132,7 +133,7 @@ class MainActivity : AppCompatActivity() {
             PhotoDetailDialogFragment.newInstance(file)
                 .show(supportFragmentManager, PhotoDetailDialogFragment.TAG)
         }
-        binding.rvGallery.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        binding.rvGallery.layoutManager = GridLayoutManager(this, 3)
         binding.rvGallery.adapter = galleryAdapter
 
         binding.btnTrigger.setOnClickListener {

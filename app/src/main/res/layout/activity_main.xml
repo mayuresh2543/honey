@@ -5,11 +5,11 @@
     android:layout_height="match_parent"
     android:background="?attr/appBackgroundColor">
 
-    <!-- Hidden 1dp PreviewView required by CameraX hardware HAL on physical devices -->
+    <!-- Hidden PreviewView required by CameraX hardware HAL on physical devices -->
     <androidx.camera.view.PreviewView
         android:id="@+id/hiddenPreviewView"
-        android:layout_width="1dp"
-        android:layout_height="1dp"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
         android:alpha="0.001"
         android:visibility="visible" />
 

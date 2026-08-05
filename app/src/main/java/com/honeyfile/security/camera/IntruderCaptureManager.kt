@@ -68,13 +68,18 @@ class IntruderCaptureManager(private val context: Context) {
                         try {
                             val bitmap = BitmapFactory.decodeFile(tempFile.absolutePath)
                             if (bitmap != null) {
-                                val exif = androidx.exifinterface.media.ExifInterface(tempFile.absolutePath)
-                                val rotation = exif.getAttributeInt(androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION, androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL)
-                                val rotationInDegrees = exifToDegrees(rotation)
-                                val rotatedBitmap = rotateBitmap(bitmap, rotationInDegrees)
-                                Log.d(TAG, "Silent photo saved and loaded successfully: ${rotatedBitmap.width}x${rotatedBitmap.height}")
+                                var finalBitmap = bitmap
+                                try {
+                                    val exif = android.media.ExifInterface(tempFile.absolutePath)
+                                    val rotation = exif.getAttributeInt(android.media.ExifInterface.TAG_ORIENTATION, android.media.ExifInterface.ORIENTATION_NORMAL)
+                                    val rotationInDegrees = exifToDegrees(rotation)
+                                    finalBitmap = rotateBitmap(bitmap, rotationInDegrees)
+                                } catch (exifError: Exception) {
+                                    Log.w(TAG, "EXIF rotation failed, falling back to unrotated bitmap", exifError)
+                                }
+                                Log.d(TAG, "Silent photo saved and loaded successfully: ${finalBitmap.width}x${finalBitmap.height}")
                                 tempFile.delete() // Cleanup
-                                if (continuation.isActive) continuation.resume(rotatedBitmap)
+                                if (continuation.isActive) continuation.resume(finalBitmap)
                             } else {
                                 Log.e(TAG, "Failed to decode saved temp image")
                                 tempFile.delete()
@@ -100,9 +105,9 @@ class IntruderCaptureManager(private val context: Context) {
 
     private fun exifToDegrees(exifOrientation: Int): Int {
         return when (exifOrientation) {
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180
-            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270
+            android.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90
+            android.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180
+            android.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270
             else -> 0
         }
     }

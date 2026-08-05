@@ -143,7 +143,7 @@ class MainActivity : AppCompatActivity() {
         emailAlertManager = EmailAlertManager()
         folderScannerManager = com.honeyfile.security.scanner.FolderScannerManager(this)
 
-        setupUI()
+        setupUI(savedInstanceState)
         setupFolderScanner()
         checkAndRequestPermissions()
         observeDatabase()
@@ -153,6 +153,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
+        outState.putInt("key_selected_tab_id", binding.bottomNavigation.selectedItemId)
         outState.putString("key_admin_count", binding.tvAdminCount.text.toString())
         outState.putString("key_intruder_count", binding.tvIntruderCount.text.toString())
         outState.putString("key_total_logs", binding.tvTotalLogs.text.toString())
@@ -161,17 +162,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleThemeWithSmoothSnapshot(newDarkMode: Boolean) {
-        try {
-            val root = binding.root
-            val bitmap = root.drawToBitmap()
-            ThemeSnapshotHolder.snapshotBitmap = bitmap
-        } catch (e: Exception) { }
+        // Post asynchronously so the switch thumb animation finishes visually without freezing
+        binding.switchTheme.post {
+            try {
+                val root = binding.root
+                val bitmap = root.drawToBitmap()
+                ThemeSnapshotHolder.snapshotBitmap = bitmap
+            } catch (e: Exception) { }
 
-        themeManager.isDarkMode = newDarkMode
-        themeManager.applyTheme()
+            themeManager.isDarkMode = newDarkMode
+            themeManager.applyTheme()
+        }
     }
 
-    private fun setupUI() {
+    private fun selectTab(tabId: Int) {
+        binding.tabOverview.visibility = if (tabId == R.id.nav_dashboard) View.VISIBLE else View.GONE
+        binding.tabScanner.visibility = if (tabId == R.id.nav_scanner) View.VISIBLE else View.GONE
+        binding.tabVault.visibility = if (tabId == R.id.nav_vault) View.VISIBLE else View.GONE
+        binding.tabLogs.visibility = if (tabId == R.id.nav_logs) View.VISIBLE else View.GONE
+    }
+
+    private fun setupUI(savedInstanceState: Bundle?) {
         // Theme switch listener with native DayNight theme switching and smooth snapshot cross-fade
         binding.switchTheme.isChecked = themeManager.isDarkMode
         binding.switchTheme.setOnCheckedChangeListener { _, isChecked ->
@@ -260,40 +271,15 @@ class MainActivity : AppCompatActivity() {
             exportAuditLogsToCsv()
         }
 
-        // Bottom Navigation Tab Listener
+        // Bottom Navigation Tab Listener & Restoration
         binding.bottomNavigation.setOnItemSelectedListener { item ->
-            when (item.itemId) {
-                com.honeyfile.security.R.id.nav_dashboard -> {
-                    binding.tabOverview.visibility = View.VISIBLE
-                    binding.tabScanner.visibility = View.GONE
-                    binding.tabVault.visibility = View.GONE
-                    binding.tabLogs.visibility = View.GONE
-                    true
-                }
-                com.honeyfile.security.R.id.nav_scanner -> {
-                    binding.tabOverview.visibility = View.GONE
-                    binding.tabScanner.visibility = View.VISIBLE
-                    binding.tabVault.visibility = View.GONE
-                    binding.tabLogs.visibility = View.GONE
-                    true
-                }
-                com.honeyfile.security.R.id.nav_vault -> {
-                    binding.tabOverview.visibility = View.GONE
-                    binding.tabScanner.visibility = View.GONE
-                    binding.tabVault.visibility = View.VISIBLE
-                    binding.tabLogs.visibility = View.GONE
-                    true
-                }
-                com.honeyfile.security.R.id.nav_logs -> {
-                    binding.tabOverview.visibility = View.GONE
-                    binding.tabScanner.visibility = View.GONE
-                    binding.tabVault.visibility = View.GONE
-                    binding.tabLogs.visibility = View.VISIBLE
-                    true
-                }
-                else -> false
-            }
+            selectTab(item.itemId)
+            true
         }
+
+        val initialTabId = savedInstanceState?.getInt("key_selected_tab_id", R.id.nav_dashboard) ?: R.id.nav_dashboard
+        binding.bottomNavigation.selectedItemId = initialTabId
+        selectTab(initialTabId)
     }
 
     private fun setupFolderScanner() {

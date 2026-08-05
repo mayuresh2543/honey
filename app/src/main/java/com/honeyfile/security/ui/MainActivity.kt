@@ -323,7 +323,8 @@ class MainActivity : AppCompatActivity() {
         }
         lastSecurityAlertTimeMs = now
 
-        val photoFile = intruderCaptureManager.captureIntruderPhotoDirect(imageCapture, cameraExecutor)
+        val captureInstance = getOrAwaitImageCapture()
+        val photoFile = intruderCaptureManager.captureIntruderPhotoDirect(captureInstance, cameraExecutor)
         val frame = photoFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
         val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
         val isAuthenticated = authResult?.isAuthenticated ?: false
@@ -446,12 +447,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private suspend fun getOrAwaitImageCapture(): ImageCapture? {
+        if (imageCapture != null) return imageCapture
+        for (i in 0..20) {
+            kotlinx.coroutines.delay(100)
+            if (imageCapture != null) return imageCapture
+        }
+        return imageCapture
+    }
+
     private fun onTriggerAccessClicked() {
         lifecycleScope.launch {
             Toast.makeText(this@MainActivity, "Capturing photo & verifying security...", Toast.LENGTH_SHORT).show()
 
-            // Silently capture photo directly to file via CameraX hardware OutputFileOptions
-            val photoFile = intruderCaptureManager.captureIntruderPhotoDirect(imageCapture, cameraExecutor)
+            val captureInstance = getOrAwaitImageCapture()
+            val photoFile = intruderCaptureManager.captureIntruderPhotoDirect(captureInstance, cameraExecutor)
             val frame = photoFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
 
             val authResult = frame?.let { faceAuthManager.authenticateFace(it) }

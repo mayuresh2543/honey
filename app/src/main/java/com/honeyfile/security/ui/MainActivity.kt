@@ -133,6 +133,11 @@ class MainActivity : AppCompatActivity() {
             onTriggerAccessClicked()
         }
 
+        binding.btnManageAdmins.setOnClickListener {
+            AdminManagementDialogFragment.newInstance()
+                .show(supportFragmentManager, AdminManagementDialogFragment.TAG)
+        }
+
         binding.btnDeployDecoys.setOnClickListener {
             deployDecoyFilesToMonitoredFolder()
         }

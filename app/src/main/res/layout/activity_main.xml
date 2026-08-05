@@ -161,6 +161,18 @@
                         android:textStyle="bold"
                         app:backgroundTint="@color/primary_accent"
                         app:cornerRadius="16dp"
+                        android:layout_marginBottom="12dp" />
+
+                    <!-- Manage Admins Button -->
+                    <com.google.android.material.button.MaterialButton
+                        android:id="@+id/btnManageAdmins"
+                        style="@style/Widget.Material3.Button.OutlinedButton"
+                        android:layout_width="match_parent"
+                        android:layout_height="50dp"
+                        android:text="👥 Admin Profiles &amp; Enrollment (2 Slots)"
+                        android:textSize="13sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="14dp"
                         android:layout_marginBottom="16dp" />
 
                     <!-- Security Analytics 3-Grid Cards -->

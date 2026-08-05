@@ -106,6 +106,7 @@ class MainActivity : AppCompatActivity() {
 
         // Apply current theme colors instantly (no animation on first launch)
         themeManager.applyColorsInstant(binding.root, themeManager.isDarkMode)
+        window.statusBarColor = themeManager.getBgColor(themeManager.isDarkMode)
 
         database = AppDatabase.getDatabase(this)
         faceAuthManager = FaceAuthManager(this)
@@ -128,7 +129,6 @@ class MainActivity : AppCompatActivity() {
             if (themeManager.isDarkMode != isChecked) {
                 themeManager.isDarkMode = isChecked
                 themeManager.animateThemeTransition(binding.root, isChecked, 350L)
-                // Update status bar color
                 window.statusBarColor = themeManager.getBgColor(isChecked)
             }
         }

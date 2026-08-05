@@ -8,6 +8,8 @@ import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.FileOutputStream
 import java.text.SimpleDateFormat
@@ -17,6 +19,8 @@ import kotlin.coroutines.resume
 
 class IntruderCaptureManager(private val context: Context) {
 
+    private val captureMutex = Mutex()
+
     private val capturedFolder: File by lazy {
         File(context.filesDir, "captured").apply {
             if (!exists()) mkdirs()
@@ -25,7 +29,7 @@ class IntruderCaptureManager(private val context: Context) {
 
     /**
      * Saves a real front-camera photo to the Vault if a frame was captured.
-     * Returns null if no camera frame was captured (no synthetic graphics created).
+     * Returns null if no camera frame was captured.
      */
     fun captureIntruderImage(bitmap: Bitmap?): File? {
         if (bitmap == null) return null
@@ -45,43 +49,45 @@ class IntruderCaptureManager(private val context: Context) {
     }
 
     /**
-     * Asynchronously captures a real silent photo using CameraX.
+     * Asynchronously captures a real silent photo using CameraX with Mutex lock to prevent camera hardware collisions.
      */
-    suspend fun takeSilentPhoto(imageCapture: ImageCapture?, executor: java.util.concurrent.Executor): Bitmap? = suspendCancellableCoroutine { continuation ->
-        if (imageCapture == null) {
-            Log.e(TAG, "ImageCapture is not initialized")
-            continuation.resume(null)
-            return@suspendCancellableCoroutine
-        }
-
-        imageCapture.takePicture(
-            executor,
-            object : ImageCapture.OnImageCapturedCallback() {
-                override fun onCaptureSuccess(imageProxy: ImageProxy) {
-                    try {
-                        val rotation = imageProxy.imageInfo.rotationDegrees
-                        val rawBitmap = imageProxy.toBitmap()
-                        val rotatedBitmap = rotateBitmap(rawBitmap, rotation)
-                        imageProxy.close()
-                        Log.d(TAG, "Silent photo captured successfully: ${rotatedBitmap.width}x${rotatedBitmap.height}, rotation=$rotation")
-                        if (continuation.isActive) {
-                            continuation.resume(rotatedBitmap)
-                        }
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Failed converting imageProxy to bitmap", e)
-                        imageProxy.close()
-                        if (continuation.isActive) continuation.resume(null)
-                    }
-                }
-
-                override fun onError(exception: ImageCaptureException) {
-                    Log.e(TAG, "Silent photo capture error: ${exception.message}", exception)
-                    if (continuation.isActive) {
-                        continuation.resume(null)
-                    }
-                }
+    suspend fun takeSilentPhoto(imageCapture: ImageCapture?, executor: java.util.concurrent.Executor): Bitmap? = captureMutex.withLock {
+        suspendCancellableCoroutine { continuation ->
+            if (imageCapture == null) {
+                Log.e(TAG, "ImageCapture is not initialized")
+                continuation.resume(null)
+                return@suspendCancellableCoroutine
             }
-        )
+
+            imageCapture.takePicture(
+                executor,
+                object : ImageCapture.OnImageCapturedCallback() {
+                    override fun onCaptureSuccess(imageProxy: ImageProxy) {
+                        try {
+                            val rotation = imageProxy.imageInfo.rotationDegrees
+                            val rawBitmap = imageProxy.toBitmap()
+                            val rotatedBitmap = rotateBitmap(rawBitmap, rotation)
+                            imageProxy.close()
+                            Log.d(TAG, "Silent photo captured successfully: ${rotatedBitmap.width}x${rotatedBitmap.height}, rotation=$rotation")
+                            if (continuation.isActive) {
+                                continuation.resume(rotatedBitmap)
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Failed converting imageProxy to bitmap", e)
+                            imageProxy.close()
+                            if (continuation.isActive) continuation.resume(null)
+                        }
+                    }
+
+                    override fun onError(exception: ImageCaptureException) {
+                        Log.e(TAG, "Silent photo capture error: ${exception.message}", exception)
+                        if (continuation.isActive) {
+                            continuation.resume(null)
+                        }
+                    }
+                }
+            )
+        }
     }
 
     private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {

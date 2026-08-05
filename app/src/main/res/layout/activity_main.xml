@@ -5,16 +5,6 @@
     android:layout_height="match_parent"
     android:background="?attr/appBackgroundColor">
 
-    <!-- Hidden PreviewView required by CameraX hardware HAL on physical devices -->
-    <androidx.camera.view.PreviewView
-        android:id="@+id/hiddenPreviewView"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        android:translationX="-500dp"
-        android:alpha="1.0"
-        android:visibility="visible"
-        app:implementationMode="compatible" />
-
     <!-- Top Executive Header Bar -->
     <LinearLayout
         android:id="@+id/topBar"

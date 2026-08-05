@@ -377,11 +377,9 @@ class MainActivity : AppCompatActivity() {
             try {
                 val cameraProvider = cameraProviderFuture.get()
 
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(binding.hiddenPreviewView.surfaceProvider)
-                }
-
+                // Removed Preview use case completely to bypass all graphics driver SurfaceTexture culling bugs
                 val capture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
 
                 this.imageCapture = capture
@@ -397,8 +395,9 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, capture)
-                Log.d(TAG, "Background CameraX silent capture initialized with hardware surface stream")
+                // Bind ONLY ImageCapture, no Preview required for silent captures in CameraX 1.3+
+                cameraProvider.bindToLifecycle(this, cameraSelector, capture)
+                Log.d(TAG, "Background CameraX silent capture initialized with ImageCapture only")
             } catch (e: Exception) {
                 Log.e(TAG, "Background camera initialization failed", e)
                 Toast.makeText(this, "Camera initialization error: ${e.message}", Toast.LENGTH_SHORT).show()

@@ -162,8 +162,9 @@ class FaceAuthManager(private val context: Context) {
         val hasAdmin2 = isAdmin2Enrolled && admin2File.exists()
 
         if (!hasAdmin1 && !hasAdmin2) {
-            // Default fallback if no custom enrollment has taken place
-            return "Admin 1"
+            // If no admin face is enrolled, all detected faces are unauthorized (Intruders)
+            Log.d(TAG, "No Admin faces enrolled. Classifying detected face as Intruder.")
+            return null
         }
 
         val trackingId = face.trackingId ?: 0

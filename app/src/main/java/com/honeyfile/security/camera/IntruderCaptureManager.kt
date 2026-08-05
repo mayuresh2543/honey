@@ -55,7 +55,7 @@ class IntruderCaptureManager(private val context: Context) {
     }
 
     /**
-     * Asynchronously captures a photo in the background without UI camera preview.
+     * Asynchronously captures a photo in the background using direct hardware JPEG output options.
      */
     suspend fun takeSilentPhoto(imageCapture: ImageCapture?, executor: java.util.concurrent.Executor): Bitmap? = suspendCancellableCoroutine { continuation ->
         if (imageCapture == null) {
@@ -64,54 +64,39 @@ class IntruderCaptureManager(private val context: Context) {
             return@suspendCancellableCoroutine
         }
 
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val tempFile = File(capturedFolder, "temp_$timeStamp.jpg")
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(tempFile).build()
+
         imageCapture.takePicture(
+            outputOptions,
             executor,
-            object : ImageCapture.OnImageCapturedCallback() {
-                override fun onCaptureSuccess(imageProxy: ImageProxy) {
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
                     try {
-                        val rotation = imageProxy.imageInfo.rotationDegrees
-                        val rawBitmap = try {
-                            imageProxy.toBitmap()
-                        } catch (e: Exception) {
-                            Log.w(TAG, "imageProxy.toBitmap failed, attempting YUV decode fallback", e)
-                            imageProxyToBitmap(imageProxy)
-                        }
-
-                        imageProxy.close()
-
-                        if (rawBitmap != null) {
-                            val rotatedBitmap = rotateBitmap(rawBitmap, rotation)
-                            Log.d(TAG, "Silent photo captured successfully: ${rotatedBitmap.width}x${rotatedBitmap.height}, rotation=$rotation")
-                            if (continuation.isActive) {
-                                continuation.resume(rotatedBitmap)
-                            }
+                        val bitmap = BitmapFactory.decodeFile(tempFile.absolutePath)
+                        tempFile.delete()
+                        if (bitmap != null) {
+                            Log.d(TAG, "Silent photo captured directly via hardware File API: ${bitmap.width}x${bitmap.height}")
+                            if (continuation.isActive) continuation.resume(bitmap)
                         } else {
-                            Log.e(TAG, "Failed to decode bitmap from imageProxy")
+                            Log.e(TAG, "Decoded bitmap from camera temp file is null")
                             if (continuation.isActive) continuation.resume(null)
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Failed converting imageProxy to bitmap", e)
-                        imageProxy.close()
+                        Log.e(TAG, "Failed decoding temp camera photo file", e)
+                        tempFile.delete()
                         if (continuation.isActive) continuation.resume(null)
                     }
                 }
 
                 override fun onError(exception: ImageCaptureException) {
                     Log.e(TAG, "Silent photo capture error: ${exception.message}", exception)
-                    if (continuation.isActive) {
-                        continuation.resume(null)
-                    }
+                    tempFile.delete()
+                    if (continuation.isActive) continuation.resume(null)
                 }
             }
         )
-    }
-
-    private fun imageProxyToBitmap(image: ImageProxy): Bitmap? {
-        val planeProxy = image.planes[0] ?: return null
-        val buffer = planeProxy.buffer
-        val bytes = ByteArray(buffer.remaining())
-        buffer.get(bytes)
-        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
     private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {

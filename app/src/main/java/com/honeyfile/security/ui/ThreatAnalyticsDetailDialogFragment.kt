@@ -128,7 +128,7 @@ class ThreatAnalyticsDetailDialogFragment : DialogFragment() {
                 }
 
                 binding.tvModalScoreText.text = "Risk Score: ${summary.threatScore} / 100"
-                binding.tvModalPeakWindow.text = "Peak Window: ${summary.peakAttackWindow}"
+                binding.tvModalPeakWindow.text = "Peak Window: ${summary.peakAttackTimeWindow}"
                 binding.tvModalPeakExplanation.text = "This 4-hour window registered the highest volume of intruder breaches during active surveillance."
 
                 filterSlotLogs()

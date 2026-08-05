@@ -18,6 +18,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
 import com.google.android.material.materialswitch.MaterialSwitch
+import com.honeyfile.security.R
 
 class ThemeManager(context: Context) {
 
@@ -66,19 +67,38 @@ class ThemeManager(context: Context) {
         private const val TAG_TEXT_PRIMARY = "theme_text_primary"
         private const val TAG_TEXT_SECONDARY = "theme_text_secondary"
         private const val TAG_TEXT_SKIP = "theme_text_skip"
+        private const val TAG_BG_ROOT = "theme_bg_root"
+        private const val TAG_BG_GRADIENT = "theme_bg_gradient"
     }
 
     /**
-     * Pre-tag all TextViews in the tree as PRIMARY, SECONDARY, or SKIP
-     * before animation so that classification is stable across frames.
+     * Pre-tag all views in the tree before animation starts.
+     * TextViews get tagged as PRIMARY, SECONDARY, or SKIP.
+     * Background views get tagged as ROOT (ColorDrawable bg) or GRADIENT (GradientDrawable bg).
      */
-    private fun tagTextViews(view: View, fromDark: Boolean) {
+    private fun tagViews(view: View, fromDark: Boolean) {
+        // Tag background views
+        val background = view.background
+        when {
+            background is GradientDrawable && view !is MaterialCardView && view !is MaterialButton -> {
+                view.setTag(R.id.theme_bg_tag, TAG_BG_GRADIENT)
+            }
+            background is ColorDrawable && view !is MaterialCardView && view !is BottomNavigationView && view !is MaterialButton -> {
+                val bgColor = background.color
+                val fromBgColor = getBgColor(fromDark)
+                // Tag it if its current bg matches the current theme background
+                if (colorDistance(bgColor, fromBgColor) < 2000) {
+                    view.setTag(R.id.theme_bg_tag, TAG_BG_ROOT)
+                }
+            }
+        }
+
+        // Tag text views
         if (view is TextView && view !is MaterialButton && view !is Chip && view !is MaterialSwitch && view !is SwitchCompat) {
             val currentColor = view.currentTextColor
             if (currentColor in accentColors) {
-                view.tag = TAG_TEXT_SKIP
+                view.setTag(R.id.theme_text_tag, TAG_TEXT_SKIP)
             } else {
-                // Classify based on which theme color set it matches closest
                 val fromPrimary = if (fromDark) darkTextPrimary else lightTextPrimary
                 val fromSecondary = if (fromDark) darkTextSecondary else lightTextSecondary
 
@@ -86,16 +106,16 @@ class ThemeManager(context: Context) {
                 val distSecondary = colorDistance(currentColor, fromSecondary)
 
                 if (distSecondary < distPrimary) {
-                    view.tag = TAG_TEXT_SECONDARY
+                    view.setTag(R.id.theme_text_tag, TAG_TEXT_SECONDARY)
                 } else {
-                    view.tag = TAG_TEXT_PRIMARY
+                    view.setTag(R.id.theme_text_tag, TAG_TEXT_PRIMARY)
                 }
             }
         }
 
         if (view is ViewGroup) {
             for (child in view.children) {
-                tagTextViews(child, fromDark)
+                tagViews(child, fromDark)
             }
         }
     }
@@ -110,8 +130,8 @@ class ThemeManager(context: Context) {
     fun animateThemeTransition(rootView: View, toDark: Boolean, durationMs: Long = 350L) {
         val fromDark = !toDark
 
-        // Pre-tag text views ONCE before the animation begins
-        tagTextViews(rootView, fromDark)
+        // Pre-tag ALL views ONCE before the animation begins
+        tagViews(rootView, fromDark)
 
         val fromBg = getBgColor(fromDark)
         val toBg = getBgColor(toDark)
@@ -142,8 +162,7 @@ class ThemeManager(context: Context) {
     }
 
     fun applyColorsInstant(rootView: View, dark: Boolean) {
-        // Tag views so that classification is set
-        tagTextViews(rootView, dark)
+        tagViews(rootView, dark)
 
         val bg = getBgColor(dark)
         val card = getCardBgColor(dark)
@@ -155,21 +174,12 @@ class ThemeManager(context: Context) {
 
     private fun applyColorsRecursive(view: View, bg: Int, card: Int, stroke: Int, textP: Int, textS: Int) {
         when (view) {
-            is MaterialButton -> {
-                // Skip MaterialButtons — they have their own accent backgrounds
-                return
-            }
+            is MaterialButton -> return
             is MaterialSwitch, is SwitchCompat -> {
-                // Handle switch text color
-                if (view is TextView) {
-                    view.setTextColor(textP)
-                }
+                if (view is TextView) view.setTextColor(textP)
                 return
             }
-            is Chip -> {
-                // Skip chips — Material3 handles their styling
-                return
-            }
+            is Chip -> return
             is MaterialCardView -> {
                 view.setCardBackgroundColor(card)
                 view.strokeColor = stroke
@@ -180,29 +190,24 @@ class ThemeManager(context: Context) {
                 view.itemIconTintList = ColorStateList.valueOf(textP)
             }
             is TextView -> {
-                when (view.tag) {
+                when (view.getTag(R.id.theme_text_tag)) {
                     TAG_TEXT_PRIMARY -> view.setTextColor(textP)
                     TAG_TEXT_SECONDARY -> view.setTextColor(textS)
-                    // TAG_TEXT_SKIP or null -> don't touch
                 }
             }
         }
 
-        // Handle background drawables (e.g. card_live_feed_bg)
-        val background = view.background
-        if (background is GradientDrawable) {
-            // This is likely a shape drawable like card_live_feed_bg
-            // Check if its current color is a dark theme color
-            try {
-                background.setColor(bg)
-                background.setStroke(1, stroke)
-            } catch (_: Exception) { }
-        } else if (view !is MaterialCardView && view !is BottomNavigationView
-            && view !is MaterialButton && background is ColorDrawable) {
-            // Plain color background views
-            val bgColor = background.color
-            if (bgColor == darkBg || bgColor == lightBg) {
-                view.setBackgroundColor(bg)
+        // Update backgrounds based on pre-assigned tags (stable across animation frames)
+        when (view.getTag(R.id.theme_bg_tag)) {
+            TAG_BG_ROOT -> view.setBackgroundColor(bg)
+            TAG_BG_GRADIENT -> {
+                val gd = view.background as? GradientDrawable
+                if (gd != null) {
+                    try {
+                        gd.setColor(bg)
+                        gd.setStroke(1, stroke)
+                    } catch (_: Exception) { }
+                }
             }
         }
 

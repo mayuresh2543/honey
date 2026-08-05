@@ -250,11 +250,5 @@ class ThemeManager(context: Context) {
             }
         }
     }
-
-        if (view is ViewGroup) {
-            for (child in view.children) {
-                applyColorsToHierarchy(child, bg, card, stroke, subBg, subStroke, textP, textS)
-            }
-        }
-    }
 }
+

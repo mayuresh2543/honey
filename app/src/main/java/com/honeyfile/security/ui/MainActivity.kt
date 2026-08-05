@@ -17,6 +17,7 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
+import androidx.core.view.drawToBitmap
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -116,6 +117,24 @@ class MainActivity : AppCompatActivity() {
             binding.tvScanStats.text = bundle.getString("key_scan_stats", "Scanned Files: 0 | Honeyfiles Detected: 0")
         }
 
+        // Animate Theme Snapshot Overlay Cross-Fade (Zero Blank Screen Flash!)
+        val snapshot = ThemeSnapshotHolder.snapshotBitmap
+        if (snapshot != null) {
+            binding.ivThemeSnapshot.setImageBitmap(snapshot)
+            binding.ivThemeSnapshot.visibility = View.VISIBLE
+            binding.ivThemeSnapshot.alpha = 1.0f
+            ThemeSnapshotHolder.snapshotBitmap = null
+
+            binding.ivThemeSnapshot.animate()
+                .alpha(0.0f)
+                .setDuration(400)
+                .withEndAction {
+                    binding.ivThemeSnapshot.visibility = View.GONE
+                    binding.ivThemeSnapshot.setImageBitmap(null)
+                }
+                .start()
+        }
+
         database = AppDatabase.getDatabase(this)
         faceAuthManager = FaceAuthManager(this)
         intruderCaptureManager = IntruderCaptureManager(this)
@@ -139,13 +158,23 @@ class MainActivity : AppCompatActivity() {
         outState.putString("key_scan_stats", binding.tvScanStats.text.toString())
     }
 
+    private fun toggleThemeWithSmoothSnapshot(newDarkMode: Boolean) {
+        try {
+            val root = binding.root
+            val bitmap = Bitmap.createBitmap(root.drawToBitmap())
+            ThemeSnapshotHolder.snapshotBitmap = bitmap
+            themeManager.isDarkMode = newDarkMode
+        } catch (e: Exception) {
+            themeManager.isDarkMode = newDarkMode
+        }
+    }
+
     private fun setupUI() {
-        // Theme switch listener with smooth cross-fade
+        // Theme switch listener with smooth snapshot cross-fade
         binding.switchTheme.isChecked = themeManager.isDarkMode
         binding.switchTheme.setOnCheckedChangeListener { _, isChecked ->
             if (themeManager.isDarkMode != isChecked) {
-                themeManager.isDarkMode = isChecked
-                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+                toggleThemeWithSmoothSnapshot(isChecked)
             }
         }
 
@@ -691,4 +720,8 @@ class MainActivity : AppCompatActivity() {
     companion object {
         private const val TAG = "MainActivity"
     }
+}
+
+object ThemeSnapshotHolder {
+    var snapshotBitmap: Bitmap? = null
 }

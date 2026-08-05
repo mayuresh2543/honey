@@ -827,11 +827,18 @@
         android:layout_alignParentBottom="true"
         android:background="?attr/appCardColor"
         app:elevation="8dp"
-        app:itemIconSize="22dp"
-        app:itemIconTint="@color/nav_item_color"
-        app:itemTextColor="@color/nav_item_color"
         app:itemActiveIndicatorStyle="@null"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu" />
+
+    <!-- Theme Transition Overlay Snapshot -->
+    <ImageView
+        android:id="@+id/ivThemeSnapshot"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:scaleType="fitXY"
+        android:visibility="gone"
+        android:elevation="100dp"
+        android:importantForAccessibility="no" />
 
 </RelativeLayout>

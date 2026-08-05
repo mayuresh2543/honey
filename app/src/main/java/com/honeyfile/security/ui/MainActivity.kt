@@ -322,7 +322,8 @@ class MainActivity : AppCompatActivity() {
         }
         lastSecurityAlertTimeMs = now
 
-        val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
+        val photoFile = intruderCaptureManager.captureIntruderPhotoDirect(imageCapture, cameraExecutor)
+        val frame = photoFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
         val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
         val isAuthenticated = authResult?.isAuthenticated ?: false
         val adminName = authResult?.adminName ?: "Admin"
@@ -341,8 +342,6 @@ class MainActivity : AppCompatActivity() {
                     timestamp = timestamp
                 )
             )
-
-            val photoFile = intruderCaptureManager.captureIntruderImage(frame)
 
             emailAlertManager.sendAlert(
                 subject = "Intruder modified monitored file: ${event.fileName}",
@@ -451,8 +450,9 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             Toast.makeText(this@MainActivity, "Capturing photo & verifying security...", Toast.LENGTH_SHORT).show()
 
-            // Silently capture photo in background
-            val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
+            // Silently capture photo directly to file via CameraX hardware OutputFileOptions
+            val photoFile = intruderCaptureManager.captureIntruderPhotoDirect(imageCapture, cameraExecutor)
+            val frame = photoFile?.let { BitmapFactory.decodeFile(it.absolutePath) }
 
             val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
             val isAuthenticated = authResult?.isAuthenticated ?: false
@@ -485,9 +485,6 @@ class MainActivity : AppCompatActivity() {
                         timestamp = timestamp
                     )
                 )
-
-                // Save captured intruder image
-                val photoFile = intruderCaptureManager.captureIntruderImage(frame)
 
                 // Dispatch Email alert
                 emailAlertManager.sendAlert(

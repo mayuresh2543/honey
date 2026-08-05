@@ -28,6 +28,44 @@ class IntruderCaptureManager(private val context: Context) {
     }
 
     /**
+     * Directly captures a real front-camera photo into the Vault using CameraX hardware OutputFileOptions.
+     */
+    suspend fun captureIntruderPhotoDirect(imageCapture: ImageCapture?, executor: java.util.concurrent.Executor): File? = suspendCancellableCoroutine { continuation ->
+        val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
+        val photoFile = File(capturedFolder, "$timeStamp.jpg")
+
+        if (imageCapture == null) {
+            Log.e(TAG, "ImageCapture is not initialized, saving fallback graphic")
+            val fallbackFile = saveFallbackGraphic(photoFile, timeStamp)
+            continuation.resume(fallbackFile)
+            return@suspendCancellableCoroutine
+        }
+
+        val outputOptions = ImageCapture.OutputFileOptions.Builder(photoFile).build()
+
+        imageCapture.takePicture(
+            outputOptions,
+            executor,
+            object : ImageCapture.OnImageSavedCallback {
+                override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                    Log.d(TAG, "REAL front-camera photo captured & saved directly to Vault: ${photoFile.absolutePath} (size=${photoFile.length()} bytes)")
+                    if (continuation.isActive) {
+                        continuation.resume(photoFile)
+                    }
+                }
+
+                override fun onError(exception: ImageCaptureException) {
+                    Log.e(TAG, "CameraX takePicture failed: ${exception.message}", exception)
+                    val fallbackFile = saveFallbackGraphic(photoFile, timeStamp)
+                    if (continuation.isActive) {
+                        continuation.resume(fallbackFile)
+                    }
+                }
+            }
+        )
+    }
+
+    /**
      * Silently captures a photo using the front camera when an unauthorized access is detected.
      */
     fun captureIntruderImage(bitmap: Bitmap? = null): File? {
@@ -97,6 +135,19 @@ class IntruderCaptureManager(private val context: Context) {
                 }
             }
         )
+    }
+
+    private fun saveFallbackGraphic(photoFile: File, timeStamp: String): File {
+        return try {
+            val fallbackBitmap = createFallbackIntruderBitmap(timeStamp)
+            FileOutputStream(photoFile).use { out ->
+                fallbackBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+            photoFile
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save fallback graphic", e)
+            photoFile
+        }
     }
 
     private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {

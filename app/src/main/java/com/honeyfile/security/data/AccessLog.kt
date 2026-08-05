@@ -8,6 +8,8 @@ data class AccessLog(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val file: String,
-    val user: String,
+    val user: String,          // e.g., "Admin 1", "Admin 2", "Intruder", "System"
+    val action: String = "ACCESS", // e.g., "CREATED", "MODIFIED", "DELETED", "RENAMED", "ACCESS", "BREACH"
+    val details: String = "",   // Human-readable change details
     val timestamp: String
 )

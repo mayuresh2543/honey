@@ -300,12 +300,29 @@ class MainActivity : AppCompatActivity() {
         val adminName = authResult?.adminName ?: "Admin"
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
+        val actionText = event.eventType
         if (isAuthenticated) {
             Log.d(TAG, "File change by verified $adminName ✅")
-            database.logDao().insertLog(AccessLog(file = event.fileName, user = adminName, timestamp = timestamp))
+            database.logDao().insertLog(
+                AccessLog(
+                    file = event.fileName,
+                    user = adminName,
+                    action = actionText,
+                    details = event.changeDetails,
+                    timestamp = timestamp
+                )
+            )
         } else {
             Log.w(TAG, "Unauthorized file change by Intruder 🚨")
-            database.logDao().insertLog(AccessLog(file = event.fileName, user = "Intruder", timestamp = timestamp))
+            database.logDao().insertLog(
+                AccessLog(
+                    file = event.fileName,
+                    user = "Intruder",
+                    action = actionText,
+                    details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionText by Intruder at $timestamp. ${event.changeDetails}",
+                    timestamp = timestamp
+                )
+            )
 
             val photoFile = intruderCaptureManager.captureIntruderImage(frame)
 
@@ -397,12 +414,28 @@ class MainActivity : AppCompatActivity() {
 
             if (isAuthenticated) {
                 Log.d(TAG, "$adminName verified ✅")
-                database.logDao().insertLog(AccessLog(file = filename, user = adminName, timestamp = timestamp))
+                database.logDao().insertLog(
+                    AccessLog(
+                        file = filename,
+                        user = adminName,
+                        action = "ACCESS",
+                        details = "$adminName verified via facial biometric auth. Confidential file opened.",
+                        timestamp = timestamp
+                    )
+                )
                 Toast.makeText(this@MainActivity, "$adminName Verified ✅ Opening Confidential File", Toast.LENGTH_SHORT).show()
                 startActivity(Intent(this@MainActivity, RealFileViewerActivity::class.java))
             } else {
                 Log.d(TAG, "Intruder detected 🚨")
-                database.logDao().insertLog(AccessLog(file = filename, user = "Intruder", timestamp = timestamp))
+                database.logDao().insertLog(
+                    AccessLog(
+                        file = filename,
+                        user = "Intruder",
+                        action = "BREACH",
+                        details = "UNAUTHORIZED INTRUDER BREACH on honeyfile '$filename'! Facial auth failed. Silent photo captured and email alert sent.",
+                        timestamp = timestamp
+                    )
+                )
 
                 // Save captured intruder image
                 val photoFile = intruderCaptureManager.captureIntruderImage(frame)

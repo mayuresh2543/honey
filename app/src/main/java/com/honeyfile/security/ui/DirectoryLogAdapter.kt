@@ -29,11 +29,11 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
 
     private fun applyCurrentFilter() {
         val filtered = when (currentFilterCategory.uppercase()) {
-            "NEW", "CREATED" -> allLogsList.filter { it.user.contains("CREATED", ignoreCase = true) || it.user.contains("COPIED", ignoreCase = true) }
-            "EDITED" -> allLogsList.filter { it.user.contains("EDITED", ignoreCase = true) || it.user.contains("MODIFIED", ignoreCase = true) }
-            "COPIED" -> allLogsList.filter { it.user.contains("COPIED", ignoreCase = true) }
-            "DELETED" -> allLogsList.filter { it.user.contains("DELETED", ignoreCase = true) }
-            "BREACHES" -> allLogsList.filter { it.user.contains("Intruder", ignoreCase = true) }
+            "NEW", "CREATED" -> allLogsList.filter { it.action.equals("CREATED", true) || it.action.equals("COPIED", true) || it.user.contains("CREATED", true) }
+            "EDITED" -> allLogsList.filter { it.action.equals("EDITED", true) || it.action.equals("MODIFIED", true) || it.user.contains("EDITED", true) }
+            "COPIED" -> allLogsList.filter { it.action.equals("COPIED", true) || it.user.contains("COPIED", true) }
+            "DELETED" -> allLogsList.filter { it.action.equals("DELETED", true) || it.user.contains("DELETED", true) }
+            "BREACHES" -> allLogsList.filter { it.action.equals("BREACH", true) || it.user.contains("Intruder", true) }
             else -> allLogsList
         }
         submitList(filtered)
@@ -69,62 +69,64 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
             binding.tvDirectoryFileName.text = log.file
             binding.tvDirectoryLogTime.text = log.timestamp
 
+            val actionUpper = log.action.uppercase()
             val userStr = log.user
+            val isIntruder = userStr.contains("Intruder", ignoreCase = true) || actionUpper == "BREACH"
             val ctx = binding.root.context
 
-            val (icon, eventText, textColor, bgDrawable, changeDetail) = when {
-                userStr.contains("DELETED", ignoreCase = true) -> {
+            val (icon, eventText, textColor, bgDrawable, defaultDetails) = when {
+                actionUpper == "DELETED" || userStr.contains("DELETED", ignoreCase = true) -> {
                     Tuple(
                         "🗑️",
                         "DELETED",
                         ContextCompat.getColor(ctx, R.color.alert_red),
                         R.drawable.badge_rounded_red,
-                        "File '${log.file}' was deleted from the monitored directory at ${log.timestamp}."
+                        if (isIntruder) "UNAUTHORIZED INTRUSION: File '${log.file}' DELETED by an Intruder at ${log.timestamp}!" else "File '${log.file}' was DELETED from directory at ${log.timestamp}."
                     )
                 }
-                userStr.contains("EDITED", ignoreCase = true) || userStr.contains("MODIFIED", ignoreCase = true) -> {
+                actionUpper == "EDITED" || actionUpper == "MODIFIED" || userStr.contains("EDITED", ignoreCase = true) || userStr.contains("MODIFIED", ignoreCase = true) -> {
                     Tuple(
                         "✏️",
                         "EDITED",
                         ContextCompat.getColor(ctx, R.color.warning_yellow),
                         R.drawable.badge_rounded_yellow,
-                        "File '${log.file}' modified at ${log.timestamp}. Content bytes or file size altered."
+                        if (isIntruder) "UNAUTHORIZED INTRUSION: File '${log.file}' EDITED by an Intruder at ${log.timestamp}!" else "File '${log.file}' modified at ${log.timestamp}."
                     )
                 }
-                userStr.contains("CREATED", ignoreCase = true) -> {
+                actionUpper == "CREATED" || userStr.contains("CREATED", ignoreCase = true) -> {
                     Tuple(
                         "➕",
                         "NEW FILE",
                         ContextCompat.getColor(ctx, R.color.primary_accent),
                         R.drawable.badge_rounded_green,
-                        "New file '${log.file}' was created in the monitored directory at ${log.timestamp}."
+                        if (isIntruder) "UNAUTHORIZED INTRUSION: New file '${log.file}' CREATED by an Intruder at ${log.timestamp}!" else "New file '${log.file}' created in directory at ${log.timestamp}."
                     )
                 }
-                userStr.contains("COPIED", ignoreCase = true) -> {
+                actionUpper == "COPIED" || userStr.contains("COPIED", ignoreCase = true) -> {
                     Tuple(
                         "📋",
                         "COPIED",
                         ContextCompat.getColor(ctx, R.color.primary_accent),
                         R.drawable.badge_rounded_green,
-                        "File '${log.file}' was copied or pasted into the directory at ${log.timestamp}."
+                        if (isIntruder) "UNAUTHORIZED INTRUSION: File '${log.file}' COPIED by an Intruder at ${log.timestamp}!" else "File '${log.file}' copied into directory at ${log.timestamp}."
                     )
                 }
-                userStr.contains("RENAMED", ignoreCase = true) -> {
+                actionUpper == "RENAMED" || userStr.contains("RENAMED", ignoreCase = true) -> {
                     Tuple(
                         "🔄",
                         "RENAMED",
                         ContextCompat.getColor(ctx, R.color.primary_accent),
                         R.drawable.badge_rounded_green,
-                        "File '${log.file}' was renamed or moved at ${log.timestamp}."
+                        "File '${log.file}' renamed or moved at ${log.timestamp}."
                     )
                 }
-                userStr.contains("Intruder", ignoreCase = true) -> {
+                isIntruder -> {
                     Tuple(
                         "🚨",
                         "BREACH",
                         ContextCompat.getColor(ctx, R.color.alert_red),
                         R.drawable.badge_rounded_red,
-                        "UNAUTHORIZED ACCESS BREACH on file '${log.file}' at ${log.timestamp}! Camera captured intruder photo & email alert sent."
+                        "UNAUTHORIZED ACCESS BREACH on honeyfile '${log.file}' at ${log.timestamp}! Camera captured intruder photo & email alert sent."
                     )
                 }
                 else -> {
@@ -143,7 +145,7 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
             binding.tvDirectoryEventType.setTextColor(textColor)
             binding.tvDirectoryEventType.setBackgroundResource(bgDrawable)
 
-            binding.tvChangeDetails.text = changeDetail
+            binding.tvChangeDetails.text = if (log.details.isNotBlank()) log.details else defaultDetails
 
             // Expand / Collapse state
             if (isExpanded) {

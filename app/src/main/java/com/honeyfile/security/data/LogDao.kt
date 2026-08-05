@@ -17,10 +17,10 @@ interface LogDao {
     @Query("SELECT * FROM access_logs ORDER BY id DESC")
     suspend fun getAllLogsList(): List<AccessLog>
 
-    @Query("SELECT COUNT(*) FROM access_logs WHERE LOWER(user) = 'admin'")
+    @Query("SELECT COUNT(*) FROM access_logs WHERE LOWER(user) LIKE 'admin%'")
     fun getAdminCount(): LiveData<Int>
 
-    @Query("SELECT COUNT(*) FROM access_logs WHERE LOWER(user) = 'intruder'")
+    @Query("SELECT COUNT(*) FROM access_logs WHERE LOWER(user) LIKE 'intruder%' OR action = 'BREACH'")
     fun getIntruderCount(): LiveData<Int>
 
     @Query("DELETE FROM access_logs")

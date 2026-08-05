@@ -19,6 +19,12 @@ import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
+import android.content.res.ColorStateList
+import android.graphics.Color
+import com.honeyfile.security.R
+import com.honeyfile.security.analytics.SeverityLevel
+import com.honeyfile.security.analytics.ThreatAnalyticsManager
+import com.honeyfile.security.analytics.ThreatSummary
 import com.honeyfile.security.alert.EmailAlertManager
 import com.honeyfile.security.auth.FaceAuthManager
 import com.honeyfile.security.auth.ThemeManager
@@ -397,10 +403,15 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val threatAnalyticsManager = ThreatAnalyticsManager()
+
     private fun observeDatabase() {
         database.logDao().getAllLogs().observe(this) { logs ->
             logAdapter.submitList(logs)
             binding.tvTotalLogs.text = logs.size.toString()
+
+            val summary = threatAnalyticsManager.analyzeThreats(logs)
+            updateThreatAnalyticsUI(summary)
         }
 
         database.logDao().getAdminCount().observe(this) { count ->
@@ -409,6 +420,54 @@ class MainActivity : AppCompatActivity() {
 
         database.logDao().getIntruderCount().observe(this) { count ->
             binding.tvIntruderCount.text = (count ?: 0).toString()
+        }
+    }
+
+    private fun updateThreatAnalyticsUI(summary: ThreatSummary) {
+        binding.tvThreatScore.text = " ${summary.threatScore} / 100"
+        binding.pbThreatScore.progress = summary.threatScore
+        binding.tvPeakAttackWindow.text = "Peak: ${summary.peakAttackTimeWindow}"
+
+        when (summary.severityLevel) {
+            SeverityLevel.LOW -> {
+                binding.tvSeverityBadge.text = "LOW RISK 🟢"
+                binding.tvSeverityBadge.setTextColor(ContextCompat.getColor(this, R.color.success_green))
+                binding.tvSeverityBadge.setBackgroundResource(R.drawable.badge_rounded_green)
+                binding.pbThreatScore.progressTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.success_green))
+            }
+            SeverityLevel.ELEVATED -> {
+                binding.tvSeverityBadge.text = "ELEVATED THREAT 🟡"
+                binding.tvSeverityBadge.setTextColor(ContextCompat.getColor(this, R.color.warning_yellow))
+                binding.tvSeverityBadge.setBackgroundResource(R.drawable.badge_rounded_yellow)
+                binding.pbThreatScore.progressTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.warning_yellow))
+            }
+            SeverityLevel.CRITICAL -> {
+                binding.tvSeverityBadge.text = "CRITICAL SEVERITY 🔴"
+                binding.tvSeverityBadge.setTextColor(ContextCompat.getColor(this, R.color.alert_red))
+                binding.tvSeverityBadge.setBackgroundResource(R.drawable.badge_rounded_red)
+                binding.pbThreatScore.progressTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.alert_red))
+            }
+        }
+
+        val slots = summary.heatmapSlots
+        if (slots.size >= 6) {
+            binding.tvSlot0.text = "${slots[0].timeLabel}\n${slots[0].count}"
+            binding.tvSlot0.setBackgroundColor(Color.parseColor(slots[0].intensityColorHex))
+
+            binding.tvSlot1.text = "${slots[1].timeLabel}\n${slots[1].count}"
+            binding.tvSlot1.setBackgroundColor(Color.parseColor(slots[1].intensityColorHex))
+
+            binding.tvSlot2.text = "${slots[2].timeLabel}\n${slots[2].count}"
+            binding.tvSlot2.setBackgroundColor(Color.parseColor(slots[2].intensityColorHex))
+
+            binding.tvSlot3.text = "${slots[3].timeLabel}\n${slots[3].count}"
+            binding.tvSlot3.setBackgroundColor(Color.parseColor(slots[3].intensityColorHex))
+
+            binding.tvSlot4.text = "${slots[4].timeLabel}\n${slots[4].count}"
+            binding.tvSlot4.setBackgroundColor(Color.parseColor(slots[4].intensityColorHex))
+
+            binding.tvSlot5.text = "${slots[5].timeLabel}\n${slots[5].count}"
+            binding.tvSlot5.setBackgroundColor(Color.parseColor(slots[5].intensityColorHex))
         }
     }
 

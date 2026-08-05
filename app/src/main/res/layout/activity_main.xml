@@ -175,6 +175,196 @@
                         app:cornerRadius="14dp"
                         android:layout_marginBottom="16dp" />
 
+                    <!-- INTRUDER THREAT ANALYTICS & HEATMAP CARD -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        app:cardBackgroundColor="?attr/appCardColor"
+                        app:cardCornerRadius="20dp"
+                        app:cardElevation="2dp"
+                        app:strokeColor="?attr/appCardStrokeColor"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="📊 Threat Severity Analytics"
+                                    android:textColor="?attr/appTextColorPrimary"
+                                    android:textSize="15sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/tvSeverityBadge"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="LOW RISK 🟢"
+                                    android:textColor="@color/success_green"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold"
+                                    android:paddingHorizontal="10dp"
+                                    android:paddingVertical="4dp"
+                                    android:background="@drawable/badge_rounded_green" />
+
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical"
+                                android:layout_marginTop="12dp">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="Threat Index Score:"
+                                    android:textColor="?attr/appTextColorSecondary"
+                                    android:textSize="12sp" />
+
+                                <TextView
+                                    android:id="@+id/tvThreatScore"
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text=" 5 / 100"
+                                    android:textColor="?attr/appTextColorPrimary"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:id="@+id/tvPeakAttackWindow"
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Peak: None"
+                                    android:gravity="end"
+                                    android:textColor="@color/primary_accent"
+                                    android:textSize="12sp"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
+
+                            <ProgressBar
+                                android:id="@+id/pbThreatScore"
+                                style="?android:attr/progressBarStyleHorizontal"
+                                android:layout_width="match_parent"
+                                android:layout_height="8dp"
+                                android:layout_marginTop="8dp"
+                                android:layout_marginBottom="14dp"
+                                android:max="100"
+                                android:progress="5"
+                                android:progressTint="@color/success_green" />
+
+                            <TextView
+                                android:layout_width="wrap_content"
+                                android:layout_height="wrap_content"
+                                android:text="🔥 24-Hour Intrusion Activity Heatmap:"
+                                android:textColor="?attr/appTextColorSecondary"
+                                android:textSize="11sp"
+                                android:textStyle="bold"
+                                android:layout_marginBottom="8dp" />
+
+                            <!-- 6-Slot Heatmap Grid -->
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal">
+
+                                <TextView
+                                    android:id="@+id/tvSlot0"
+                                    android:layout_width="0dp"
+                                    android:layout_height="32dp"
+                                    android:layout_weight="1"
+                                    android:layout_marginEnd="4dp"
+                                    android:text="00-04h\n0"
+                                    android:textColor="@color/white"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold"
+                                    android:gravity="center"
+                                    android:background="@drawable/badge_rounded_green" />
+
+                                <TextView
+                                    android:id="@+id/tvSlot1"
+                                    android:layout_width="0dp"
+                                    android:layout_height="32dp"
+                                    android:layout_weight="1"
+                                    android:layout_marginEnd="4dp"
+                                    android:text="04-08h\n0"
+                                    android:textColor="@color/white"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold"
+                                    android:gravity="center"
+                                    android:background="@drawable/badge_rounded_green" />
+
+                                <TextView
+                                    android:id="@+id/tvSlot2"
+                                    android:layout_width="0dp"
+                                    android:layout_height="32dp"
+                                    android:layout_weight="1"
+                                    android:layout_marginEnd="4dp"
+                                    android:text="08-12h\n0"
+                                    android:textColor="@color/white"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold"
+                                    android:gravity="center"
+                                    android:background="@drawable/badge_rounded_green" />
+
+                                <TextView
+                                    android:id="@+id/tvSlot3"
+                                    android:layout_width="0dp"
+                                    android:layout_height="32dp"
+                                    android:layout_weight="1"
+                                    android:layout_marginEnd="4dp"
+                                    android:text="12-16h\n0"
+                                    android:textColor="@color/white"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold"
+                                    android:gravity="center"
+                                    android:background="@drawable/badge_rounded_green" />
+
+                                <TextView
+                                    android:id="@+id/tvSlot4"
+                                    android:layout_width="0dp"
+                                    android:layout_height="32dp"
+                                    android:layout_weight="1"
+                                    android:layout_marginEnd="4dp"
+                                    android:text="16-20h\n0"
+                                    android:textColor="@color/white"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold"
+                                    android:gravity="center"
+                                    android:background="@drawable/badge_rounded_green" />
+
+                                <TextView
+                                    android:id="@+id/tvSlot5"
+                                    android:layout_width="0dp"
+                                    android:layout_height="32dp"
+                                    android:layout_weight="1"
+                                    android:text="20-24h\n0"
+                                    android:textColor="@color/white"
+                                    android:textSize="9sp"
+                                    android:textStyle="bold"
+                                    android:gravity="center"
+                                    android:background="@drawable/badge_rounded_green" />
+
+                            </LinearLayout>
+
+                        </LinearLayout>
+                    </com.google.android.material.card.MaterialCardView>
+
                     <!-- Security Analytics 3-Grid Cards -->
                     <LinearLayout
                         android:layout_width="match_parent"

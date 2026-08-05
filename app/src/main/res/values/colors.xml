@@ -17,6 +17,7 @@
     <color name="primary_accent">#38BDF8</color>
     <color name="primary_accent_light">#0284C7</color>
     <color name="success_green">#22C55E</color>
+    <color name="warning_yellow">#EAB308</color>
     <color name="alert_red">#EF4444</color>
 
     <!-- Dark Mode Palette (Slate & Cyan) -->

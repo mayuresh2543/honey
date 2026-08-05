@@ -67,7 +67,6 @@
             android:id="@+id/switchTheme"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="@string/theme_toggle_label"
             android:textColor="?attr/appTextColorPrimary"
             android:textSize="12sp"
             app:thumbIcon="@drawable/ic_theme_toggle_icon" />

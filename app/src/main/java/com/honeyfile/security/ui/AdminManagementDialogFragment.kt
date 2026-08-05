@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import com.honeyfile.security.R
 import com.honeyfile.security.auth.FaceAuthManager
@@ -67,20 +68,24 @@ class AdminManagementDialogFragment : DialogFragment() {
     }
 
     private fun updateAdminStatusUI() {
+        val ctx = context ?: return
+        val greenColor = ContextCompat.getColor(ctx, R.color.success_green)
+        val secondaryColor = ContextCompat.getColor(ctx, R.color.dark_text_secondary)
+
         if (faceAuthManager.isAdmin1Enrolled) {
             binding.tvAdmin1Status.text = "Enrolled ✅"
-            binding.tvAdmin1Status.setTextColor(requireContext().getColor(R.color.success_green))
+            binding.tvAdmin1Status.setTextColor(greenColor)
         } else {
             binding.tvAdmin1Status.text = "Empty ⚪"
-            binding.tvAdmin1Status.setTextColor(requireContext().getColor(R.color.light_text_secondary))
+            binding.tvAdmin1Status.setTextColor(secondaryColor)
         }
 
         if (faceAuthManager.isAdmin2Enrolled) {
             binding.tvAdmin2Status.text = "Enrolled ✅"
-            binding.tvAdmin2Status.setTextColor(requireContext().getColor(R.color.success_green))
+            binding.tvAdmin2Status.setTextColor(greenColor)
         } else {
             binding.tvAdmin2Status.text = "Empty ⚪"
-            binding.tvAdmin2Status.setTextColor(requireContext().getColor(R.color.light_text_secondary))
+            binding.tvAdmin2Status.setTextColor(secondaryColor)
         }
     }
 

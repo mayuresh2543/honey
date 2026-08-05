@@ -290,22 +290,7 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             folderScannerManager.fileChangeEvents.collect { event ->
                 Log.w(TAG, "File change event detected: ${event.fileName} (${event.eventType})")
-                val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-
-                // 1. INSTANT ROOM DB LOG INSERTION (Reflects in UI instantly!)
-                lifecycleScope.launch(Dispatchers.IO) {
-                    database.logDao().insertLog(
-                        AccessLog(
-                            file = event.fileName,
-                            user = "System",
-                            action = event.eventType,
-                            details = event.changeDetails,
-                            timestamp = timestamp
-                        )
-                    )
-                }
-
-                // 2. ASYNCHRONOUS THROTTLED SECURITY CAPTURE & EMAIL ALERT
+                // Process security verification immediately for every file change event
                 lifecycleScope.launch(Dispatchers.IO) {
                     processBackgroundSecurityVerification(event)
                 }
@@ -317,7 +302,7 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun processBackgroundSecurityVerification(event: com.honeyfile.security.scanner.FileChangeEvent) {
         val now = System.currentTimeMillis()
-        if (now - lastSecurityAlertTimeMs < 10000L) {
+        if (now - lastSecurityAlertTimeMs < 1000L) {
             Log.d(TAG, "Security verification throttled for recent burst operation: ${event.fileName}")
             return
         }
@@ -331,9 +316,18 @@ class MainActivity : AppCompatActivity() {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
         if (isAuthenticated) {
-            Log.d(TAG, "Burst file change verified by $adminName ✅")
+            Log.d(TAG, "File change verified by $adminName ✅")
+            database.logDao().insertLog(
+                AccessLog(
+                    file = event.fileName,
+                    user = adminName,
+                    action = event.eventType,
+                    details = "Authorized modification: File '${event.fileName}' ${event.eventType} by $adminName.",
+                    timestamp = timestamp
+                )
+            )
         } else {
-            Log.w(TAG, "Unauthorized burst file alteration by Intruder 🚨")
+            Log.w(TAG, "Unauthorized file alteration by Intruder 🚨")
             database.logDao().insertLog(
                 AccessLog(
                     file = event.fileName,

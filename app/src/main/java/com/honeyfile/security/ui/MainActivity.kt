@@ -519,23 +519,18 @@ class MainActivity : AppCompatActivity() {
 
         val slots = summary.heatmapSlots
         if (slots.size >= 6) {
-            binding.tvSlot0.text = "${slots[0].timeLabel}\n${slots[0].count}"
-            binding.tvSlot0.setBackgroundColor(Color.parseColor(slots[0].intensityColorHex))
-
-            binding.tvSlot1.text = "${slots[1].timeLabel}\n${slots[1].count}"
-            binding.tvSlot1.setBackgroundColor(Color.parseColor(slots[1].intensityColorHex))
-
-            binding.tvSlot2.text = "${slots[2].timeLabel}\n${slots[2].count}"
-            binding.tvSlot2.setBackgroundColor(Color.parseColor(slots[2].intensityColorHex))
-
-            binding.tvSlot3.text = "${slots[3].timeLabel}\n${slots[3].count}"
-            binding.tvSlot3.setBackgroundColor(Color.parseColor(slots[3].intensityColorHex))
-
-            binding.tvSlot4.text = "${slots[4].timeLabel}\n${slots[4].count}"
-            binding.tvSlot4.setBackgroundColor(Color.parseColor(slots[4].intensityColorHex))
-
-            binding.tvSlot5.text = "${slots[5].timeLabel}\n${slots[5].count}"
-            binding.tvSlot5.setBackgroundColor(Color.parseColor(slots[5].intensityColorHex))
+            val slotViews = listOf(
+                binding.tvSlot0, binding.tvSlot1, binding.tvSlot2,
+                binding.tvSlot3, binding.tvSlot4, binding.tvSlot5
+            )
+            for (i in 0..5) {
+                val slot = slots[i]
+                val tv = slotViews[i]
+                tv.text = "${slot.timeLabel}\n${slot.count}"
+                tv.backgroundTintList = ColorStateList.valueOf(Color.parseColor(slot.intensityColorHex))
+                tv.setTextColor(Color.WHITE)
+                tv.setTag(R.id.theme_text_tag, "theme_text_skip")
+            }
         }
     }
 

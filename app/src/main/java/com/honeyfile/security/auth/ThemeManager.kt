@@ -87,7 +87,8 @@ class ThemeManager(context: Context) {
             view is ViewGroup && background is GradientDrawable && view !is MaterialCardView && view !is MaterialButton -> {
                 view.setTag(R.id.theme_bg_tag, TAG_BG_SUB_CARD)
             }
-            background is ColorDrawable && view !is MaterialCardView && view !is BottomNavigationView && view !is MaterialButton -> {
+            // ONLY ViewGroup layout containers (never TextViews) are root backgrounds!
+            view is ViewGroup && background is ColorDrawable && view !is MaterialCardView && view !is BottomNavigationView && view !is MaterialButton -> {
                 view.setTag(R.id.theme_bg_tag, TAG_BG_ROOT)
             }
         }

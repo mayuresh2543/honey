@@ -12,12 +12,14 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.honeyfile.security.integrity.HoneyFileObserver
 import com.honeyfile.security.scanner.FolderScannerManager
 import com.honeyfile.security.ui.MainActivity
 
 class HoneyMonitoringService : Service() {
 
     private lateinit var folderScannerManager: FolderScannerManager
+    private var fileObserver: HoneyFileObserver? = null
 
     override fun onCreate() {
         super.onCreate()
@@ -38,13 +40,58 @@ class HoneyMonitoringService : Service() {
             val uri = Uri.parse(folderUriStr)
             startForeground(NOTIFICATION_ID, buildNotification(uri.lastPathSegment ?: "Monitored Folder"))
             folderScannerManager.startContinuousScanning(uri)
+
+            val folderPath = uri.path
+            if (folderPath != null) {
+                startFileObserver(folderPath)
+            }
+
             Log.d(TAG, "Started continuous background folder monitoring for: $folderUriStr")
         }
 
         return START_STICKY
     }
 
+    private fun startFileObserver(path: String) {
+        try {
+            fileObserver?.stopWatching()
+            fileObserver = HoneyFileObserver(path) { event ->
+                Log.w(TAG, "Background File Alteration Event: ${event.fileName} (${event.eventType})")
+                sendAlterationNotification(event.fileName, event.eventType.name)
+            }.also {
+                it.startWatching()
+            }
+            Log.d(TAG, "HoneyFileObserver watching path: $path")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start HoneyFileObserver on path $path", e)
+        }
+    }
+
+    private fun sendAlterationNotification(fileName: String, actionType: String) {
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        val intent = Intent(this, MainActivity::class.java)
+        val pendingIntent = PendingIntent.getActivity(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        val notification = NotificationCompat.Builder(this, CHANNEL_ID)
+            .setContentTitle("🚨 File Alteration Alert: $actionType")
+            .setContentText("File '$fileName' was $actionType in monitored folder!")
+            .setSmallIcon(android.R.drawable.stat_notify_error)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+
+        notificationManager.notify(System.currentTimeMillis().toInt(), notification)
+    }
+
     private fun stopForegroundService() {
+        fileObserver?.stopWatching()
+        fileObserver = null
         folderScannerManager.stopScanning()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -60,9 +107,9 @@ class HoneyMonitoringService : Service() {
             val channel = NotificationChannel(
                 CHANNEL_ID,
                 "Honeyfile Endpoint Protection",
-                NotificationManager.IMPORTANCE_LOW
+                NotificationManager.IMPORTANCE_HIGH
             ).apply {
-                description = "Continuous background folder scanning and honeyfile monitoring service"
+                description = "Continuous background folder scanning and file alteration alerts"
             }
             val manager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             manager.createNotificationChannel(channel)
@@ -92,6 +139,8 @@ class HoneyMonitoringService : Service() {
 
     override fun onDestroy() {
         super.onDestroy()
+        fileObserver?.stopWatching()
+        fileObserver = null
         folderScannerManager.stopScanning()
         Log.d(TAG, "HoneyMonitoringService destroyed")
     }

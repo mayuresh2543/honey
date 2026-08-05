@@ -181,6 +181,24 @@ class FolderScannerManager(private val context: Context) {
                         )
                     }
                 }
+
+                // Check for deleted files
+                for ((prevFileName, prevSnapshot) in previousSnapshots) {
+                    if (!currentSnapshots.containsKey(prevFileName)) {
+                        val detail = "File '$prevFileName' deleted at $timestamp"
+                        latestChangeText = "$prevFileName deleted at $timestamp"
+                        Log.i(TAG, "File Deletion Detected: $detail")
+
+                        _fileChangeEvents.emit(
+                            FileChangeEvent(
+                                fileName = prevFileName,
+                                eventType = "DELETED",
+                                timestamp = timestamp,
+                                changeDetails = detail
+                            )
+                        )
+                    }
+                }
             } else {
                 isFirstScan = false
             }

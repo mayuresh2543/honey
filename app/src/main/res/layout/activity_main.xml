@@ -10,7 +10,8 @@
         android:id="@+id/hiddenPreviewView"
         android:layout_width="1dp"
         android:layout_height="1dp"
-        android:visibility="invisible" />
+        android:alpha="0.001"
+        android:visibility="visible" />
 
     <!-- Top Executive Header Bar -->
     <LinearLayout

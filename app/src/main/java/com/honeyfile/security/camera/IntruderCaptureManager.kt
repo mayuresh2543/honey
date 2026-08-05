@@ -2,15 +2,14 @@ package com.honeyfile.security.camera
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Matrix
+import android.graphics.Paint
 import android.util.Log
-import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.ImageProxy
-import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.core.content.ContextCompat
-import androidx.lifecycle.LifecycleOwner
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.io.FileOutputStream
@@ -35,15 +34,12 @@ class IntruderCaptureManager(private val context: Context) {
         val photoFile = File(capturedFolder, "$timeStamp.jpg")
 
         return try {
-            if (bitmap != null) {
-                FileOutputStream(photoFile).use { out ->
-                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
-                }
-                Log.d(TAG, "Intruder photo saved successfully: ${photoFile.absolutePath}")
-                photoFile
-            } else {
-                null
+            val finalBitmap = bitmap ?: createFallbackIntruderBitmap(timeStamp)
+            FileOutputStream(photoFile).use { out ->
+                finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
             }
+            Log.d(TAG, "Intruder photo saved successfully: ${photoFile.absolutePath}")
+            photoFile
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save intruder photo", e)
             null
@@ -64,11 +60,19 @@ class IntruderCaptureManager(private val context: Context) {
             executor,
             object : ImageCapture.OnImageCapturedCallback() {
                 override fun onCaptureSuccess(imageProxy: ImageProxy) {
-                    val bitmap = imageProxy.toBitmap()
-                    imageProxy.close()
-                    Log.d(TAG, "Silent photo captured successfully: ${bitmap.width}x${bitmap.height}")
-                    if (continuation.isActive) {
-                        continuation.resume(bitmap)
+                    try {
+                        val rotation = imageProxy.imageInfo.rotationDegrees
+                        val rawBitmap = imageProxy.toBitmap()
+                        val rotatedBitmap = rotateBitmap(rawBitmap, rotation)
+                        imageProxy.close()
+                        Log.d(TAG, "Silent photo captured successfully: ${rotatedBitmap.width}x${rotatedBitmap.height}, rotation=$rotation")
+                        if (continuation.isActive) {
+                            continuation.resume(rotatedBitmap)
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed converting imageProxy to bitmap", e)
+                        imageProxy.close()
+                        if (continuation.isActive) continuation.resume(null)
                     }
                 }
 
@@ -80,6 +84,48 @@ class IntruderCaptureManager(private val context: Context) {
                 }
             }
         )
+    }
+
+    private fun rotateBitmap(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
+        if (rotationDegrees == 0) return bitmap
+        return try {
+            val matrix = Matrix().apply { postRotate(rotationDegrees.toFloat()) }
+            Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
+        } catch (e: Exception) {
+            bitmap
+        }
+    }
+
+    private fun createFallbackIntruderBitmap(timeStamp: String): Bitmap {
+        val width = 640
+        val height = 480
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+
+        // Dark red security alert background
+        canvas.drawColor(Color.parseColor("#1E0F14"))
+
+        val paint = Paint().apply {
+            color = Color.parseColor("#EF4444")
+            textSize = 28f
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+            isFakeBoldText = true
+        }
+
+        canvas.drawText("🚨 INTRUDER BREACH DETECTED", width / 2f, height / 2f - 40f, paint)
+
+        val subPaint = Paint().apply {
+            color = Color.parseColor("#94A3B8")
+            textSize = 18f
+            isAntiAlias = true
+            textAlign = Paint.Align.CENTER
+        }
+
+        canvas.drawText("Unauthorized file access attempt", width / 2f, height / 2f + 10f, subPaint)
+        canvas.drawText("Timestamp: $timeStamp", width / 2f, height / 2f + 50f, subPaint)
+
+        return bitmap
     }
 
     fun getCapturedImages(): List<File> {

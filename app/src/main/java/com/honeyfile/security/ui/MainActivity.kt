@@ -52,6 +52,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var folderScannerManager: com.honeyfile.security.scanner.FolderScannerManager
 
     private val logAdapter = LogAdapter()
+    private val directoryLogAdapter = DirectoryLogAdapter()
     private lateinit var galleryAdapter: CapturedImageAdapter
 
     private var currentFrameBitmap: Bitmap? = null
@@ -127,6 +128,21 @@ class MainActivity : AppCompatActivity() {
 
         binding.rvLogs.layoutManager = LinearLayoutManager(this)
         binding.rvLogs.adapter = logAdapter
+
+        binding.rvDirectoryLogs.layoutManager = LinearLayoutManager(this)
+        binding.rvDirectoryLogs.adapter = directoryLogAdapter
+
+        binding.chipGroupDirFilter.setOnCheckedStateChangeListener { _, checkedIds ->
+            val checkedId = checkedIds.firstOrNull() ?: R.id.chipFilterAll
+            val category = when (checkedId) {
+                R.id.chipFilterEdited -> "EDITED"
+                R.id.chipFilterCopied -> "COPIED"
+                R.id.chipFilterDeleted -> "DELETED"
+                R.id.chipFilterBreaches -> "BREACHES"
+                else -> "ALL"
+            }
+            directoryLogAdapter.setFilterCategory(category)
+        }
 
         // Open Intruder Photo Evidence Detail Dialog on item click
         galleryAdapter = CapturedImageAdapter { file ->
@@ -409,6 +425,7 @@ class MainActivity : AppCompatActivity() {
     private fun observeDatabase() {
         database.logDao().getAllLogs().observe(this) { logs ->
             logAdapter.submitList(logs)
+            directoryLogAdapter.updateLogs(logs)
             binding.tvTotalLogs.text = logs.size.toString()
 
             val summary = threatAnalyticsManager.analyzeThreats(logs)

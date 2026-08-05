@@ -177,9 +177,13 @@
 
                     <!-- INTRUDER THREAT ANALYTICS & HEATMAP CARD -->
                     <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardThreatAnalytics"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="16dp"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:foreground="?attr/selectableItemBackground"
                         app:cardBackgroundColor="?attr/appCardColor"
                         app:cardCornerRadius="20dp"
                         app:cardElevation="2dp"
@@ -361,6 +365,15 @@
                                     android:background="@drawable/badge_rounded_green" />
 
                             </LinearLayout>
+
+                            <TextView
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:text="ℹ️ Tap card for interactive threat breakdown &amp; slot inspector"
+                                android:textColor="?attr/appTextColorSecondary"
+                                android:textSize="10sp"
+                                android:layout_marginTop="10dp"
+                                android:gravity="center" />
 
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>

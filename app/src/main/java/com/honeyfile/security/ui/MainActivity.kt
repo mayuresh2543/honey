@@ -188,6 +188,16 @@ class MainActivity : AppCompatActivity() {
             dialog.show(supportFragmentManager, AdminManagementDialogFragment.TAG)
         }
 
+        binding.cardThreatAnalytics.setOnClickListener {
+            showThreatDetailDialog(0)
+        }
+        binding.tvSlot0.setOnClickListener { showThreatDetailDialog(0) }
+        binding.tvSlot1.setOnClickListener { showThreatDetailDialog(1) }
+        binding.tvSlot2.setOnClickListener { showThreatDetailDialog(2) }
+        binding.tvSlot3.setOnClickListener { showThreatDetailDialog(3) }
+        binding.tvSlot4.setOnClickListener { showThreatDetailDialog(4) }
+        binding.tvSlot5.setOnClickListener { showThreatDetailDialog(5) }
+
         binding.btnDeployDecoys.setOnClickListener {
             deployDecoyFilesToMonitoredFolder()
         }
@@ -643,6 +653,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
+    }
+
+    private fun showThreatDetailDialog(slotIndex: Int) {
+        ThreatAnalyticsDetailDialogFragment.newInstance(slotIndex)
+            .show(supportFragmentManager, ThreatAnalyticsDetailDialogFragment.TAG)
     }
 
     override fun onDestroy() {

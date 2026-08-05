@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/appBackgroundColor"
+    android:padding="20dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <!-- Dialog Header -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="16dp">
+
+            <TextView
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="📊 Threat Analytics &amp; Heatmap Breakdown"
+                android:textColor="?attr/appTextColorPrimary"
+                android:textSize="17sp"
+                android:textStyle="bold" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btnClose"
+                style="@style/Widget.Material3.Button.IconButton"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:text="✕"
+                android:textColor="?attr/appTextColorSecondary"
+                android:textSize="16sp" />
+
+        </LinearLayout>
+
+        <!-- SEVERITY & RISK SCORE CARD -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            app:cardBackgroundColor="?attr/appCardColor"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp"
+            app:strokeColor="?attr/appCardStrokeColor"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="CURRENT THREAT SEVERITY"
+                        android:textColor="?attr/appTextColorSecondary"
+                        android:textSize="10sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/tvModalSeverityBadge"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="LOW 🟢"
+                        android:textColor="@color/success_green"
+                        android:textSize="11sp"
+                        android:textStyle="bold"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp"
+                        android:background="@drawable/badge_rounded_green" />
+
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/tvModalScoreText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Risk Score: 0 / 100"
+                    android:textColor="?attr/appTextColorPrimary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="8dp" />
+
+                <TextView
+                    android:id="@+id/tvModalSeverityExplanation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="System threat level is currently Low. No recent unauthorized breaches detected."
+                    android:textColor="?attr/appTextColorSecondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- PEAK ATTACK WINDOW CARD -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            app:cardBackgroundColor="?attr/appCardColor"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp"
+            app:strokeColor="?attr/appCardStrokeColor"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="⏱️ PEAK ATTACK WINDOW"
+                    android:textColor="?attr/appTextColorSecondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/tvModalPeakWindow"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="None (00:00 - 04:00)"
+                    android:textColor="@color/primary_accent"
+                    android:textSize="16sp"
+                    android:textStyle="bold"
+                    android:layout_marginTop="6dp" />
+
+                <TextView
+                    android:id="@+id/tvModalPeakExplanation"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="This is the 4-hour window of the day where your device experiences the highest volume of intruder activity."
+                    android:textColor="?attr/appTextColorSecondary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 24-HOUR HEATMAP DRILL-DOWN SECTION -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="16dp"
+            app:cardBackgroundColor="?attr/appCardColor"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp"
+            app:strokeColor="?attr/appCardStrokeColor"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="🔥 24-HOUR TIME SLOT INSPECTOR"
+                    android:textColor="?attr/appTextColorSecondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Select a 4-hour time slot to inspect exact breach events:"
+                    android:textColor="?attr/appTextColorPrimary"
+                    android:textSize="12sp"
+                    android:layout_marginTop="4dp"
+                    android:layout_marginBottom="10dp" />
+
+                <!-- Slot Selector Chips -->
+                <HorizontalScrollView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:scrollbars="none"
+                    android:layout_marginBottom="12dp">
+
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupTimeSlots"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:singleSelection="true"
+                        app:selectionRequired="true">
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSlot0"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:checked="true"
+                            android:text="00-04h" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSlot1"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="04-08h" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSlot2"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="08-12h" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSlot3"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="12-16h" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSlot4"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="16-20h" />
+
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSlot5"
+                            style="@style/Widget.Material3.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="20-24h" />
+
+                    </com.google.android.material.chip.ChipGroup>
+                </HorizontalScrollView>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/rvSlotBreaches"
+                    android:layout_width="match_parent"
+                    android:layout_height="180dp"
+                    android:nestedScrollingEnabled="true" />
+
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+    </LinearLayout>
+
+</ScrollView>

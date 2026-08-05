@@ -12,14 +12,28 @@ import android.os.Build
 import android.os.IBinder
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import com.honeyfile.security.alert.EmailAlertManager
+import com.honeyfile.security.camera.IntruderCaptureManager
+import com.honeyfile.security.data.AccessLog
+import com.honeyfile.security.data.AppDatabase
 import com.honeyfile.security.integrity.HoneyFileObserver
 import com.honeyfile.security.scanner.FolderScannerManager
 import com.honeyfile.security.ui.MainActivity
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class HoneyMonitoringService : Service() {
 
     private lateinit var folderScannerManager: FolderScannerManager
     private var fileObserver: HoneyFileObserver? = null
+    private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val emailAlertManager = EmailAlertManager()
 
     override fun onCreate() {
         super.onCreate()
@@ -57,7 +71,7 @@ class HoneyMonitoringService : Service() {
             fileObserver?.stopWatching()
             fileObserver = HoneyFileObserver(path) { event ->
                 Log.w(TAG, "Background File Alteration Event: ${event.fileName} (${event.eventType})")
-                sendAlterationNotification(event.fileName, event.eventType.name)
+                handleBackgroundFileBreach(event.fileName, event.eventType.name)
             }.also {
                 it.startWatching()
             }
@@ -65,6 +79,41 @@ class HoneyMonitoringService : Service() {
         } catch (e: Exception) {
             Log.e(TAG, "Failed to start HoneyFileObserver on path $path", e)
         }
+    }
+
+    private fun handleBackgroundFileBreach(fileName: String, actionType: String) {
+        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+
+        // 1. Capture Intruder Photo Evidence for Vault
+        val intruderCaptureManager = IntruderCaptureManager(this)
+        val photoFile = intruderCaptureManager.captureIntruderImage(null)
+
+        // 2. Log breach to AppDatabase & send Email alert asynchronously
+        serviceScope.launch {
+            try {
+                val db = AppDatabase.getDatabase(this@HoneyMonitoringService)
+                db.logDao().insertLog(
+                    AccessLog(
+                        file = fileName,
+                        user = "Intruder",
+                        action = "BREACH",
+                        details = "UNAUTHORIZED BACKGROUND BREACH: File '$fileName' $actionType in monitored folder while app was in background.",
+                        timestamp = timestamp
+                    )
+                )
+
+                emailAlertManager.sendAlert(
+                    subject = "🚨 Background Intruder File Alteration: $fileName",
+                    body = "Unauthorized background file modification detected at $timestamp.\n\nFile: $fileName\nAction: $actionType",
+                    imageFile = photoFile
+                )
+            } catch (e: Exception) {
+                Log.e(TAG, "Error logging background breach", e)
+            }
+        }
+
+        // 3. Post High-Priority Notification to Status Bar
+        sendAlterationNotification(fileName, actionType)
     }
 
     private fun sendAlterationNotification(fileName: String, actionType: String) {
@@ -142,6 +191,7 @@ class HoneyMonitoringService : Service() {
         fileObserver?.stopWatching()
         fileObserver = null
         folderScannerManager.stopScanning()
+        serviceScope.cancel()
         Log.d(TAG, "HoneyMonitoringService destroyed")
     }
 

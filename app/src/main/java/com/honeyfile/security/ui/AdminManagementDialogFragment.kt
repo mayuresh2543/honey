@@ -42,7 +42,11 @@ class AdminManagementDialogFragment : DialogFragment() {
         updateAdminStatusUI()
 
         binding.btnEnrollAdmin1.setOnClickListener {
-            onEnrollAdmin1Clicked?.invoke()
+            val scanDialog = AdminEnrollScanDialogFragment.newInstance(1)
+            scanDialog.onEnrollmentCompleted = {
+                updateAdminStatusUI()
+            }
+            scanDialog.show(parentFragmentManager, AdminEnrollScanDialogFragment.TAG)
         }
 
         binding.btnClearAdmin1.setOnClickListener {
@@ -52,7 +56,11 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
 
         binding.btnEnrollAdmin2.setOnClickListener {
-            onEnrollAdmin2Clicked?.invoke()
+            val scanDialog = AdminEnrollScanDialogFragment.newInstance(2)
+            scanDialog.onEnrollmentCompleted = {
+                updateAdminStatusUI()
+            }
+            scanDialog.show(parentFragmentManager, AdminEnrollScanDialogFragment.TAG)
         }
 
         binding.btnClearAdmin2.setOnClickListener {

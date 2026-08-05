@@ -162,17 +162,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun toggleThemeWithSmoothSnapshot(newDarkMode: Boolean) {
-        // Post asynchronously so the switch thumb animation finishes visually without freezing
-        binding.switchTheme.post {
+        binding.switchTheme.isEnabled = false // Prevent double toggles during transition
+        // Delay by 300ms so the MaterialSwitch thumb animation finishes visually without freezing
+        binding.switchTheme.postDelayed({
             try {
                 val root = binding.root
                 val bitmap = root.drawToBitmap()
                 ThemeSnapshotHolder.snapshotBitmap = bitmap
+                ThemeSnapshotHolder.activeTabId = binding.bottomNavigation.selectedItemId
             } catch (e: Exception) { }
 
             themeManager.isDarkMode = newDarkMode
             themeManager.applyTheme()
-        }
+        }, 300)
     }
 
     private fun selectTab(tabId: Int) {
@@ -277,7 +279,13 @@ class MainActivity : AppCompatActivity() {
             true
         }
 
-        val initialTabId = savedInstanceState?.getInt("key_selected_tab_id", R.id.nav_dashboard) ?: R.id.nav_dashboard
+        // Restore tab from ThemeSnapshotHolder (survives recreate perfectly) or savedInstanceState
+        val initialTabId = ThemeSnapshotHolder.activeTabId 
+            ?: savedInstanceState?.getInt("key_selected_tab_id", R.id.nav_dashboard) 
+            ?: R.id.nav_dashboard
+            
+        ThemeSnapshotHolder.activeTabId = null // clear after restoring
+
         binding.bottomNavigation.selectedItemId = initialTabId
         selectTab(initialTabId)
     }
@@ -712,5 +720,6 @@ class MainActivity : AppCompatActivity() {
 
 object ThemeSnapshotHolder {
     var snapshotBitmap: Bitmap? = null
+    var activeTabId: Int? = null
 }
 

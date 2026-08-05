@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import android.content.res.ColorStateList
 import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import com.honeyfile.security.R
 import com.honeyfile.security.analytics.SeverityLevel
 import com.honeyfile.security.analytics.ThreatAnalyticsManager

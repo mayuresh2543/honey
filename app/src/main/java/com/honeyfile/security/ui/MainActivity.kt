@@ -17,7 +17,6 @@ import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
-import androidx.core.view.drawToBitmap
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -100,40 +99,13 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         themeManager = ThemeManager(this)
-        themeManager.applyTheme()
 
         super.onCreate(savedInstanceState)
-        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
-
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        // Pre-populate UI state immediately to prevent placeholder 0 flash during theme recreation
-        savedInstanceState?.let { bundle ->
-            binding.tvAdminCount.text = bundle.getString("key_admin_count", "0")
-            binding.tvIntruderCount.text = bundle.getString("key_intruder_count", "0")
-            binding.tvTotalLogs.text = bundle.getString("key_total_logs", "0")
-            binding.tvSelectedFolder.text = bundle.getString("key_selected_folder", getString(com.honeyfile.security.R.string.no_folder_selected))
-            binding.tvScanStats.text = bundle.getString("key_scan_stats", "Scanned Files: 0 | Honeyfiles Detected: 0")
-        }
-
-        // Animate Theme Snapshot Overlay Cross-Fade (Zero Blank Screen Flash!)
-        val snapshot = ThemeSnapshotHolder.snapshotBitmap
-        if (snapshot != null) {
-            binding.ivThemeSnapshot.setImageBitmap(snapshot)
-            binding.ivThemeSnapshot.visibility = View.VISIBLE
-            binding.ivThemeSnapshot.alpha = 1.0f
-            ThemeSnapshotHolder.snapshotBitmap = null
-
-            binding.ivThemeSnapshot.animate()
-                .alpha(0.0f)
-                .setDuration(400)
-                .withEndAction {
-                    binding.ivThemeSnapshot.visibility = View.GONE
-                    binding.ivThemeSnapshot.setImageBitmap(null)
-                }
-                .start()
-        }
+        // Apply current theme colors instantly (no animation on first launch)
+        themeManager.applyColorsInstant(binding.root, themeManager.isDarkMode)
 
         database = AppDatabase.getDatabase(this)
         faceAuthManager = FaceAuthManager(this)
@@ -149,32 +121,15 @@ class MainActivity : AppCompatActivity() {
         refreshGallery()
     }
 
-    override fun onSaveInstanceState(outState: Bundle) {
-        super.onSaveInstanceState(outState)
-        outState.putString("key_admin_count", binding.tvAdminCount.text.toString())
-        outState.putString("key_intruder_count", binding.tvIntruderCount.text.toString())
-        outState.putString("key_total_logs", binding.tvTotalLogs.text.toString())
-        outState.putString("key_selected_folder", binding.tvSelectedFolder.text.toString())
-        outState.putString("key_scan_stats", binding.tvScanStats.text.toString())
-    }
-
-    private fun toggleThemeWithSmoothSnapshot(newDarkMode: Boolean) {
-        try {
-            val root = binding.root
-            val bitmap = Bitmap.createBitmap(root.drawToBitmap())
-            ThemeSnapshotHolder.snapshotBitmap = bitmap
-            themeManager.isDarkMode = newDarkMode
-        } catch (e: Exception) {
-            themeManager.isDarkMode = newDarkMode
-        }
-    }
-
     private fun setupUI() {
-        // Theme switch listener with smooth snapshot cross-fade
+        // Theme switch — smooth in-place color animation, NO activity recreation!
         binding.switchTheme.isChecked = themeManager.isDarkMode
         binding.switchTheme.setOnCheckedChangeListener { _, isChecked ->
             if (themeManager.isDarkMode != isChecked) {
-                toggleThemeWithSmoothSnapshot(isChecked)
+                themeManager.isDarkMode = isChecked
+                themeManager.animateThemeTransition(binding.root, isChecked, 350L)
+                // Update status bar color
+                window.statusBarColor = themeManager.getBgColor(isChecked)
             }
         }
 
@@ -722,6 +677,3 @@ class MainActivity : AppCompatActivity() {
     }
 }
 
-object ThemeSnapshotHolder {
-    var snapshotBitmap: Bitmap? = null
-}

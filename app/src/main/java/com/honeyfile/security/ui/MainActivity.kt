@@ -102,8 +102,19 @@ class MainActivity : AppCompatActivity() {
         themeManager.applyTheme()
 
         super.onCreate(savedInstanceState)
+        overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+
+        // Pre-populate UI state immediately to prevent placeholder 0 flash during theme recreation
+        savedInstanceState?.let { bundle ->
+            binding.tvAdminCount.text = bundle.getString("key_admin_count", "0")
+            binding.tvIntruderCount.text = bundle.getString("key_intruder_count", "0")
+            binding.tvTotalLogs.text = bundle.getString("key_total_logs", "0")
+            binding.tvSelectedFolder.text = bundle.getString("key_selected_folder", getString(com.honeyfile.security.R.string.no_folder_selected))
+            binding.tvScanStats.text = bundle.getString("key_scan_stats", "Scanned Files: 0 | Honeyfiles Detected: 0")
+        }
 
         database = AppDatabase.getDatabase(this)
         faceAuthManager = FaceAuthManager(this)
@@ -119,11 +130,23 @@ class MainActivity : AppCompatActivity() {
         refreshGallery()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString("key_admin_count", binding.tvAdminCount.text.toString())
+        outState.putString("key_intruder_count", binding.tvIntruderCount.text.toString())
+        outState.putString("key_total_logs", binding.tvTotalLogs.text.toString())
+        outState.putString("key_selected_folder", binding.tvSelectedFolder.text.toString())
+        outState.putString("key_scan_stats", binding.tvScanStats.text.toString())
+    }
+
     private fun setupUI() {
-        // Theme switch listener
+        // Theme switch listener with smooth cross-fade
         binding.switchTheme.isChecked = themeManager.isDarkMode
         binding.switchTheme.setOnCheckedChangeListener { _, isChecked ->
-            themeManager.isDarkMode = isChecked
+            if (themeManager.isDarkMode != isChecked) {
+                themeManager.isDarkMode = isChecked
+                overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
+            }
         }
 
         binding.rvLogs.layoutManager = LinearLayoutManager(this)

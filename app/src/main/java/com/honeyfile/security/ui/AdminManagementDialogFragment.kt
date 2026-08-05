@@ -18,6 +18,9 @@ class AdminManagementDialogFragment : DialogFragment() {
 
     private lateinit var faceAuthManager: FaceAuthManager
 
+    var onEnrollAdmin1Clicked: (() -> Unit)? = null
+    var onEnrollAdmin2Clicked: (() -> Unit)? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NO_TITLE, 0)
@@ -39,9 +42,7 @@ class AdminManagementDialogFragment : DialogFragment() {
         updateAdminStatusUI()
 
         binding.btnEnrollAdmin1.setOnClickListener {
-            faceAuthManager.enrollAdmin1()
-            Toast.makeText(context, "Admin 1 face profile enrolled! ✅", Toast.LENGTH_SHORT).show()
-            updateAdminStatusUI()
+            onEnrollAdmin1Clicked?.invoke()
         }
 
         binding.btnClearAdmin1.setOnClickListener {
@@ -51,9 +52,7 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
 
         binding.btnEnrollAdmin2.setOnClickListener {
-            faceAuthManager.enrollAdmin2()
-            Toast.makeText(context, "Admin 2 face profile enrolled! ✅", Toast.LENGTH_SHORT).show()
-            updateAdminStatusUI()
+            onEnrollAdmin2Clicked?.invoke()
         }
 
         binding.btnClearAdmin2.setOnClickListener {
@@ -67,7 +66,7 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
     }
 
-    private fun updateAdminStatusUI() {
+    fun updateAdminStatusUI() {
         val ctx = context ?: return
         val greenColor = ContextCompat.getColor(ctx, R.color.success_green)
         val secondaryColor = ContextCompat.getColor(ctx, R.color.dark_text_secondary)

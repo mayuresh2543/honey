@@ -134,8 +134,34 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.btnManageAdmins.setOnClickListener {
-            AdminManagementDialogFragment.newInstance()
-                .show(supportFragmentManager, AdminManagementDialogFragment.TAG)
+            val dialog = AdminManagementDialogFragment.newInstance()
+            dialog.onEnrollAdmin1Clicked = {
+                lifecycleScope.launch {
+                    Toast.makeText(this@MainActivity, "Capturing camera scan for Admin 1...", Toast.LENGTH_SHORT).show()
+                    val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
+                    if (frame != null) {
+                        val result = faceAuthManager.enrollAdmin1FromBitmap(frame)
+                        Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
+                        dialog.updateAdminStatusUI()
+                    } else {
+                        Toast.makeText(this@MainActivity, "Camera unavailable. Position face towards camera.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            dialog.onEnrollAdmin2Clicked = {
+                lifecycleScope.launch {
+                    Toast.makeText(this@MainActivity, "Capturing camera scan for Admin 2...", Toast.LENGTH_SHORT).show()
+                    val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
+                    if (frame != null) {
+                        val result = faceAuthManager.enrollAdmin2FromBitmap(frame)
+                        Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
+                        dialog.updateAdminStatusUI()
+                    } else {
+                        Toast.makeText(this@MainActivity, "Camera unavailable. Position face towards camera.", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+            dialog.show(supportFragmentManager, AdminManagementDialogFragment.TAG)
         }
 
         binding.btnDeployDecoys.setOnClickListener {

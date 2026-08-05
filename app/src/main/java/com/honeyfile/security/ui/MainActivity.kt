@@ -527,10 +527,20 @@ class MainActivity : AppCompatActivity() {
                 val slot = slots[i]
                 val tv = slotViews[i]
                 tv.text = "${slot.timeLabel}\n${slot.count}"
-                tv.backgroundTintList = ColorStateList.valueOf(Color.parseColor(slot.intensityColorHex))
+                val solidColor = Color.parseColor(slot.intensityColorHex)
+                tv.background = createSolidRoundedDrawable(solidColor)
                 tv.setTextColor(Color.WHITE)
                 tv.setTag(R.id.theme_text_tag, "theme_text_skip")
             }
+        }
+    }
+
+    private fun createSolidRoundedDrawable(color: Int): GradientDrawable {
+        val radius = 20f * resources.displayMetrics.density
+        return GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = radius
+            setColor(color)
         }
     }
 

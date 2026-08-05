@@ -102,9 +102,9 @@ class ThreatAnalyticsManager {
         return slotLabels.mapIndexed { index, label ->
             val count = slotCounts[index]
             val colorHex = when {
-                count >= 3 -> "#FF3B30" // Red
-                count in 1..2 -> "#FFCC00" // Yellow / Amber
-                else -> "#34C759" // Green
+                count >= 3 -> "#DC2626" // Solid Vivid Red
+                count in 1..2 -> "#D97706" // Solid Vivid Amber
+                else -> "#16A34A" // Solid Vivid Green
             }
             HeatmapSlot(timeLabel = label, count = count, intensityColorHex = colorHex)
         }

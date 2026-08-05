@@ -287,39 +287,55 @@ class MainActivity : AppCompatActivity() {
         lifecycleScope.launch {
             folderScannerManager.fileChangeEvents.collect { event ->
                 Log.w(TAG, "File change event detected: ${event.fileName} (${event.eventType})")
-                Toast.makeText(this@MainActivity, "🚨 Alert: File '${event.fileName}' ${event.eventType.lowercase()}!", Toast.LENGTH_LONG).show()
-                handleFileModificationDetection(event)
+                val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+
+                // 1. INSTANT ROOM DB LOG INSERTION (Reflects in UI instantly!)
+                lifecycleScope.launch(Dispatchers.IO) {
+                    database.logDao().insertLog(
+                        AccessLog(
+                            file = event.fileName,
+                            user = "System",
+                            action = event.eventType,
+                            details = event.changeDetails,
+                            timestamp = timestamp
+                        )
+                    )
+                }
+
+                // 2. ASYNCHRONOUS THROTTLED SECURITY CAPTURE & EMAIL ALERT
+                lifecycleScope.launch(Dispatchers.IO) {
+                    processBackgroundSecurityVerification(event)
+                }
             }
         }
     }
 
-    private suspend fun handleFileModificationDetection(event: com.honeyfile.security.scanner.FileChangeEvent) {
+    private var lastSecurityAlertTimeMs = 0L
+
+    private suspend fun processBackgroundSecurityVerification(event: com.honeyfile.security.scanner.FileChangeEvent) {
+        val now = System.currentTimeMillis()
+        if (now - lastSecurityAlertTimeMs < 10000L) {
+            Log.d(TAG, "Security verification throttled for recent burst operation: ${event.fileName}")
+            return
+        }
+        lastSecurityAlertTimeMs = now
+
         val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
         val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
         val isAuthenticated = authResult?.isAuthenticated ?: false
         val adminName = authResult?.adminName ?: "Admin"
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
-        val actionText = event.eventType
         if (isAuthenticated) {
-            Log.d(TAG, "File change by verified $adminName ✅")
-            database.logDao().insertLog(
-                AccessLog(
-                    file = event.fileName,
-                    user = adminName,
-                    action = actionText,
-                    details = event.changeDetails,
-                    timestamp = timestamp
-                )
-            )
+            Log.d(TAG, "Burst file change verified by $adminName ✅")
         } else {
-            Log.w(TAG, "Unauthorized file change by Intruder 🚨")
+            Log.w(TAG, "Unauthorized burst file alteration by Intruder 🚨")
             database.logDao().insertLog(
                 AccessLog(
                     file = event.fileName,
                     user = "Intruder",
-                    action = actionText,
-                    details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionText by Intruder at $timestamp. ${event.changeDetails}",
+                    action = "BREACH",
+                    details = "UNAUTHORIZED INTRUSION BREACH: File '${event.fileName}' ${event.eventType} by Intruder at $timestamp.",
                     timestamp = timestamp
                 )
             )
@@ -332,7 +348,9 @@ class MainActivity : AppCompatActivity() {
                 imageFile = photoFile
             )
 
-            refreshGallery()
+            withContext(Dispatchers.Main) {
+                refreshGallery()
+            }
         }
     }
 

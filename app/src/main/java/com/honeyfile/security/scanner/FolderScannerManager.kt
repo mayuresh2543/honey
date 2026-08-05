@@ -65,7 +65,7 @@ class FolderScannerManager(private val context: Context) {
         "admin", "credential", "private", "decoy", "backup"
     )
 
-    fun startContinuousScanning(folderUri: Uri, intervalMs: Long = 2000L) {
+    fun startContinuousScanning(folderUri: Uri, intervalMs: Long = 500L) {
         stopScanning()
 
         val docFile = DocumentFile.fromTreeUri(context, folderUri)

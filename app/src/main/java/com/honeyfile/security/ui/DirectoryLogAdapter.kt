@@ -1,6 +1,7 @@
 package com.honeyfile.security.ui
 
 import android.view.LayoutInflater
+import android.view.View
 import android.view.ViewGroup
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.DiffUtil
@@ -14,6 +15,7 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
 
     private var allLogsList: List<AccessLog> = emptyList()
     private var currentFilterCategory: String = "ALL"
+    private val expandedPositions = mutableSetOf<Int>()
 
     fun updateLogs(newLogs: List<AccessLog>) {
         allLogsList = newLogs
@@ -27,8 +29,9 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
 
     private fun applyCurrentFilter() {
         val filtered = when (currentFilterCategory.uppercase()) {
+            "NEW", "CREATED" -> allLogsList.filter { it.user.contains("CREATED", ignoreCase = true) || it.user.contains("COPIED", ignoreCase = true) }
             "EDITED" -> allLogsList.filter { it.user.contains("EDITED", ignoreCase = true) || it.user.contains("MODIFIED", ignoreCase = true) }
-            "COPIED" -> allLogsList.filter { it.user.contains("COPIED", ignoreCase = true) || it.user.contains("CREATED", ignoreCase = true) }
+            "COPIED" -> allLogsList.filter { it.user.contains("COPIED", ignoreCase = true) }
             "DELETED" -> allLogsList.filter { it.user.contains("DELETED", ignoreCase = true) }
             "BREACHES" -> allLogsList.filter { it.user.contains("Intruder", ignoreCase = true) }
             else -> allLogsList
@@ -46,59 +49,124 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
     }
 
     override fun onBindViewHolder(holder: DirectoryLogViewHolder, position: Int) {
-        holder.bind(getItem(position))
+        val log = getItem(position)
+        val isExpanded = expandedPositions.contains(position)
+
+        holder.bind(log, isExpanded) {
+            if (isExpanded) {
+                expandedPositions.remove(position)
+            } else {
+                expandedPositions.add(position)
+            }
+            notifyItemChanged(position)
+        }
     }
 
     class DirectoryLogViewHolder(private val binding: ItemDirectoryLogBinding) :
         RecyclerView.ViewHolder(binding.root) {
 
-        fun bind(log: AccessLog) {
+        fun bind(log: AccessLog, isExpanded: Boolean, onItemClicked: () -> Unit) {
             binding.tvDirectoryFileName.text = log.file
             binding.tvDirectoryLogTime.text = log.timestamp
 
             val userStr = log.user
             val ctx = binding.root.context
 
-            when {
+            val (icon, eventText, textColor, bgDrawable, changeDetail) = when {
                 userStr.contains("DELETED", ignoreCase = true) -> {
-                    binding.tvCategoryIcon.text = "🗑️"
-                    binding.tvDirectoryEventType.text = "DELETED"
-                    binding.tvDirectoryEventType.setTextColor(ContextCompat.getColor(ctx, R.color.alert_red))
-                    binding.tvDirectoryEventType.setBackgroundResource(R.drawable.badge_rounded_red)
+                    Tuple(
+                        "🗑️",
+                        "DELETED",
+                        ContextCompat.getColor(ctx, R.color.alert_red),
+                        R.drawable.badge_rounded_red,
+                        "File '${log.file}' was deleted from the monitored directory at ${log.timestamp}."
+                    )
                 }
                 userStr.contains("EDITED", ignoreCase = true) || userStr.contains("MODIFIED", ignoreCase = true) -> {
-                    binding.tvCategoryIcon.text = "✏️"
-                    binding.tvDirectoryEventType.text = "EDITED"
-                    binding.tvDirectoryEventType.setTextColor(ContextCompat.getColor(ctx, R.color.warning_yellow))
-                    binding.tvDirectoryEventType.setBackgroundResource(R.drawable.badge_rounded_yellow)
+                    Tuple(
+                        "✏️",
+                        "EDITED",
+                        ContextCompat.getColor(ctx, R.color.warning_yellow),
+                        R.drawable.badge_rounded_yellow,
+                        "File '${log.file}' modified at ${log.timestamp}. Content bytes or file size altered."
+                    )
                 }
-                userStr.contains("COPIED", ignoreCase = true) || userStr.contains("CREATED", ignoreCase = true) -> {
-                    binding.tvCategoryIcon.text = "📋"
-                    binding.tvDirectoryEventType.text = "COPIED/NEW"
-                    binding.tvDirectoryEventType.setTextColor(ContextCompat.getColor(ctx, R.color.primary_accent))
-                    binding.tvDirectoryEventType.setBackgroundResource(R.drawable.badge_rounded_green)
+                userStr.contains("CREATED", ignoreCase = true) -> {
+                    Tuple(
+                        "➕",
+                        "NEW FILE",
+                        ContextCompat.getColor(ctx, R.color.primary_accent),
+                        R.drawable.badge_rounded_green,
+                        "New file '${log.file}' was created in the monitored directory at ${log.timestamp}."
+                    )
+                }
+                userStr.contains("COPIED", ignoreCase = true) -> {
+                    Tuple(
+                        "📋",
+                        "COPIED",
+                        ContextCompat.getColor(ctx, R.color.primary_accent),
+                        R.drawable.badge_rounded_green,
+                        "File '${log.file}' was copied or pasted into the directory at ${log.timestamp}."
+                    )
                 }
                 userStr.contains("RENAMED", ignoreCase = true) -> {
-                    binding.tvCategoryIcon.text = "🔄"
-                    binding.tvDirectoryEventType.text = "RENAMED"
-                    binding.tvDirectoryEventType.setTextColor(ContextCompat.getColor(ctx, R.color.primary_accent))
-                    binding.tvDirectoryEventType.setBackgroundResource(R.drawable.badge_rounded_green)
+                    Tuple(
+                        "🔄",
+                        "RENAMED",
+                        ContextCompat.getColor(ctx, R.color.primary_accent),
+                        R.drawable.badge_rounded_green,
+                        "File '${log.file}' was renamed or moved at ${log.timestamp}."
+                    )
                 }
                 userStr.contains("Intruder", ignoreCase = true) -> {
-                    binding.tvCategoryIcon.text = "🚨"
-                    binding.tvDirectoryEventType.text = "BREACH"
-                    binding.tvDirectoryEventType.setTextColor(ContextCompat.getColor(ctx, R.color.alert_red))
-                    binding.tvDirectoryEventType.setBackgroundResource(R.drawable.badge_rounded_red)
+                    Tuple(
+                        "🚨",
+                        "BREACH",
+                        ContextCompat.getColor(ctx, R.color.alert_red),
+                        R.drawable.badge_rounded_red,
+                        "UNAUTHORIZED ACCESS BREACH on file '${log.file}' at ${log.timestamp}! Camera captured intruder photo & email alert sent."
+                    )
                 }
                 else -> {
-                    binding.tvCategoryIcon.text = "👤"
-                    binding.tvDirectoryEventType.text = userStr
-                    binding.tvDirectoryEventType.setTextColor(ContextCompat.getColor(ctx, R.color.success_green))
-                    binding.tvDirectoryEventType.setBackgroundResource(R.drawable.badge_rounded_green)
+                    Tuple(
+                        "👤",
+                        userStr,
+                        ContextCompat.getColor(ctx, R.color.success_green),
+                        R.drawable.badge_rounded_green,
+                        "Verified access by $userStr on file '${log.file}' at ${log.timestamp}."
+                    )
                 }
+            }
+
+            binding.tvCategoryIcon.text = icon
+            binding.tvDirectoryEventType.text = eventText
+            binding.tvDirectoryEventType.setTextColor(textColor)
+            binding.tvDirectoryEventType.setBackgroundResource(bgDrawable)
+
+            binding.tvChangeDetails.text = changeDetail
+
+            // Expand / Collapse state
+            if (isExpanded) {
+                binding.llDetailsContainer.visibility = View.VISIBLE
+                binding.tvExpandArrow.text = "▲"
+            } else {
+                binding.llDetailsContainer.visibility = View.GONE
+                binding.tvExpandArrow.text = "▼"
+            }
+
+            binding.llHeader.setOnClickListener {
+                onItemClicked()
             }
         }
     }
+
+    private data class Tuple(
+        val icon: String,
+        val text: String,
+        val textColor: Int,
+        val bgDrawable: Int,
+        val details: String
+    )
 
     private class AccessLogDiffCallback : DiffUtil.ItemCallback<AccessLog>() {
         override fun areItemsTheSame(oldItem: AccessLog, newItem: AccessLog): Boolean {

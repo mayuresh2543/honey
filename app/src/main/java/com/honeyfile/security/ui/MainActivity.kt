@@ -135,6 +135,7 @@ class MainActivity : AppCompatActivity() {
         binding.chipGroupDirFilter.setOnCheckedStateChangeListener { _, checkedIds ->
             val checkedId = checkedIds.firstOrNull() ?: R.id.chipFilterAll
             val category = when (checkedId) {
+                R.id.chipFilterNew -> "NEW"
                 R.id.chipFilterEdited -> "EDITED"
                 R.id.chipFilterCopied -> "COPIED"
                 R.id.chipFilterDeleted -> "DELETED"

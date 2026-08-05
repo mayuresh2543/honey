@@ -14,60 +14,124 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
-        android:padding="12dp"
-        android:gravity="center_vertical">
+        android:orientation="vertical">
 
-        <!-- Category Icon Box -->
-        <TextView
-            android:id="@+id/tvCategoryIcon"
-            android:layout_width="38dp"
-            android:layout_height="38dp"
-            android:text="✏️"
-            android:textSize="18sp"
-            android:gravity="center"
-            android:background="@drawable/card_live_feed_bg" />
-
+        <!-- HEADER ROW (ALWAYS VISIBLE) -->
         <LinearLayout
-            android:layout_width="0dp"
+            android:id="@+id/llHeader"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical"
-            android:layout_marginStart="12dp">
+            android:orientation="horizontal"
+            android:padding="12dp"
+            android:gravity="center_vertical">
+
+            <!-- Category Icon Box -->
+            <TextView
+                android:id="@+id/tvCategoryIcon"
+                android:layout_width="38dp"
+                android:layout_height="38dp"
+                android:text="✏️"
+                android:textSize="18sp"
+                android:gravity="center"
+                android:background="@drawable/card_live_feed_bg" />
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical"
+                android:layout_marginStart="12dp">
+
+                <TextView
+                    android:id="@+id/tvDirectoryFileName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="admin_passwords.txt"
+                    android:textColor="?attr/appTextColorPrimary"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    android:ellipsize="middle"
+                    android:singleLine="true" />
+
+                <TextView
+                    android:id="@+id/tvDirectoryLogTime"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="2026-08-05 18:02:00"
+                    android:textColor="?attr/appTextColorSecondary"
+                    android:textSize="11sp"
+                    android:layout_marginTop="2dp" />
+
+            </LinearLayout>
 
             <TextView
-                android:id="@+id/tvDirectoryFileName"
-                android:layout_width="match_parent"
+                android:id="@+id/tvDirectoryEventType"
+                android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="admin_passwords.txt"
-                android:textColor="?attr/appTextColorPrimary"
-                android:textSize="13sp"
+                android:text="EDITED"
+                android:textColor="@color/primary_accent"
+                android:textSize="10sp"
                 android:textStyle="bold"
-                android:ellipsize="middle"
-                android:singleLine="true" />
+                android:paddingHorizontal="8dp"
+                android:paddingVertical="3dp"
+                android:background="@drawable/badge_rounded_green" />
 
             <TextView
-                android:id="@+id/tvDirectoryLogTime"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="2026-08-05 17:59:00"
+                android:id="@+id/tvExpandArrow"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:layout_marginStart="6dp"
+                android:text="▼"
                 android:textColor="?attr/appTextColorSecondary"
-                android:textSize="11sp"
-                android:layout_marginTop="2dp" />
+                android:textSize="12sp"
+                android:gravity="center" />
 
         </LinearLayout>
 
-        <TextView
-            android:id="@+id/tvDirectoryEventType"
-            android:layout_width="wrap_content"
+        <!-- EXPANDABLE DETAILS CONTAINER -->
+        <LinearLayout
+            android:id="@+id/llDetailsContainer"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="EDITED"
-            android:textColor="@color/primary_accent"
-            android:textSize="10sp"
-            android:textStyle="bold"
-            android:paddingHorizontal="8dp"
-            android:paddingVertical="3dp"
-            android:background="@drawable/badge_rounded_green" />
+            android:orientation="vertical"
+            android:paddingHorizontal="14dp"
+            android:paddingBottom="14dp"
+            android:visibility="gone">
+
+            <View
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="?attr/appCardStrokeColor"
+                android:layout_marginBottom="10dp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="📝 EXACT FILE CHANGE DETAILS:"
+                android:textColor="?attr/appTextColorSecondary"
+                android:textSize="10sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tvChangeDetails"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="File 'admin_passwords.txt' modified. Content size changed."
+                android:textColor="?attr/appTextColorPrimary"
+                android:textSize="12sp"
+                android:layout_marginTop="4dp" />
+
+            <TextView
+                android:id="@+id/tvSecurityNote"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="🛡️ Monitored by Honeyfile Endpoint Protection"
+                android:textColor="@color/primary_accent"
+                android:textSize="11sp"
+                android:textStyle="bold"
+                android:layout_marginTop="6dp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 

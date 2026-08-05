@@ -49,9 +49,6 @@ class IntruderCaptureManager(private val context: Context) {
         }
     }
 
-    /**
-     * Asynchronously captures a real silent photo using CameraX with Mutex lock to prevent camera hardware collisions.
-     */
     suspend fun takeSilentPhoto(imageCapture: ImageCapture?, executor: java.util.concurrent.Executor): Bitmap? = captureMutex.withLock {
         suspendCancellableCoroutine { continuation ->
             if (imageCapture == null) {
@@ -60,26 +57,32 @@ class IntruderCaptureManager(private val context: Context) {
                 return@suspendCancellableCoroutine
             }
 
-            imageCapture.takePicture(
-                executor,
-                object : ImageCapture.OnImageCapturedCallback() {
-                    override fun onCaptureSuccess(imageProxy: ImageProxy) {
-                        try {
-                            val rotation = imageProxy.imageInfo.rotationDegrees
-                            val rawBitmap = extractBitmapFromProxy(imageProxy)
-                            imageProxy.close()
+            val tempFile = File(context.cacheDir, "temp_capture_${System.currentTimeMillis()}.jpg")
+            val outputOptions = ImageCapture.OutputFileOptions.Builder(tempFile).build()
 
-                            if (rawBitmap != null) {
-                                val rotatedBitmap = rotateBitmap(rawBitmap, rotation)
-                                Log.d(TAG, "Silent photo captured successfully: ${rotatedBitmap.width}x${rotatedBitmap.height}, rotation=$rotation")
+            imageCapture.takePicture(
+                outputOptions,
+                executor,
+                object : ImageCapture.OnImageSavedCallback {
+                    override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
+                        try {
+                            val bitmap = BitmapFactory.decodeFile(tempFile.absolutePath)
+                            if (bitmap != null) {
+                                val exif = androidx.exifinterface.media.ExifInterface(tempFile.absolutePath)
+                                val rotation = exif.getAttributeInt(androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION, androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL)
+                                val rotationInDegrees = exifToDegrees(rotation)
+                                val rotatedBitmap = rotateBitmap(bitmap, rotationInDegrees)
+                                Log.d(TAG, "Silent photo saved and loaded successfully: ${rotatedBitmap.width}x${rotatedBitmap.height}")
+                                tempFile.delete() // Cleanup
                                 if (continuation.isActive) continuation.resume(rotatedBitmap)
                             } else {
-                                Log.e(TAG, "Failed extracting bitmap from ImageProxy")
+                                Log.e(TAG, "Failed to decode saved temp image")
+                                tempFile.delete()
                                 if (continuation.isActive) continuation.resume(null)
                             }
                         } catch (e: Exception) {
-                            Log.e(TAG, "Failed converting imageProxy to bitmap", e)
-                            imageProxy.close()
+                            Log.e(TAG, "Error processing saved image", e)
+                            tempFile.delete()
                             if (continuation.isActive) continuation.resume(null)
                         }
                     }
@@ -95,21 +98,12 @@ class IntruderCaptureManager(private val context: Context) {
         }
     }
 
-    private fun extractBitmapFromProxy(imageProxy: ImageProxy): Bitmap? {
-        return try {
-            imageProxy.toBitmap()
-        } catch (e: Exception) {
-            Log.w(TAG, "imageProxy.toBitmap failed, decoding plane buffer", e)
-            try {
-                val plane = imageProxy.planes[0]
-                val buffer = plane.buffer
-                val bytes = ByteArray(buffer.remaining())
-                buffer.get(bytes)
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
-            } catch (e2: Exception) {
-                Log.e(TAG, "Plane buffer decoding failed", e2)
-                null
-            }
+    private fun exifToDegrees(exifOrientation: Int): Int {
+        return when (exifOrientation) {
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90 -> 90
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270
+            else -> 0
         }
     }
 

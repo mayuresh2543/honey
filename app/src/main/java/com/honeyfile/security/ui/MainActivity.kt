@@ -444,7 +444,7 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun getOrAwaitImageCapture(): ImageCapture? {
         if (imageCapture != null) return imageCapture
-        for (i in 0..20) {
+        for (i in 0..50) {
             kotlinx.coroutines.delay(100)
             if (imageCapture != null) return imageCapture
         }

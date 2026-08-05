@@ -83,7 +83,8 @@ class ThemeManager(context: Context) {
     private fun tagViewsInternal(view: View, currentDarkState: Boolean) {
         val background = view.background
         when {
-            background is GradientDrawable && view !is MaterialCardView && view !is MaterialButton -> {
+            // ONLY ViewGroup containers with GradientDrawable are sub-cards! (Never TextView badges!)
+            view is ViewGroup && background is GradientDrawable && view !is MaterialCardView && view !is MaterialButton -> {
                 view.setTag(R.id.theme_bg_tag, TAG_BG_SUB_CARD)
             }
             background is ColorDrawable && view !is MaterialCardView && view !is BottomNavigationView && view !is MaterialButton -> {
@@ -92,27 +93,31 @@ class ThemeManager(context: Context) {
         }
 
         if (view is TextView && view !is MaterialButton && view !is Chip && view !is MaterialSwitch && view !is SwitchCompat) {
-            val currentColor = view.currentTextColor
-            if (currentColor in accentColors) {
-                view.setTag(R.id.theme_text_tag, TAG_TEXT_SKIP)
-            } else {
-                val secColor = if (currentDarkState) darkTextSecondary else lightTextSecondary
-                val priColor = if (currentDarkState) darkTextPrimary else lightTextPrimary
-
-                val distSec = colorDistance(currentColor, secColor)
-                val distPri = colorDistance(currentColor, priColor)
-
-                if (distSec < distPri) {
-                    view.setTag(R.id.theme_text_tag, TAG_TEXT_SECONDARY)
-                } else {
-                    view.setTag(R.id.theme_text_tag, TAG_TEXT_PRIMARY)
-                }
-            }
+            tagSingleTextView(view, currentDarkState)
         }
 
         if (view is ViewGroup) {
             for (child in view.children) {
                 tagViewsInternal(child, currentDarkState)
+            }
+        }
+    }
+
+    private fun tagSingleTextView(view: TextView, currentDarkState: Boolean) {
+        val currentColor = view.currentTextColor
+        if (currentColor in accentColors) {
+            view.setTag(R.id.theme_text_tag, TAG_TEXT_SKIP)
+        } else {
+            val secColor = if (currentDarkState) darkTextSecondary else lightTextSecondary
+            val priColor = if (currentDarkState) darkTextPrimary else lightTextPrimary
+
+            val distSec = colorDistance(currentColor, secColor)
+            val distPri = colorDistance(currentColor, priColor)
+
+            if (distSec < distPri) {
+                view.setTag(R.id.theme_text_tag, TAG_TEXT_SECONDARY)
+            } else {
+                view.setTag(R.id.theme_text_tag, TAG_TEXT_PRIMARY)
             }
         }
     }
@@ -216,6 +221,9 @@ class ThemeManager(context: Context) {
                 view.itemIconTintList = ColorStateList.valueOf(textP)
             }
             is TextView -> {
+                if (view.getTag(R.id.theme_text_tag) == null) {
+                    tagSingleTextView(view, isDarkMode)
+                }
                 when (view.getTag(R.id.theme_text_tag)) {
                     TAG_TEXT_PRIMARY -> view.setTextColor(textP)
                     TAG_TEXT_SECONDARY -> view.setTextColor(textS)
@@ -235,6 +243,13 @@ class ThemeManager(context: Context) {
                 }
             }
         }
+
+        if (view is ViewGroup) {
+            for (child in view.children) {
+                applyColorsToHierarchy(child, bg, card, stroke, subBg, subStroke, textP, textS)
+            }
+        }
+    }
 
         if (view is ViewGroup) {
             for (child in view.children) {

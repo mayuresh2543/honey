@@ -807,7 +807,9 @@
         android:layout_alignParentBottom="true"
         android:background="?attr/appCardColor"
         app:elevation="8dp"
-        app:itemActiveIndicatorStyle="@null"
+        app:itemIconTint="@color/bottom_nav_item_color"
+        app:itemTextColor="@color/bottom_nav_item_color"
+        app:itemActiveIndicatorColor="@color/bottom_nav_indicator_color"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu" />
 

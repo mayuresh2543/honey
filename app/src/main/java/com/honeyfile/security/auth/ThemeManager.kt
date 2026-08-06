@@ -221,8 +221,21 @@ class ThemeManager(context: Context) {
             }
             is BottomNavigationView -> {
                 view.setBackgroundColor(card)
-                view.itemTextColor = ColorStateList.valueOf(textP)
-                view.itemIconTintList = ColorStateList.valueOf(textP)
+                val activeColor = Color.parseColor("#38BDF8")
+                val inactiveColor = if (isDarkMode) darkTextSecondary else lightTextSecondary
+                val navColorStateList = ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf(-android.R.attr.state_checked)
+                    ),
+                    intArrayOf(
+                        activeColor,
+                        inactiveColor
+                    )
+                )
+                view.itemTextColor = navColorStateList
+                view.itemIconTintList = navColorStateList
+                view.itemActiveIndicatorColor = ColorStateList.valueOf(Color.parseColor("#3338BDF8"))
             }
             is TextView -> {
                 if (view.getTag(R.id.theme_text_tag) == null) {

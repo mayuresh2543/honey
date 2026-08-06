@@ -107,12 +107,15 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEnrollAdmin1"
                         android:layout_width="0dp"
-                        android:layout_height="44dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
                         android:layout_weight="1"
-                        android:text="📸 Scan &amp; Enroll Admin 1"
+                        android:text="📸 Scan &amp; Enroll"
                         android:textColor="@color/black"
                         android:textSize="12sp"
                         android:textStyle="bold"
+                        app:insetTop="0dp"
+                        app:insetBottom="0dp"
                         app:backgroundTint="@color/primary_accent"
                         app:cornerRadius="10dp" />
 
@@ -120,10 +123,13 @@
                         android:id="@+id/btnClearAdmin1"
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="wrap_content"
-                        android:layout_height="44dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
                         android:layout_marginStart="8dp"
                         android:text="Reset"
                         android:textSize="12sp"
+                        app:insetTop="0dp"
+                        app:insetBottom="0dp"
                         app:cornerRadius="10dp" />
 
                 </LinearLayout>
@@ -204,12 +210,15 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEnrollAdmin2"
                         android:layout_width="0dp"
-                        android:layout_height="44dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
                         android:layout_weight="1"
-                        android:text="📸 Scan &amp; Enroll Admin 2"
+                        android:text="📸 Scan &amp; Enroll"
                         android:textColor="@color/black"
                         android:textSize="12sp"
                         android:textStyle="bold"
+                        app:insetTop="0dp"
+                        app:insetBottom="0dp"
                         app:backgroundTint="@color/primary_accent"
                         app:cornerRadius="10dp" />
 
@@ -217,10 +226,13 @@
                         android:id="@+id/btnClearAdmin2"
                         style="@style/Widget.Material3.Button.OutlinedButton"
                         android:layout_width="wrap_content"
-                        android:layout_height="44dp"
+                        android:layout_height="wrap_content"
+                        android:minHeight="44dp"
                         android:layout_marginStart="8dp"
                         android:text="Reset"
                         android:textSize="12sp"
+                        app:insetTop="0dp"
+                        app:insetBottom="0dp"
                         app:cornerRadius="10dp" />
 
                 </LinearLayout>

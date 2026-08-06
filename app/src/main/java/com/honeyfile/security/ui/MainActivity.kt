@@ -299,6 +299,14 @@ class MainActivity : AppCompatActivity() {
 
     private var lastSecurityAlertTimeMs = 0L
 
+    fun rebindBackgroundCamera() {
+        lifecycleScope.launch(Dispatchers.Main) {
+            if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                initializeBackgroundCamera()
+            }
+        }
+    }
+
     private suspend fun processBackgroundSecurityVerification(event: com.honeyfile.security.scanner.FileChangeEvent) {
         val now = System.currentTimeMillis()
         if (now - lastSecurityAlertTimeMs < 1000L) {
@@ -309,11 +317,21 @@ class MainActivity : AppCompatActivity() {
 
         if (imageCapture == null) {
             initializeBackgroundCamera()
-            kotlinx.coroutines.delay(500)
+            kotlinx.coroutines.delay(600)
         }
 
-        val captureInstance = getOrAwaitImageCapture()
-        val frame = intruderCaptureManager.takeSilentPhoto(captureInstance, cameraExecutor)
+        var captureInstance = getOrAwaitImageCapture()
+        var frame = intruderCaptureManager.takeSilentPhoto(captureInstance, cameraExecutor)
+        if (frame == null) {
+            Log.w(TAG, "Initial camera frame capture returned null. Re-binding background CameraX pipeline...")
+            withContext(Dispatchers.Main) {
+                initializeBackgroundCamera()
+            }
+            kotlinx.coroutines.delay(600)
+            captureInstance = getOrAwaitImageCapture()
+            frame = intruderCaptureManager.takeSilentPhoto(captureInstance, cameraExecutor)
+        }
+
         val photoFile = intruderCaptureManager.captureIntruderImage(frame)
 
         val authResult = frame?.let { faceAuthManager.authenticateFace(it) }

@@ -198,6 +198,11 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
         return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
     }
 
+    override fun onDismiss(dialog: android.content.DialogInterface) {
+        super.onDismiss(dialog)
+        (activity as? MainActivity)?.rebindBackgroundCamera()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         cameraExecutor.shutdown()

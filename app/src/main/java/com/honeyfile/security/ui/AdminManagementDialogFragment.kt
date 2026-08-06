@@ -155,6 +155,11 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
     }
 
+    override fun onDismiss(dialog: android.content.DialogInterface) {
+        super.onDismiss(dialog)
+        (activity as? MainActivity)?.rebindBackgroundCamera()
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
         _binding = null

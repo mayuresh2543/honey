@@ -74,14 +74,14 @@
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnCloseDetail"
                 style="@style/Widget.Material3.Button.OutlinedButton"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="48dp"
+                android:layout_height="48dp"
                 android:layout_weight="1"
                 android:text="Close"
                 android:textSize="12sp"
@@ -92,16 +92,22 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btnShareEvidence"
                 android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:minHeight="48dp"
-                android:layout_weight="1.2"
+                android:layout_height="48dp"
+                android:layout_weight="1.4"
                 android:layout_marginStart="10dp"
-                android:text="📤 Share Evidence"
+                android:text="Share Evidence"
                 android:textColor="@color/black"
                 android:textSize="12sp"
                 android:textStyle="bold"
+                android:singleLine="true"
+                android:maxLines="1"
                 android:insetTop="0dp"
                 android:insetBottom="0dp"
+                app:icon="@android:drawable/ic_menu_share"
+                app:iconTint="@color/black"
+                app:iconSize="16dp"
+                app:iconGravity="textStart"
+                app:iconPadding="6dp"
                 app:backgroundTint="@color/primary_accent"
                 app:cornerRadius="12dp" />
 

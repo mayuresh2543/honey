@@ -105,6 +105,47 @@
                     android:layout_marginTop="4dp" />
 
             </LinearLayout>
+        <!-- THREAT DISTRIBUTION PIE CHART CARD -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="14dp"
+            app:cardBackgroundColor="?attr/appCardColor"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="1dp"
+            app:strokeColor="?attr/appCardStrokeColor"
+            app:strokeWidth="1dp">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:gravity="center_horizontal">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🍰 THREAT &amp; ACCESS DISTRIBUTION PIE CHART"
+                    android:textColor="?attr/appTextColorSecondary"
+                    android:textSize="10sp"
+                    android:textStyle="bold" />
+
+                <com.honeyfile.security.ui.PieChartView
+                    android:id="@+id/pieChartView"
+                    android:layout_width="200dp"
+                    android:layout_height="200dp"
+                    android:layout_marginVertical="12dp" />
+
+                <!-- Pie Chart Legend Container -->
+                <LinearLayout
+                    android:id="@+id/legendContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:layout_marginTop="8dp" />
+
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
         <!-- PEAK ATTACK WINDOW CARD -->

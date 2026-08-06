@@ -134,6 +134,72 @@ class ThreatAnalyticsDetailDialogFragment : DialogFragment() {
                 binding.tvModalPeakWindow.text = "Peak Window: ${summary.peakAttackTimeWindow}"
                 binding.tvModalPeakExplanation.text = "This 4-hour window registered the highest volume of intruder breaches during active surveillance."
 
+                // Configure Pie Chart Data & Legends
+                val authorizedCount = allLogs.count { it.user != "Intruder" && it.action != "BREACH" }
+                val intruderCount = allLogs.count { it.user == "Intruder" || it.action == "BREACH" }
+                val editedCount = allLogs.count { it.action in listOf("EDITED", "COPIED") }
+                val deletedCount = allLogs.count { it.action == "DELETED" }
+
+                val pieSlices = if (allLogs.isEmpty()) {
+                    listOf(
+                        PieSlice("Protected System (0 Threat Events)", 1f, ContextCompat.getColor(requireContext(), R.color.success_green))
+                    )
+                } else {
+                    val list = mutableListOf<PieSlice>()
+                    if (authorizedCount > 0) {
+                        list.add(PieSlice("Authorized Admin Access ($authorizedCount)", authorizedCount.toFloat(), ContextCompat.getColor(requireContext(), R.color.success_green)))
+                    }
+                    if (intruderCount > 0) {
+                        list.add(PieSlice("Intruder Breaches ($intruderCount)", intruderCount.toFloat(), ContextCompat.getColor(requireContext(), R.color.alert_red)))
+                    }
+                    if (editedCount > 0) {
+                        list.add(PieSlice("File Modifications ($editedCount)", editedCount.toFloat(), ContextCompat.getColor(requireContext(), R.color.warning_yellow)))
+                    }
+                    if (deletedCount > 0) {
+                        list.add(PieSlice("File Deletions ($deletedCount)", deletedCount.toFloat(), android.graphics.Color.parseColor("#9C27B0")))
+                    }
+                    if (list.isEmpty()) {
+                        list.add(PieSlice("Audited Security Events (${allLogs.size})", allLogs.size.toFloat(), ContextCompat.getColor(requireContext(), R.color.primary_accent)))
+                    }
+                    list
+                }
+
+                binding.pieChartView.setData(
+                    slicesList = pieSlices,
+                    title = "${summary.threatScore}",
+                    subTitle = "Risk Index"
+                )
+
+                // Render dynamic legend items
+                binding.legendContainer.removeAllViews()
+                for (slice in pieSlices) {
+                    val legendItem = android.widget.LinearLayout(requireContext()).apply {
+                        orientation = android.widget.LinearLayout.HORIZONTAL
+                        gravity = android.view.Gravity.CENTER_VERTICAL
+                        setPadding(0, 8, 0, 8)
+                    }
+
+                    val colorDot = View(requireContext()).apply {
+                        layoutParams = android.widget.LinearLayout.LayoutParams(24, 24).apply {
+                            setMargins(0, 0, 16, 0)
+                        }
+                        background = android.graphics.drawable.GradientDrawable().apply {
+                            shape = android.graphics.drawable.GradientDrawable.OVAL
+                            setColor(slice.color)
+                        }
+                    }
+
+                    val labelTv = android.widget.TextView(requireContext()).apply {
+                        text = slice.label
+                        textSize = 12f
+                        setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary_dark))
+                    }
+
+                    legendItem.addView(colorDot)
+                    legendItem.addView(labelTv)
+                    binding.legendContainer.addView(legendItem)
+                }
+
                 filterSlotLogs()
             }
         }

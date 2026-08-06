@@ -377,10 +377,17 @@ class MainActivity : AppCompatActivity() {
             try {
                 val cameraProvider = cameraProviderFuture.get()
 
-                // Removed Preview use case completely to bypass all graphics driver SurfaceTexture culling bugs
                 val capture = ImageCapture.Builder()
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
+
+                // ImageAnalysis provides the repeating-request surface that primes the
+                // capture pipeline. Without it (or Preview), ImageCapture.takePicture()
+                // silently fails because no repeating capture session is established.
+                val analysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also { it.setAnalyzer(cameraExecutor) { proxy -> proxy.close() } }
 
                 this.imageCapture = capture
 
@@ -395,9 +402,9 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 cameraProvider.unbindAll()
-                // Bind ONLY ImageCapture, no Preview required for silent captures in CameraX 1.3+
-                cameraProvider.bindToLifecycle(this, cameraSelector, capture)
-                Log.d(TAG, "Background CameraX silent capture initialized with ImageCapture only")
+                // Bind ImageCapture + ImageAnalysis so the repeating session is active
+                cameraProvider.bindToLifecycle(this, cameraSelector, capture, analysis)
+                Log.d(TAG, "Background CameraX silent capture initialized with ImageCapture + ImageAnalysis")
             } catch (e: Exception) {
                 Log.e(TAG, "Background camera initialization failed", e)
                 Toast.makeText(this, "Camera initialization error: ${e.message}", Toast.LENGTH_SHORT).show()

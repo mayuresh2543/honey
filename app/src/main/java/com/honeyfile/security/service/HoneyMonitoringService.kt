@@ -50,6 +50,8 @@ class HoneyMonitoringService : LifecycleService() {
         Log.d(TAG, "HoneyMonitoringService created")
     }
 
+    private val cameraExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+
     private fun initializeBackgroundCamera() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             Log.w(TAG, "Camera permission not granted for HoneyMonitoringService")
@@ -64,6 +66,13 @@ class HoneyMonitoringService : LifecycleService() {
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
 
+                // ImageAnalysis provides the repeating-request surface that primes the
+                // capture pipeline so that ImageCapture.takePicture() actually works.
+                val analysis = androidx.camera.core.ImageAnalysis.Builder()
+                    .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also { it.setAnalyzer(cameraExecutor) { proxy -> proxy.close() } }
+
                 this.imageCapture = capture
 
                 val cameraSelector = if (cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)) {
@@ -73,8 +82,8 @@ class HoneyMonitoringService : LifecycleService() {
                 }
 
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, capture)
-                Log.d(TAG, "Background CameraX bound to HoneyMonitoringService LifecycleService successfully")
+                cameraProvider.bindToLifecycle(this, cameraSelector, capture, analysis)
+                Log.d(TAG, "Background CameraX bound to HoneyMonitoringService with ImageCapture + ImageAnalysis")
             } catch (e: Exception) {
                 Log.e(TAG, "Background camera binding failed in HoneyMonitoringService", e)
             }
@@ -231,6 +240,7 @@ class HoneyMonitoringService : LifecycleService() {
         fileObserver?.stopWatching()
         fileObserver = null
         folderScannerManager.stopScanning()
+        cameraExecutor.shutdown()
         serviceScope.cancel()
         Log.d(TAG, "HoneyMonitoringService destroyed")
     }

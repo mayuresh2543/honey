@@ -99,6 +99,7 @@ class AdminManagementDialogFragment : DialogFragment() {
         if (faceAuthManager.isAdmin1Enrolled) {
             binding.tvAdmin1Status.text = "Enrolled ✅"
             binding.tvAdmin1Status.setTextColor(greenColor)
+            binding.tvAdmin1Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email1 = faceAuthManager.admin1Email
             if (!email1.isNullOrBlank()) {
                 binding.tvAdmin1Email.text = "📧 $email1"
@@ -109,22 +110,24 @@ class AdminManagementDialogFragment : DialogFragment() {
 
             binding.btnEnrollAdmin1.isEnabled = false
             binding.btnEnrollAdmin1.alpha = 0.5f
+            binding.btnClearAdmin1.visibility = View.VISIBLE
             binding.btnClearAdmin1.isEnabled = true
             binding.btnClearAdmin1.alpha = 1.0f
         } else {
             binding.tvAdmin1Status.text = "Empty ⚪"
             binding.tvAdmin1Status.setTextColor(secondaryColor)
+            binding.tvAdmin1Status.setBackgroundResource(R.drawable.badge_rounded_green)
             binding.tvAdmin1Email.visibility = View.GONE
 
             binding.btnEnrollAdmin1.isEnabled = true
             binding.btnEnrollAdmin1.alpha = 1.0f
-            binding.btnClearAdmin1.isEnabled = false
-            binding.btnClearAdmin1.alpha = 0.5f
+            binding.btnClearAdmin1.visibility = View.GONE
         }
 
         if (faceAuthManager.isAdmin2Enrolled) {
             binding.tvAdmin2Status.text = "Enrolled ✅"
             binding.tvAdmin2Status.setTextColor(greenColor)
+            binding.tvAdmin2Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email2 = faceAuthManager.admin2Email
             if (!email2.isNullOrBlank()) {
                 binding.tvAdmin2Email.text = "📧 $email2"
@@ -135,17 +138,18 @@ class AdminManagementDialogFragment : DialogFragment() {
 
             binding.btnEnrollAdmin2.isEnabled = false
             binding.btnEnrollAdmin2.alpha = 0.5f
+            binding.btnClearAdmin2.visibility = View.VISIBLE
             binding.btnClearAdmin2.isEnabled = true
             binding.btnClearAdmin2.alpha = 1.0f
         } else {
             binding.tvAdmin2Status.text = "Empty ⚪"
             binding.tvAdmin2Status.setTextColor(secondaryColor)
+            binding.tvAdmin2Status.setBackgroundResource(R.drawable.badge_rounded_green)
             binding.tvAdmin2Email.visibility = View.GONE
 
             binding.btnEnrollAdmin2.isEnabled = true
             binding.btnEnrollAdmin2.alpha = 1.0f
-            binding.btnClearAdmin2.isEnabled = false
-            binding.btnClearAdmin2.alpha = 0.5f
+            binding.btnClearAdmin2.visibility = View.GONE
         }
     }
 

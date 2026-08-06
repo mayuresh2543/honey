@@ -197,7 +197,8 @@
                         android:textSize="11sp"
                         android:textStyle="bold"
                         android:paddingHorizontal="10dp"
-                        android:paddingVertical="4dp" />
+                        android:paddingVertical="4dp"
+                        android:background="@drawable/badge_rounded_green" />
 
                 </LinearLayout>
 

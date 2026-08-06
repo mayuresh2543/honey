@@ -192,7 +192,7 @@ class ThreatAnalyticsDetailDialogFragment : DialogFragment() {
                     val labelTv = android.widget.TextView(requireContext()).apply {
                         text = slice.label
                         textSize = 12f
-                        setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary_dark))
+                        setTextColor(ContextCompat.getColor(requireContext(), R.color.text_primary))
                     }
 
                     legendItem.addView(colorDot)

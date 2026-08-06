@@ -114,8 +114,8 @@
                         android:textColor="@color/black"
                         android:textSize="12sp"
                         android:textStyle="bold"
-                        app:insetTop="0dp"
-                        app:insetBottom="0dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
                         app:backgroundTint="@color/primary_accent"
                         app:cornerRadius="10dp" />
 
@@ -128,8 +128,8 @@
                         android:layout_marginStart="8dp"
                         android:text="Reset"
                         android:textSize="12sp"
-                        app:insetTop="0dp"
-                        app:insetBottom="0dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
                         app:cornerRadius="10dp" />
 
                 </LinearLayout>
@@ -217,8 +217,8 @@
                         android:textColor="@color/black"
                         android:textSize="12sp"
                         android:textStyle="bold"
-                        app:insetTop="0dp"
-                        app:insetBottom="0dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
                         app:backgroundTint="@color/primary_accent"
                         app:cornerRadius="10dp" />
 
@@ -231,8 +231,8 @@
                         android:layout_marginStart="8dp"
                         android:text="Reset"
                         android:textSize="12sp"
-                        app:insetTop="0dp"
-                        app:insetBottom="0dp"
+                        android:insetTop="0dp"
+                        android:insetBottom="0dp"
                         app:cornerRadius="10dp" />
 
                 </LinearLayout>

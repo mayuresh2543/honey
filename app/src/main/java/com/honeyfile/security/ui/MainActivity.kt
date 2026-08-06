@@ -314,25 +314,33 @@ class MainActivity : AppCompatActivity() {
         val adminName = authResult?.adminName ?: "Admin"
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
+        val actionTag = when (event.eventType.uppercase()) {
+            "DELETED" -> "DELETED"
+            "MODIFIED", "EDITED" -> "EDITED"
+            "CREATED", "NEW", "COPIED" -> "CREATED"
+            "RENAMED" -> "RENAMED"
+            else -> event.eventType
+        }
+
         if (isAuthenticated) {
             Log.d(TAG, "File change verified by $adminName ✅")
             database.logDao().insertLog(
                 AccessLog(
                     file = event.fileName,
                     user = adminName,
-                    action = event.eventType,
-                    details = "Authorized modification: File '${event.fileName}' ${event.eventType} by $adminName.",
+                    action = actionTag,
+                    details = "Authorized modification: File '${event.fileName}' $actionTag by $adminName.",
                     timestamp = timestamp
                 )
             )
         } else {
-            Log.w(TAG, "Unauthorized file alteration by Intruder 🚨")
+            Log.w(TAG, "Unauthorized file alteration ($actionTag) by Intruder 🚨")
             database.logDao().insertLog(
                 AccessLog(
                     file = event.fileName,
                     user = "Intruder",
-                    action = "BREACH",
-                    details = "UNAUTHORIZED INTRUSION BREACH: File '${event.fileName}' ${event.eventType} by Intruder at $timestamp.",
+                    action = actionTag,
+                    details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionTag by Intruder at $timestamp.",
                     timestamp = timestamp
                 )
             )

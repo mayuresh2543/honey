@@ -143,13 +143,21 @@ class HoneyMonitoringService : LifecycleService() {
             cameraExecutor.shutdown()
 
             try {
+                val actionTag = when (actionType.uppercase()) {
+                    "DELETED", "DELETE", "DELETE_SELF" -> "DELETED"
+                    "MODIFIED", "EDITED", "MODIFY" -> "EDITED"
+                    "CREATED", "CREATE", "COPIED_PASTED", "NEW" -> "CREATED"
+                    "RENAMED", "MOVED_FROM", "MOVED_TO" -> "RENAMED"
+                    else -> actionType
+                }
+
                 val db = AppDatabase.getDatabase(this@HoneyMonitoringService)
                 db.logDao().insertLog(
                     AccessLog(
                         file = fileName,
                         user = "Intruder",
-                        action = "BREACH",
-                        details = "UNAUTHORIZED BACKGROUND BREACH: File '$fileName' $actionType in monitored folder while app was closed.",
+                        action = actionTag,
+                        details = "UNAUTHORIZED BACKGROUND BREACH: File '$fileName' $actionTag in monitored folder while app was closed.",
                         timestamp = timestamp
                     )
                 )

@@ -135,10 +135,11 @@ class ThreatAnalyticsDetailDialogFragment : DialogFragment() {
                 binding.tvModalPeakExplanation.text = "This 4-hour window registered the highest volume of intruder breaches during active surveillance."
 
                 // Configure Pie Chart Data & Legends
-                val authorizedCount = allLogs.count { it.user != "Intruder" && it.action != "BREACH" }
-                val intruderCount = allLogs.count { it.user == "Intruder" || it.action == "BREACH" }
-                val editedCount = allLogs.count { it.action in listOf("EDITED", "COPIED") }
-                val deletedCount = allLogs.count { it.action == "DELETED" }
+                val authorizedCount = allLogs.count { !it.user.contains("Intruder", ignoreCase = true) }
+                val deletedCount = allLogs.count { it.action.equals("DELETED", ignoreCase = true) }
+                val editedCount = allLogs.count { it.action.equals("EDITED", ignoreCase = true) || it.action.equals("MODIFIED", ignoreCase = true) }
+                val createdCount = allLogs.count { it.action.equals("CREATED", ignoreCase = true) || it.action.equals("NEW", ignoreCase = true) || it.action.equals("COPIED", ignoreCase = true) }
+                val breachCount = allLogs.count { it.user.contains("Intruder", ignoreCase = true) && it.action.equals("BREACH", ignoreCase = true) }
 
                 val pieSlices = if (allLogs.isEmpty()) {
                     listOf(
@@ -149,14 +150,17 @@ class ThreatAnalyticsDetailDialogFragment : DialogFragment() {
                     if (authorizedCount > 0) {
                         list.add(PieSlice("Authorized Admin Access ($authorizedCount)", authorizedCount.toFloat(), ContextCompat.getColor(requireContext(), R.color.success_green)))
                     }
-                    if (intruderCount > 0) {
-                        list.add(PieSlice("Intruder Breaches ($intruderCount)", intruderCount.toFloat(), ContextCompat.getColor(requireContext(), R.color.alert_red)))
+                    if (deletedCount > 0) {
+                        list.add(PieSlice("File Deletions ($deletedCount)", deletedCount.toFloat(), android.graphics.Color.parseColor("#9C27B0")))
                     }
                     if (editedCount > 0) {
                         list.add(PieSlice("File Modifications ($editedCount)", editedCount.toFloat(), ContextCompat.getColor(requireContext(), R.color.warning_yellow)))
                     }
-                    if (deletedCount > 0) {
-                        list.add(PieSlice("File Deletions ($deletedCount)", deletedCount.toFloat(), android.graphics.Color.parseColor("#9C27B0")))
+                    if (createdCount > 0) {
+                        list.add(PieSlice("New Files Created ($createdCount)", createdCount.toFloat(), ContextCompat.getColor(requireContext(), R.color.primary_accent)))
+                    }
+                    if (breachCount > 0) {
+                        list.add(PieSlice("Intruder Access Breaches ($breachCount)", breachCount.toFloat(), ContextCompat.getColor(requireContext(), R.color.alert_red)))
                     }
                     if (list.isEmpty()) {
                         list.add(PieSlice("Audited Security Events (${allLogs.size})", allLogs.size.toFloat(), ContextCompat.getColor(requireContext(), R.color.primary_accent)))

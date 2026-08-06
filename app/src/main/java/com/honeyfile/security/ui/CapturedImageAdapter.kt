@@ -34,6 +34,7 @@ class CapturedImageAdapter(private val onImageClick: (File) -> Unit) :
         fun bind(file: File) {
             Glide.with(binding.ivCaptured.context)
                 .load(file)
+                .signature(com.bumptech.glide.signature.ObjectKey(file.lastModified()))
                 .centerCrop()
                 .into(binding.ivCaptured)
 

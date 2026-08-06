@@ -83,21 +83,35 @@ class AdminManagementDialogFragment : DialogFragment() {
         val secondaryColor = ContextCompat.getColor(ctx, R.color.dark_text_secondary)
 
         if (faceAuthManager.isAdmin1Enrolled) {
-            val emailStr = faceAuthManager.admin1Email?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
-            binding.tvAdmin1Status.text = "Enrolled ✅$emailStr"
+            binding.tvAdmin1Status.text = "Enrolled ✅"
             binding.tvAdmin1Status.setTextColor(greenColor)
+            val email1 = faceAuthManager.admin1Email
+            if (!email1.isNullOrBlank()) {
+                binding.tvAdmin1Email.text = "📧 $email1"
+                binding.tvAdmin1Email.visibility = View.VISIBLE
+            } else {
+                binding.tvAdmin1Email.visibility = View.GONE
+            }
         } else {
             binding.tvAdmin1Status.text = "Empty ⚪"
             binding.tvAdmin1Status.setTextColor(secondaryColor)
+            binding.tvAdmin1Email.visibility = View.GONE
         }
 
         if (faceAuthManager.isAdmin2Enrolled) {
-            val emailStr = faceAuthManager.admin2Email?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
-            binding.tvAdmin2Status.text = "Enrolled ✅$emailStr"
+            binding.tvAdmin2Status.text = "Enrolled ✅"
             binding.tvAdmin2Status.setTextColor(greenColor)
+            val email2 = faceAuthManager.admin2Email
+            if (!email2.isNullOrBlank()) {
+                binding.tvAdmin2Email.text = "📧 $email2"
+                binding.tvAdmin2Email.visibility = View.VISIBLE
+            } else {
+                binding.tvAdmin2Email.visibility = View.GONE
+            }
         } else {
             binding.tvAdmin2Status.text = "Empty ⚪"
             binding.tvAdmin2Status.setTextColor(secondaryColor)
+            binding.tvAdmin2Email.visibility = View.GONE
         }
     }
 

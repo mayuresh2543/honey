@@ -142,19 +142,6 @@
                         </LinearLayout>
                     </com.google.android.material.card.MaterialCardView>
 
-                    <!-- Test Trigger Access Button -->
-                    <com.google.android.material.button.MaterialButton
-                        android:id="@+id/btnTrigger"
-                        android:layout_width="match_parent"
-                        android:layout_height="56dp"
-                        android:text="@string/trigger_button_text"
-                        android:textColor="@color/black"
-                        android:textSize="15sp"
-                        android:textStyle="bold"
-                        app:backgroundTint="@color/primary_accent"
-                        app:cornerRadius="16dp"
-                        android:layout_marginBottom="12dp" />
-
                     <!-- Manage Admins Button -->
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnManageAdmins"

@@ -175,10 +175,6 @@ class MainActivity : AppCompatActivity() {
         binding.rvGallery.layoutManager = GridLayoutManager(this, 3)
         binding.rvGallery.adapter = galleryAdapter
 
-        binding.btnTrigger.setOnClickListener {
-            onTriggerAccessClicked()
-        }
-
         binding.btnManageAdmins.setOnClickListener {
             val dialog = AdminManagementDialogFragment.newInstance()
             dialog.onEnrollAdmin1Clicked = {

@@ -356,6 +356,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var imageCapture: ImageCapture? = null
+    @Volatile private var isCameraReady = false
 
     private fun checkAndRequestPermissions() {
         val permissions = mutableListOf(Manifest.permission.CAMERA)
@@ -375,6 +376,13 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeBackgroundCamera() {
+        // Don't tear down and rebind if the camera pipeline is already active
+        if (isCameraReady && imageCapture != null) {
+            Log.d(TAG, "Camera already initialized and ready, skipping re-init")
+            return
+        }
+        isCameraReady = false
+
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             try {
@@ -387,12 +395,17 @@ class MainActivity : AppCompatActivity() {
                 // ImageAnalysis provides the repeating-request surface that primes the
                 // capture pipeline. Without it (or Preview), ImageCapture.takePicture()
                 // silently fails because no repeating capture session is established.
+                // The first frame callback is used to confirm the camera is truly ready.
                 val analysis = ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
-                    .also { it.setAnalyzer(cameraExecutor) { proxy -> proxy.close() } }
-
-                this.imageCapture = capture
+                    .also { it.setAnalyzer(cameraExecutor) { proxy ->
+                        if (!isCameraReady) {
+                            isCameraReady = true
+                            Log.d(TAG, "Camera pipeline READY - first analysis frame received")
+                        }
+                        proxy.close()
+                    } }
 
                 val cameraSelector = when {
                     cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) -> CameraSelector.DEFAULT_FRONT_CAMERA
@@ -405,9 +418,9 @@ class MainActivity : AppCompatActivity() {
                 }
 
                 cameraProvider.unbindAll()
-                // Bind ImageCapture + ImageAnalysis so the repeating session is active
                 cameraProvider.bindToLifecycle(this, cameraSelector, capture, analysis)
-                Log.d(TAG, "Background CameraX silent capture initialized with ImageCapture + ImageAnalysis")
+                this.imageCapture = capture
+                Log.d(TAG, "CameraX bound - waiting for first frame to confirm readiness")
             } catch (e: Exception) {
                 Log.e(TAG, "Background camera initialization failed", e)
                 Toast.makeText(this, "Camera initialization error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -453,11 +466,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun getOrAwaitImageCapture(): ImageCapture? {
-        if (imageCapture != null) return imageCapture
-        for (i in 0..50) {
+        // Wait for the camera to be fully ready (hardware open + first frame received)
+        for (i in 0..80) {
+            if (imageCapture != null && isCameraReady) return imageCapture
             kotlinx.coroutines.delay(100)
-            if (imageCapture != null) return imageCapture
         }
+        Log.w(TAG, "Camera readiness wait timed out (8s) - imageCapture=${imageCapture != null}, isCameraReady=$isCameraReady")
         return imageCapture
     }
 

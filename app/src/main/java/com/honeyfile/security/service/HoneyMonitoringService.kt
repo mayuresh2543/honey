@@ -51,6 +51,7 @@ class HoneyMonitoringService : LifecycleService() {
     }
 
     private val cameraExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+    @Volatile private var isCameraReady = false
 
     private fun initializeBackgroundCamera() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
@@ -58,6 +59,7 @@ class HoneyMonitoringService : LifecycleService() {
             return
         }
 
+        isCameraReady = false
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             try {
@@ -68,12 +70,17 @@ class HoneyMonitoringService : LifecycleService() {
 
                 // ImageAnalysis provides the repeating-request surface that primes the
                 // capture pipeline so that ImageCapture.takePicture() actually works.
+                // First frame callback confirms the camera hardware is truly ready.
                 val analysis = androidx.camera.core.ImageAnalysis.Builder()
                     .setBackpressureStrategy(androidx.camera.core.ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
-                    .also { it.setAnalyzer(cameraExecutor) { proxy -> proxy.close() } }
-
-                this.imageCapture = capture
+                    .also { it.setAnalyzer(cameraExecutor) { proxy ->
+                        if (!isCameraReady) {
+                            isCameraReady = true
+                            Log.d(TAG, "Service camera pipeline READY - first frame received")
+                        }
+                        proxy.close()
+                    } }
 
                 val cameraSelector = if (cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)) {
                     CameraSelector.DEFAULT_FRONT_CAMERA
@@ -83,7 +90,8 @@ class HoneyMonitoringService : LifecycleService() {
 
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(this, cameraSelector, capture, analysis)
-                Log.d(TAG, "Background CameraX bound to HoneyMonitoringService with ImageCapture + ImageAnalysis")
+                this.imageCapture = capture
+                Log.d(TAG, "Service CameraX bound - waiting for first frame to confirm readiness")
             } catch (e: Exception) {
                 Log.e(TAG, "Background camera binding failed in HoneyMonitoringService", e)
             }

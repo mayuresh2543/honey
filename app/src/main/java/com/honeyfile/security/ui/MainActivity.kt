@@ -531,6 +531,7 @@ class MainActivity : AppCompatActivity() {
 
                 // Dispatch Email alert
                 emailAlertManager.sendAlert(
+                    context = this@MainActivity,
                     subject = "Intruder tried opening honeyfile!",
                     body = "Unauthorized access attempt detected at $timestamp on file: $filename.",
                     imageFile = photoFile

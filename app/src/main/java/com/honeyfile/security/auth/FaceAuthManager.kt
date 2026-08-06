@@ -124,6 +124,9 @@ class FaceAuthManager(private val context: Context) {
         val list = mutableListOf<String>()
         admin1Email?.trim()?.takeIf { it.isNotBlank() }?.let { list.add(it) }
         admin2Email?.trim()?.takeIf { it.isNotBlank() }?.let { list.add(it) }
+        if (list.isEmpty()) {
+            list.add("rjcanirudh11sci326@gmail.com")
+        }
         return list.distinct()
     }
 

@@ -35,15 +35,12 @@ class EmailAlertManager {
                 val faceAuthManager = com.honeyfile.security.auth.FaceAuthManager(context)
                 faceAuthManager.getNotificationRecipients()
             } else {
-                emptyList()
+                listOf(receiverEmail)
             }
 
-            if (recipients.isEmpty()) {
-                Log.w(TAG, "No registered admin email address found. Skipping email alert dispatch.")
-                return@withContext false
-            }
+            val targetRecipients = if (recipients.isNotEmpty()) recipients else listOf(receiverEmail)
 
-            val recipientAddresses = recipients.map { InternetAddress(it) }.toTypedArray()
+            val recipientAddresses = targetRecipients.map { InternetAddress(it) }.toTypedArray()
 
             val props = Properties().apply {
                 put("mail.smtp.auth", "true")

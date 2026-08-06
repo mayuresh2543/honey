@@ -231,6 +231,9 @@ class MainActivity : AppCompatActivity() {
         // Bottom Navigation Tab Listener
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             selectTab(item.itemId)
+            if (item.itemId == R.id.nav_vault) {
+                refreshGallery()
+            }
             true
         }
     }
@@ -417,6 +420,7 @@ class MainActivity : AppCompatActivity() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             initializeBackgroundCamera()
         }
+        refreshGallery()
     }
 
     override fun onUserLeaveHint() {

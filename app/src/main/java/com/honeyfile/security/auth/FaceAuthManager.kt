@@ -207,5 +207,7 @@ class FaceAuthManager(private val context: Context) {
         private const val PREF_NAME = "honeyfile_admin_prefs"
         private const val KEY_ADMIN1_ENROLLED = "key_admin1_enrolled"
         private const val KEY_ADMIN2_ENROLLED = "key_admin2_enrolled"
+        private const val KEY_ADMIN1_EMAIL = "key_admin1_email"
+        private const val KEY_ADMIN2_EMAIL = "key_admin2_email"
     }
 }

@@ -83,7 +83,8 @@ class AdminManagementDialogFragment : DialogFragment() {
         val secondaryColor = ContextCompat.getColor(ctx, R.color.dark_text_secondary)
 
         if (faceAuthManager.isAdmin1Enrolled) {
-            binding.tvAdmin1Status.text = "Enrolled ✅"
+            val emailStr = faceAuthManager.admin1Email?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
+            binding.tvAdmin1Status.text = "Enrolled ✅$emailStr"
             binding.tvAdmin1Status.setTextColor(greenColor)
         } else {
             binding.tvAdmin1Status.text = "Empty ⚪"
@@ -91,7 +92,8 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
 
         if (faceAuthManager.isAdmin2Enrolled) {
-            binding.tvAdmin2Status.text = "Enrolled ✅"
+            val emailStr = faceAuthManager.admin2Email?.takeIf { it.isNotBlank() }?.let { " ($it)" } ?: ""
+            binding.tvAdmin2Status.text = "Enrolled ✅$emailStr"
             binding.tvAdmin2Status.setTextColor(greenColor)
         } else {
             binding.tvAdmin2Status.text = "Empty ⚪"

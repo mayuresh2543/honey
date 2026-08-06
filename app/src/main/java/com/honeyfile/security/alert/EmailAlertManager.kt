@@ -24,8 +24,22 @@ class EmailAlertManager {
     private val senderPassword = "shgmsysblwaxqcia"
     private val receiverEmail = "rjcanirudh11sci326@gmail.com"
 
-    suspend fun sendAlert(subject: String, body: String, imageFile: File? = null): Boolean = withContext(Dispatchers.IO) {
+    suspend fun sendAlert(
+        context: android.content.Context? = null,
+        subject: String,
+        body: String,
+        imageFile: File? = null
+    ): Boolean = withContext(Dispatchers.IO) {
         try {
+            val recipients = if (context != null) {
+                val faceAuthManager = com.honeyfile.security.auth.FaceAuthManager(context)
+                faceAuthManager.getNotificationRecipients()
+            } else {
+                listOf(receiverEmail)
+            }
+
+            val recipientAddresses = recipients.map { InternetAddress(it) }.toTypedArray()
+
             val props = Properties().apply {
                 put("mail.smtp.auth", "true")
                 put("mail.smtp.starttls.enable", "true")
@@ -41,7 +55,7 @@ class EmailAlertManager {
 
             val message = MimeMessage(session).apply {
                 setFrom(InternetAddress(senderEmail))
-                setRecipients(Message.RecipientType.TO, InternetAddress.parse(receiverEmail))
+                setRecipients(Message.RecipientType.TO, recipientAddresses)
                 setSubject("🚨 $subject")
 
                 val multipart = MimeMultipart()
@@ -66,7 +80,7 @@ class EmailAlertManager {
             }
 
             Transport.send(message)
-            Log.d(TAG, "Email alert sent successfully 📧")
+            Log.d(TAG, "Email alert sent successfully to ${recipients.joinToString(", ")} 📧")
             true
         } catch (e: Exception) {
             Log.e(TAG, "Failed to send email alert ❌ (Check internet connection or SMTP credentials)", e)

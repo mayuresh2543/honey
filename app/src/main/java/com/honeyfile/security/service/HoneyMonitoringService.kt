@@ -163,6 +163,7 @@ class HoneyMonitoringService : LifecycleService() {
                 )
 
                 emailAlertManager.sendAlert(
+                    context = this@HoneyMonitoringService,
                     subject = "🚨 Background Intruder File Alteration: $fileName",
                     body = "Unauthorized background file modification detected at $timestamp.\n\nFile: $fileName\nAction: $actionType",
                     imageFile = photoFile

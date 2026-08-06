@@ -132,11 +132,10 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
 
                             withContext(Dispatchers.Main) {
                                 binding.btnCaptureEnroll.isEnabled = true
-                                Toast.makeText(context, result.message, Toast.LENGTH_LONG).show()
+                                Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
 
                                 if (result.isSuccess) {
-                                    onEnrollmentCompleted?.invoke(true)
-                                    dismiss()
+                                    showEmailRegistrationStep()
                                 }
                             }
                         }
@@ -153,6 +152,40 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
                 }
             }
         )
+    }
+
+    private fun showEmailRegistrationStep() {
+        binding.layoutScanStep.visibility = View.GONE
+        binding.layoutEmailStep.visibility = View.VISIBLE
+
+        binding.tvEnrollTitle.text = "📧 Admin $adminTarget Email Alerts"
+        binding.tvEnrollSubtitle.text = "Enter email address to receive real-time intruder photo alerts"
+
+        val currentEmail = if (adminTarget == 1) faceAuthManager.admin1Email else faceAuthManager.admin2Email
+        binding.etAdminEmail.setText(currentEmail ?: "")
+
+        binding.btnSaveEmail.setOnClickListener {
+            val inputEmail = binding.etAdminEmail.text?.toString()?.trim()
+            if (inputEmail.isNullOrEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(inputEmail).matches()) {
+                Toast.makeText(context, "Please enter a valid email address", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
+            if (adminTarget == 1) {
+                faceAuthManager.admin1Email = inputEmail
+            } else {
+                faceAuthManager.admin2Email = inputEmail
+            }
+
+            Toast.makeText(context, "Admin $adminTarget email registered: $inputEmail ✅", Toast.LENGTH_LONG).show()
+            onEnrollmentCompleted?.invoke(true)
+            dismiss()
+        }
+
+        binding.btnSkipEmail.setOnClickListener {
+            onEnrollmentCompleted?.invoke(true)
+            dismiss()
+        }
     }
 
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {

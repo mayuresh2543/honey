@@ -112,8 +112,27 @@ class FaceAuthManager(private val context: Context) {
         }
     }
 
+    var admin1Email: String?
+        get() = prefs.getString(KEY_ADMIN1_EMAIL, null)
+        set(value) = prefs.edit().putString(KEY_ADMIN1_EMAIL, value).apply()
+
+    var admin2Email: String?
+        get() = prefs.getString(KEY_ADMIN2_EMAIL, null)
+        set(value) = prefs.edit().putString(KEY_ADMIN2_EMAIL, value).apply()
+
+    fun getNotificationRecipients(): List<String> {
+        val list = mutableListOf<String>()
+        admin1Email?.trim()?.takeIf { it.isNotBlank() }?.let { list.add(it) }
+        admin2Email?.trim()?.takeIf { it.isNotBlank() }?.let { list.add(it) }
+        if (list.isEmpty()) {
+            list.add("rjcanirudh11sci326@gmail.com")
+        }
+        return list.distinct()
+    }
+
     fun clearAdmin1() {
         isAdmin1Enrolled = false
+        admin1Email = null
         val file = getAdminFile("admin1_face.jpg")
         if (file.exists()) file.delete()
         Log.d(TAG, "Admin 1 face profile cleared")
@@ -121,6 +140,7 @@ class FaceAuthManager(private val context: Context) {
 
     fun clearAdmin2() {
         isAdmin2Enrolled = false
+        admin2Email = null
         val file = getAdminFile("admin2_face.jpg")
         if (file.exists()) file.delete()
         Log.d(TAG, "Admin 2 face profile cleared")

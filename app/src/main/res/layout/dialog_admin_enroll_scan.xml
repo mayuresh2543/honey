@@ -36,52 +36,125 @@
             android:layout_marginTop="2dp"
             android:layout_marginBottom="14dp" />
 
-        <!-- Live CameraX Preview Card -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="280dp"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/primary_accent"
-            app:strokeWidth="2dp"
-            android:layout_marginBottom="16dp">
-
-            <androidx.camera.view.PreviewView
-                android:id="@+id/enrollPreviewView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent" />
-
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- Action Controls -->
+        <!-- STEP 1: CAMERA SCAN CONTAINER -->
         <LinearLayout
+            android:id="@+id/layoutScanStep"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal">
+            android:orientation="vertical"
+            android:gravity="center_horizontal">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCancelEnroll"
-                style="@style/Widget.Material3.Button.OutlinedButton"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1"
-                android:text="Cancel"
-                android:textSize="13sp"
-                app:cornerRadius="12dp" />
+            <!-- Live CameraX Preview Card -->
+            <com.google.android.material.card.MaterialCardView
+                android:layout_width="match_parent"
+                android:layout_height="280dp"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp"
+                app:strokeColor="@color/primary_accent"
+                app:strokeWidth="2dp"
+                android:layout_marginBottom="16dp">
 
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btnCaptureEnroll"
-                android:layout_width="0dp"
-                android:layout_height="48dp"
-                android:layout_weight="1.4"
-                android:layout_marginStart="10dp"
-                android:text="📸 Capture Profile"
-                android:textColor="@color/black"
-                android:textSize="13sp"
-                android:textStyle="bold"
-                app:backgroundTint="@color/primary_accent"
-                app:cornerRadius="12dp" />
+                <androidx.camera.view.PreviewView
+                    android:id="@+id/enrollPreviewView"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent" />
 
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Action Controls -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCancelEnroll"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Cancel"
+                    android:textSize="13sp"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnCaptureEnroll"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1.4"
+                    android:layout_marginStart="10dp"
+                    android:text="📸 Capture Profile"
+                    android:textColor="@color/black"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/primary_accent"
+                    app:cornerRadius="12dp" />
+
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- STEP 2: EMAIL NOTIFICATION CONTAINER (Shown after Face Scan) -->
+        <LinearLayout
+            android:id="@+id/layoutEmailStep"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone"
+            android:gravity="center_horizontal">
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilAdminEmail"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginVertical="16dp"
+                android:hint="Admin Email Address"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp"
+                app:startIconDrawable="@android:drawable/ic_dialog_email">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etAdminEmail"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textEmailAddress"
+                    android:singleLine="true"
+                    android:textColor="?attr/appTextColorPrimary"
+                    android:textSize="14sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSkipEmail"
+                    style="@style/Widget.Material3.Button.OutlinedButton"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1"
+                    android:text="Skip"
+                    android:textSize="13sp"
+                    app:cornerRadius="12dp" />
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btnSaveEmail"
+                    android:layout_width="0dp"
+                    android:layout_height="48dp"
+                    android:layout_weight="1.4"
+                    android:layout_marginStart="10dp"
+                    android:text="📧 Save &amp; Finish"
+                    android:textColor="@color/black"
+                    android:textSize="13sp"
+                    android:textStyle="bold"
+                    app:backgroundTint="@color/primary_accent"
+                    app:cornerRadius="12dp" />
+
+            </LinearLayout>
         </LinearLayout>
 
     </LinearLayout>

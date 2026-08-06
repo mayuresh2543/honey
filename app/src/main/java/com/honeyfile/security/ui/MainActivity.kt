@@ -348,6 +348,7 @@ class MainActivity : AppCompatActivity() {
             val photoFile = intruderCaptureManager.captureIntruderImage(frame)
 
             emailAlertManager.sendAlert(
+                context = this@MainActivity,
                 subject = "Intruder modified monitored file: ${event.fileName}",
                 body = "Unauthorized file modification detected at ${event.timestamp}.\n\nDetails:\n${event.changeDetails}",
                 imageFile = photoFile

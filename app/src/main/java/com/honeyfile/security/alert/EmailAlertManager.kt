@@ -35,7 +35,12 @@ class EmailAlertManager {
                 val faceAuthManager = com.honeyfile.security.auth.FaceAuthManager(context)
                 faceAuthManager.getNotificationRecipients()
             } else {
-                listOf(receiverEmail)
+                emptyList()
+            }
+
+            if (recipients.isEmpty()) {
+                Log.w(TAG, "No registered admin email address found. Skipping email alert dispatch.")
+                return@withContext false
             }
 
             val recipientAddresses = recipients.map { InternetAddress(it) }.toTypedArray()

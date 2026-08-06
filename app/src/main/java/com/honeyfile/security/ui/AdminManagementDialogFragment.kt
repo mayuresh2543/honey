@@ -53,9 +53,16 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
 
         binding.btnClearAdmin1.setOnClickListener {
-            faceAuthManager.clearAdmin1()
-            Toast.makeText(context, "Admin 1 profile cleared", Toast.LENGTH_SHORT).show()
-            updateAdminStatusUI()
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("⚠️ Reset Admin 1 Profile?")
+                .setMessage("Are you sure you want to delete Admin 1's facial biometric profile and registered email notification address? This action cannot be undone.")
+                .setPositiveButton("Reset Admin 1") { _, _ ->
+                    faceAuthManager.clearAdmin1()
+                    Toast.makeText(context, "Admin 1 profile cleared ✅", Toast.LENGTH_SHORT).show()
+                    updateAdminStatusUI()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
         binding.btnEnrollAdmin2.setOnClickListener {
@@ -67,9 +74,16 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
 
         binding.btnClearAdmin2.setOnClickListener {
-            faceAuthManager.clearAdmin2()
-            Toast.makeText(context, "Admin 2 profile cleared", Toast.LENGTH_SHORT).show()
-            updateAdminStatusUI()
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                .setTitle("⚠️ Reset Admin 2 Profile?")
+                .setMessage("Are you sure you want to delete Admin 2's facial biometric profile and registered email notification address? This action cannot be undone.")
+                .setPositiveButton("Reset Admin 2") { _, _ ->
+                    faceAuthManager.clearAdmin2()
+                    Toast.makeText(context, "Admin 2 profile cleared ✅", Toast.LENGTH_SHORT).show()
+                    updateAdminStatusUI()
+                }
+                .setNegativeButton("Cancel", null)
+                .show()
         }
 
         binding.btnCloseAdminMgmt.setOnClickListener {
@@ -92,10 +106,20 @@ class AdminManagementDialogFragment : DialogFragment() {
             } else {
                 binding.tvAdmin1Email.visibility = View.GONE
             }
+
+            binding.btnEnrollAdmin1.isEnabled = false
+            binding.btnEnrollAdmin1.alpha = 0.5f
+            binding.btnClearAdmin1.isEnabled = true
+            binding.btnClearAdmin1.alpha = 1.0f
         } else {
             binding.tvAdmin1Status.text = "Empty ⚪"
             binding.tvAdmin1Status.setTextColor(secondaryColor)
             binding.tvAdmin1Email.visibility = View.GONE
+
+            binding.btnEnrollAdmin1.isEnabled = true
+            binding.btnEnrollAdmin1.alpha = 1.0f
+            binding.btnClearAdmin1.isEnabled = false
+            binding.btnClearAdmin1.alpha = 0.5f
         }
 
         if (faceAuthManager.isAdmin2Enrolled) {
@@ -108,10 +132,20 @@ class AdminManagementDialogFragment : DialogFragment() {
             } else {
                 binding.tvAdmin2Email.visibility = View.GONE
             }
+
+            binding.btnEnrollAdmin2.isEnabled = false
+            binding.btnEnrollAdmin2.alpha = 0.5f
+            binding.btnClearAdmin2.isEnabled = true
+            binding.btnClearAdmin2.alpha = 1.0f
         } else {
             binding.tvAdmin2Status.text = "Empty ⚪"
             binding.tvAdmin2Status.setTextColor(secondaryColor)
             binding.tvAdmin2Email.visibility = View.GONE
+
+            binding.btnEnrollAdmin2.isEnabled = true
+            binding.btnEnrollAdmin2.alpha = 1.0f
+            binding.btnClearAdmin2.isEnabled = false
+            binding.btnClearAdmin2.alpha = 0.5f
         }
     }
 

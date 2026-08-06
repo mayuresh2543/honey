@@ -105,6 +105,8 @@
                     android:layout_marginTop="4dp" />
 
             </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- THREAT DISTRIBUTION PIE CHART CARD -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"

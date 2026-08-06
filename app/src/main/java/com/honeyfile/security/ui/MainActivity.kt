@@ -307,8 +307,15 @@ class MainActivity : AppCompatActivity() {
         }
         lastSecurityAlertTimeMs = now
 
+        if (imageCapture == null) {
+            initializeBackgroundCamera()
+            kotlinx.coroutines.delay(500)
+        }
+
         val captureInstance = getOrAwaitImageCapture()
         val frame = intruderCaptureManager.takeSilentPhoto(captureInstance, cameraExecutor)
+        val photoFile = intruderCaptureManager.captureIntruderImage(frame)
+
         val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
         val isAuthenticated = authResult?.isAuthenticated ?: false
         val adminName = authResult?.adminName ?: "Admin"
@@ -345,18 +352,16 @@ class MainActivity : AppCompatActivity() {
                 )
             )
 
-            val photoFile = intruderCaptureManager.captureIntruderImage(frame)
-
             emailAlertManager.sendAlert(
                 context = this@MainActivity,
                 subject = "Intruder modified monitored file: ${event.fileName}",
                 body = "Unauthorized file modification detected at ${event.timestamp}.\n\nDetails:\n${event.changeDetails}",
                 imageFile = photoFile
             )
+        }
 
-            withContext(Dispatchers.Main) {
-                refreshGallery()
-            }
+        withContext(Dispatchers.Main) {
+            refreshGallery()
         }
     }
 

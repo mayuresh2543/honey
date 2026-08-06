@@ -134,13 +134,18 @@ class HoneyMonitoringService : LifecycleService() {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
         serviceScope.launch {
+            if (imageCapture == null) {
+                initializeBackgroundCamera()
+                kotlinx.coroutines.delay(800)
+            }
+
             val intruderCaptureManager = IntruderCaptureManager(this@HoneyMonitoringService)
-            val cameraExecutor = Executors.newSingleThreadExecutor()
+            val cameraExec = Executors.newSingleThreadExecutor()
 
             // Silently capture real camera photo from background CameraX service binding
-            val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
+            val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExec)
             val photoFile = intruderCaptureManager.captureIntruderImage(frame)
-            cameraExecutor.shutdown()
+            cameraExec.shutdown()
 
             try {
                 val actionTag = when (actionType.uppercase()) {

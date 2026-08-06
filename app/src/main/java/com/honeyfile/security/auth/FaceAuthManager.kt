@@ -175,7 +175,7 @@ class FaceAuthManager(private val context: Context) {
         val admin1File = getAdminFile("admin1_face.jpg")
         val admin2File = getAdminFile("admin2_face.jpg")
 
-        val hasAdmin1 = isAdmin1Enrolled || admin1File.exists()
+        val hasAdmin1 = isAdmin1Enrolled && admin1File.exists()
         val hasAdmin2 = isAdmin2Enrolled && admin2File.exists()
 
         if (!hasAdmin1 && !hasAdmin2) {

@@ -59,7 +59,7 @@ class EmailAlertManager {
             })
 
             val message = MimeMessage(session).apply {
-                setFrom(InternetAddress(senderEmail))
+                setFrom(InternetAddress("honeyfilessecurity@org", "Honeyfile Security Engine"))
                 setRecipients(Message.RecipientType.TO, recipientAddresses)
                 setSubject("🚨 $subject")
 

@@ -132,7 +132,10 @@ class ThemeManager(context: Context) {
 
     fun applyInstant(rootView: View, window: Window? = null, toDark: Boolean = isDarkMode) {
         tagViewsInternal(rootView, toDark)
-        window?.let { updateWindowStatusBar(it, toDark) }
+        window?.let {
+            it.setBackgroundDrawableResource(android.R.color.transparent)
+            updateWindowStatusBar(it, toDark)
+        }
         applyColorsToHierarchy(
             rootView,
             bg = if (toDark) darkBg else lightBg,

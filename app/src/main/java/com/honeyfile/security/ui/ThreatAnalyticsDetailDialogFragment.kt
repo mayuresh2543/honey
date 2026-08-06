@@ -59,6 +59,8 @@ class ThreatAnalyticsDetailDialogFragment : DialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
         val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
         themeManager.applyInstant(binding.root, dialog?.window, themeManager.isDarkMode)
 

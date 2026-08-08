@@ -65,9 +65,9 @@ class FaceAuthManager(private val context: Context) {
         val cleanEmail = email.trim().lowercase()
         if (cleanEmail.isEmpty()) return false
         return if (targetAdmin == 1) {
-            admin2Email?.trim()?.lowercase() == cleanEmail
+            isAdmin2Enrolled && admin2Email?.trim()?.lowercase() == cleanEmail
         } else {
-            admin1Email?.trim()?.lowercase() == cleanEmail
+            isAdmin1Enrolled && admin1Email?.trim()?.lowercase() == cleanEmail
         }
     }
 
@@ -95,11 +95,18 @@ class FaceAuthManager(private val context: Context) {
                     Log.d(TAG, "Enrollment failed: No face detected in frame.")
                     continuation.resume(EnrollmentResult(isSuccess = false, message = "No face detected in camera frame! Position your face clearly."))
                 } else {
+                    val detectedFace = faces.first()
+                    if (isAdmin2Enrolled && compareWithEnrolledAdmins(detectedFace) == admin2Name) {
+                        Log.d(TAG, "Enrollment rejected: Scanned face matches Admin 2 ($admin2Name)")
+                        continuation.resume(EnrollmentResult(isSuccess = false, message = "❌ Facial scan matches $admin2Name! Admin 1 must be a distinct administrator."))
+                        return@addOnSuccessListener
+                    }
+
                     val saved = saveAdminBitmap(bitmap, "admin1_face.jpg")
                     if (saved) {
                         isAdmin1Enrolled = true
                         Log.d(TAG, "Admin 1 face profile enrolled and saved to disk.")
-                        continuation.resume(EnrollmentResult(isSuccess = true, message = "$admin1Name face profile enrolled successfully! ✅"))
+                        continuation.resume(EnrollmentResult(isSuccess = true, message = "Face scan captured! Complete profile details below. ✅"))
                     } else {
                         continuation.resume(EnrollmentResult(isSuccess = false, message = "Failed to save Admin 1 face profile."))
                     }
@@ -119,11 +126,18 @@ class FaceAuthManager(private val context: Context) {
                     Log.d(TAG, "Enrollment failed: No face detected in frame.")
                     continuation.resume(EnrollmentResult(isSuccess = false, message = "No face detected in camera frame! Position your face clearly."))
                 } else {
+                    val detectedFace = faces.first()
+                    if (isAdmin1Enrolled && compareWithEnrolledAdmins(detectedFace) == admin1Name) {
+                        Log.d(TAG, "Enrollment rejected: Scanned face matches Admin 1 ($admin1Name)")
+                        continuation.resume(EnrollmentResult(isSuccess = false, message = "❌ Facial scan matches $admin1Name! Admin 2 must be a distinct administrator."))
+                        return@addOnSuccessListener
+                    }
+
                     val saved = saveAdminBitmap(bitmap, "admin2_face.jpg")
                     if (saved) {
                         isAdmin2Enrolled = true
                         Log.d(TAG, "Admin 2 face profile enrolled and saved to disk.")
-                        continuation.resume(EnrollmentResult(isSuccess = true, message = "$admin2Name face profile enrolled successfully! ✅"))
+                        continuation.resume(EnrollmentResult(isSuccess = true, message = "Face scan captured! Complete profile details below. ✅"))
                     } else {
                         continuation.resume(EnrollmentResult(isSuccess = false, message = "Failed to save Admin 2 face profile."))
                     }

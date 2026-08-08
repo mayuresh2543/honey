@@ -36,6 +36,8 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
     private lateinit var cameraExecutor: ExecutorService
 
     private var adminTarget: Int = 1 // 1 for Admin 1, 2 for Admin 2
+    private var tempCapturedBitmap: Bitmap? = null
+    private var isEnrollmentSavedSuccessfully: Boolean = false
     var onEnrollmentCompleted: ((Boolean) -> Unit)? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -126,19 +128,22 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
 
                     if (bitmap != null) {
                         lifecycleScope.launch(Dispatchers.IO) {
-                            val result = if (adminTarget == 1) {
-                                faceAuthManager.enrollAdmin1FromBitmap(bitmap)
-                            } else {
-                                faceAuthManager.enrollAdmin2FromBitmap(bitmap)
-                            }
-
+                            // Validate that scanned face does NOT match existing enrolled admin
+                            val authCheck = faceAuthManager.authenticateFace(bitmap)
                             withContext(Dispatchers.Main) {
                                 binding.btnCaptureEnroll.isEnabled = true
-                                Toast.makeText(context, result.message, Toast.LENGTH_SHORT).show()
-
-                                if (result.isSuccess) {
-                                    showEmailRegistrationStep()
+                                if (authCheck.isAuthenticated && authCheck.adminName != null) {
+                                    Toast.makeText(
+                                        context,
+                                        "❌ Facial scan matches ${authCheck.adminName}! Each administrator slot must belong to a distinct person.",
+                                        Toast.LENGTH_LONG
+                                    ).show()
+                                    return@withContext
                                 }
+
+                                tempCapturedBitmap = bitmap
+                                Toast.makeText(context, "Face scan captured! Complete profile details below. ✅", Toast.LENGTH_SHORT).show()
+                                showEmailRegistrationStep()
                             }
                         }
                     } else {
@@ -164,7 +169,7 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
         binding.tvEnrollTitle.text = "👤 Admin $adminTarget Profile Details"
         binding.tvEnrollSubtitle.text = "Enter administrator name and email address for intruder alerts"
 
-        binding.etAdminName.setText(defaultName)
+        binding.etAdminName.setText(if (defaultName.startsWith("Admin ")) "" else defaultName)
         val currentEmail = if (adminTarget == 1) faceAuthManager.admin1Email else faceAuthManager.admin2Email
         binding.etAdminEmail.setText(currentEmail ?: "")
 
@@ -180,7 +185,7 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
             // Duplicate Name Check
             if (faceAuthManager.isNameTaken(inputName, adminTarget)) {
                 val otherAdmin = if (adminTarget == 1) faceAuthManager.admin2Name else faceAuthManager.admin1Name
-                Toast.makeText(context, "❌ Name '$inputName' is already used by $otherAdmin! Choose a distinct name.", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "❌ Name '$inputName' is already in use by $otherAdmin! Choose a distinct name.", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
 
@@ -198,21 +203,44 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
                 }
             }
 
-            if (adminTarget == 1) {
-                faceAuthManager.admin1Name = inputName
-                faceAuthManager.admin1Email = if (inputEmail.isNullOrEmpty()) null else inputEmail
-            } else {
-                faceAuthManager.admin2Name = inputName
-                faceAuthManager.admin2Email = if (inputEmail.isNullOrEmpty()) null else inputEmail
+            val faceBitmap = tempCapturedBitmap ?: run {
+                Toast.makeText(context, "Face scan missing. Please re-scan face.", Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
             }
 
-            Toast.makeText(context, "Admin $adminTarget profile saved: $inputName ✅", Toast.LENGTH_LONG).show()
-            onEnrollmentCompleted?.invoke(true)
-            dismiss()
+            binding.btnSaveEmail.isEnabled = false
+            lifecycleScope.launch(Dispatchers.IO) {
+                val enrollResult = if (adminTarget == 1) {
+                    faceAuthManager.enrollAdmin1FromBitmap(faceBitmap)
+                } else {
+                    faceAuthManager.enrollAdmin2FromBitmap(faceBitmap)
+                }
+
+                withContext(Dispatchers.Main) {
+                    binding.btnSaveEmail.isEnabled = true
+                    if (enrollResult.isSuccess) {
+                        if (adminTarget == 1) {
+                            faceAuthManager.admin1Name = inputName
+                            faceAuthManager.admin1Email = if (inputEmail.isNullOrEmpty()) null else inputEmail
+                        } else {
+                            faceAuthManager.admin2Name = inputName
+                            faceAuthManager.admin2Email = if (inputEmail.isNullOrEmpty()) null else inputEmail
+                        }
+
+                        isEnrollmentSavedSuccessfully = true
+                        Toast.makeText(context, "Admin $adminTarget profile enrolled: $inputName ✅", Toast.LENGTH_LONG).show()
+                        onEnrollmentCompleted?.invoke(true)
+                        dismiss()
+                    } else {
+                        Toast.makeText(context, enrollResult.message, Toast.LENGTH_LONG).show()
+                    }
+                }
+            }
         }
 
         binding.btnSkipEmail.setOnClickListener {
-            onEnrollmentCompleted?.invoke(true)
+            Toast.makeText(context, "Enrollment cancelled. Profile details were not saved.", Toast.LENGTH_SHORT).show()
+            onEnrollmentCompleted?.invoke(false)
             dismiss()
         }
     }
@@ -227,6 +255,10 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
 
     override fun onDismiss(dialog: android.content.DialogInterface) {
         super.onDismiss(dialog)
+        if (!isEnrollmentSavedSuccessfully) {
+            if (adminTarget == 1) faceAuthManager.clearAdmin1() else faceAuthManager.clearAdmin2()
+            onEnrollmentCompleted?.invoke(false)
+        }
         (activity as? MainActivity)?.rebindBackgroundCamera()
     }
 

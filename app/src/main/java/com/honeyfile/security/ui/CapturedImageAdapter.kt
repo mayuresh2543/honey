@@ -1,9 +1,9 @@
 package com.honeyfile.security.ui
 
+import android.net.Uri
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import androidx.recyclerview.widget.RecyclerView
-import com.bumptech.glide.Glide
 import com.honeyfile.security.databinding.ItemCapturedImageBinding
 import java.io.File
 
@@ -32,12 +32,7 @@ class CapturedImageAdapter(private val onImageClick: (File) -> Unit) :
         RecyclerView.ViewHolder(binding.root) {
 
         fun bind(file: File) {
-            Glide.with(binding.ivCaptured.context)
-                .load(file)
-                .signature(com.bumptech.glide.signature.ObjectKey(file.lastModified()))
-                .centerCrop()
-                .into(binding.ivCaptured)
-
+            binding.ivCaptured.setImageURI(Uri.fromFile(file))
             binding.root.setOnClickListener { onImageClick(file) }
         }
     }

@@ -16,6 +16,9 @@ android {
         versionCode = 1
         versionName = "1.0"
 
+        // Restrict resource configurations to English to strip unused translations (~2 MB saved)
+        resourceConfigurations += listOf("en")
+
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         ksp {
@@ -82,17 +85,14 @@ dependencies {
     implementation("androidx.camera:camera-lifecycle:${cameraxVersion}")
     implementation("androidx.camera:camera-view:${cameraxVersion}")
 
-    // Google ML Kit Face Detection
-    implementation("com.google.mlkit:face-detection:16.1.6")
+    // Google Play Services ML Kit Face Detection (Unbundled ~12 MB reduction)
+    implementation("com.google.android.gms:play-services-mlkit-face-detection:17.1.0")
 
     // Room Database
     val roomVersion = "2.6.1"
     implementation("androidx.room:room-runtime:${roomVersion}")
     implementation("androidx.room:room-ktx:${roomVersion}")
     ksp("androidx.room:room-compiler:${roomVersion}")
-
-    // Glide for photo gallery rendering
-    implementation("com.github.bumptech.glide:glide:4.16.0")
 
     // Kotlin Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")

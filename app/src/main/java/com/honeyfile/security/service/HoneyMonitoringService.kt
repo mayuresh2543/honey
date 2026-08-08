@@ -22,6 +22,7 @@ import com.honeyfile.security.alert.EmailAlertManager
 import com.honeyfile.security.alert.TelemetryManager
 import com.honeyfile.security.auth.FaceAuthManager
 import com.honeyfile.security.camera.IntruderCaptureManager
+import com.honeyfile.security.cloud.FirebaseCloudVaultManager
 import com.honeyfile.security.data.AccessLog
 import com.honeyfile.security.data.AppDatabase
 import com.honeyfile.security.integrity.HoneyFileObserver
@@ -174,6 +175,16 @@ class HoneyMonitoringService : LifecycleService() {
                     context = this@HoneyMonitoringService,
                     subject = "🚨 Background Intruder File Alteration: $fileName",
                     body = "Unauthorized background file modification detected at $timestamp.\n\nFile: $fileName\nAction: $actionType",
+                    imageFile = photoFile,
+                    telemetry = telemetry
+                )
+
+                // Real-time sub-second off-device backup to Firebase Cloud Vault
+                FirebaseCloudVaultManager(this@HoneyMonitoringService).syncBreachIncidentToCloud(
+                    fileName = fileName,
+                    actionType = actionTag,
+                    timestamp = timestamp,
+                    details = "UNAUTHORIZED BACKGROUND BREACH: File '$fileName' $actionTag in monitored folder while app was closed.",
                     imageFile = photoFile,
                     telemetry = telemetry
                 )

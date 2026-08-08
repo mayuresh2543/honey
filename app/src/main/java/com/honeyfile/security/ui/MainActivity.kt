@@ -38,6 +38,7 @@ import com.honeyfile.security.alert.TelemetryManager
 import com.honeyfile.security.auth.FaceAuthManager
 import com.honeyfile.security.auth.ThemeManager
 import com.honeyfile.security.camera.IntruderCaptureManager
+import com.honeyfile.security.cloud.FirebaseCloudVaultManager
 import com.honeyfile.security.data.AccessLog
 import com.honeyfile.security.data.AppDatabase
 import com.honeyfile.security.databinding.ActivityMainBinding
@@ -379,6 +380,16 @@ class MainActivity : AppCompatActivity() {
                 context = this@MainActivity,
                 subject = "Intruder modified monitored file: ${event.fileName}",
                 body = "Unauthorized file modification detected at ${event.timestamp}.\n\nDetails:\n${event.changeDetails}",
+                imageFile = photoFile,
+                telemetry = telemetry
+            )
+
+            // Real-time sub-second off-device backup to Firebase Cloud Vault
+            FirebaseCloudVaultManager(this@MainActivity).syncBreachIncidentToCloud(
+                fileName = event.fileName,
+                actionType = actionTag,
+                timestamp = timestamp,
+                details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionTag by Intruder at $timestamp.",
                 imageFile = photoFile,
                 telemetry = telemetry
             )

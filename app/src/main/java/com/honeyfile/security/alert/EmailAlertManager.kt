@@ -87,7 +87,7 @@ class EmailAlertManager {
                 setRecipients(Message.RecipientType.TO, recipientAddresses)
                 setSubject("🚨 $subject")
 
-                val multipart = MimeMultipart("mixed")
+                val multipart = MimeMultipart("related")
 
                 val telemetryHtml = if (telemetry != null) """
                     <div style="margin-top: 15px; background-color: #1e293b; padding: 14px; border-radius: 10px; border-left: 4px solid #38bdf8;">
@@ -128,14 +128,6 @@ class EmailAlertManager {
                         fileName = imageFile.name
                     }
                     multipart.addBodyPart(inlinePart)
-
-                    val attachPart = MimeBodyPart().apply {
-                        val source = FileDataSource(imageFile)
-                        dataHandler = DataHandler(source)
-                        disposition = MimeBodyPart.ATTACHMENT
-                        fileName = "INTRUDER_EVIDENCE_${imageFile.name}"
-                    }
-                    multipart.addBodyPart(attachPart)
                 }
 
                 setContent(multipart)

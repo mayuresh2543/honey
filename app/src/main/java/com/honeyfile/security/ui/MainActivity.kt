@@ -34,6 +34,7 @@ import com.honeyfile.security.analytics.SeverityLevel
 import com.honeyfile.security.analytics.ThreatAnalyticsManager
 import com.honeyfile.security.analytics.ThreatSummary
 import com.honeyfile.security.alert.EmailAlertManager
+import com.honeyfile.security.alert.TelemetryManager
 import com.honeyfile.security.auth.FaceAuthManager
 import com.honeyfile.security.auth.ThemeManager
 import com.honeyfile.security.camera.IntruderCaptureManager
@@ -57,6 +58,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var emailAlertManager: EmailAlertManager
     private lateinit var themeManager: ThemeManager
     private lateinit var folderScannerManager: com.honeyfile.security.scanner.FolderScannerManager
+    private lateinit var telemetryManager: TelemetryManager
 
     private val logAdapter = LogAdapter()
     private val directoryLogAdapter = DirectoryLogAdapter()
@@ -119,6 +121,7 @@ class MainActivity : AppCompatActivity() {
         intruderCaptureManager = IntruderCaptureManager(this)
         emailAlertManager = EmailAlertManager()
         folderScannerManager = com.honeyfile.security.scanner.FolderScannerManager(this)
+        telemetryManager = TelemetryManager(this)
 
         setupUI(savedInstanceState)
         setupFolderScanner()
@@ -360,12 +363,14 @@ class MainActivity : AppCompatActivity() {
             )
         } else {
             Log.w(TAG, "Unauthorized file alteration ($actionTag) by Intruder 🚨")
+            val telemetry = telemetryManager.getDeviceTelemetry()
+
             database.logDao().insertLog(
                 AccessLog(
                     file = event.fileName,
                     user = "Intruder",
                     action = actionTag,
-                    details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionTag by Intruder at $timestamp.",
+                    details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionTag by Intruder at $timestamp.\n${telemetry.formattedSummary}",
                     timestamp = timestamp
                 )
             )
@@ -374,7 +379,8 @@ class MainActivity : AppCompatActivity() {
                 context = this@MainActivity,
                 subject = "Intruder modified monitored file: ${event.fileName}",
                 body = "Unauthorized file modification detected at ${event.timestamp}.\n\nDetails:\n${event.changeDetails}",
-                imageFile = photoFile
+                imageFile = photoFile,
+                telemetry = telemetry
             )
         }
 
@@ -386,7 +392,11 @@ class MainActivity : AppCompatActivity() {
     private var imageCapture: ImageCapture? = null
 
     private fun checkAndRequestPermissions() {
-        val permissions = mutableListOf(Manifest.permission.CAMERA)
+        val permissions = mutableListOf(
+            Manifest.permission.CAMERA,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION
+        )
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             permissions.add(Manifest.permission.POST_NOTIFICATIONS)
         }

@@ -36,9 +36,10 @@ class EmailAlertManager {
         context: Context? = null,
         subject: String,
         body: String,
-        imageFile: File? = null
+        imageFile: File? = null,
+        telemetry: DeviceTelemetry? = null
     ): Boolean {
-        val result = sendAlertDetailed(context, subject, body, imageFile)
+        val result = sendAlertDetailed(context, subject, body, imageFile, telemetry)
         return result.isSuccess
     }
 
@@ -46,7 +47,8 @@ class EmailAlertManager {
         context: Context? = null,
         subject: String,
         body: String,
-        imageFile: File? = null
+        imageFile: File? = null,
+        telemetry: DeviceTelemetry? = null
     ): EmailSendResult = withContext(Dispatchers.IO) {
         try {
             val targetRecipients = if (context != null) {
@@ -61,7 +63,6 @@ class EmailAlertManager {
 
             val recipientAddresses = targetRecipients.map { InternetAddress(it) }.toTypedArray()
 
-            // Port 465 direct SSL configuration - most reliable on Android devices
             val props = Properties().apply {
                 put("mail.smtp.auth", "true")
                 put("mail.smtp.host", "smtp.gmail.com")
@@ -88,10 +89,20 @@ class EmailAlertManager {
 
                 val multipart = MimeMultipart("mixed")
 
+                val telemetryHtml = if (telemetry != null) """
+                    <div style="margin-top: 15px; background-color: #1e293b; padding: 14px; border-radius: 10px; border-left: 4px solid #38bdf8;">
+                        <h3 style="color: #38bdf8; margin: 0 0 8px 0; font-size: 14px;">📍 Device & Location Telemetry</h3>
+                        <p style="font-size: 13px; margin: 4px 0; color: #e2e8f0;"><b>Location:</b> ${if (telemetry.googleMapsUrl != null) "<a href='${telemetry.googleMapsUrl}' style='color: #38bdf8; font-weight: bold;'>Open Google Maps (${telemetry.latitude}, ${telemetry.longitude})</a>" else "GPS Location Unavailable"}</p>
+                        <p style="font-size: 13px; margin: 4px 0; color: #e2e8f0;"><b>Network IP:</b> ${telemetry.ipAddress} &nbsp;|&nbsp; <b>Wi-Fi SSID:</b> ${telemetry.wifiSsid}</p>
+                        <p style="font-size: 13px; margin: 4px 0; color: #e2e8f0;"><b>Battery Status:</b> ${telemetry.batteryPercentage}% ${if (telemetry.isCharging) "(⚡ Charging)" else "(Discharging)"}</p>
+                    </div>
+                """.trimIndent() else ""
+
                 val htmlBody = """
                     <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; border-radius: 12px;">
                         <h2 style="color: #ef4444; margin-top: 0;">🚨 Intruder Breach Alert</h2>
                         <p style="font-size: 15px; color: #cbd5e1;">$body</p>
+                        $telemetryHtml
                         ${if (imageFile != null && imageFile.exists()) """
                             <div style="margin-top: 15px; text-align: center;">
                                 <p style="font-weight: bold; color: #38bdf8;">Captured Intruder Evidence Photo:</p>
@@ -109,7 +120,6 @@ class EmailAlertManager {
                 multipart.addBodyPart(htmlPart)
 
                 if (imageFile != null && imageFile.exists()) {
-                    // 1. Inline CID part for embedded HTML display
                     val inlinePart = MimeBodyPart().apply {
                         val source = FileDataSource(imageFile)
                         dataHandler = DataHandler(source)
@@ -119,7 +129,6 @@ class EmailAlertManager {
                     }
                     multipart.addBodyPart(inlinePart)
 
-                    // 2. Attachment part so all mail apps show file attachment download
                     val attachPart = MimeBodyPart().apply {
                         val source = FileDataSource(imageFile)
                         dataHandler = DataHandler(source)

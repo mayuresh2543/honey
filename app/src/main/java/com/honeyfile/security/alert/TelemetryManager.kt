@@ -9,6 +9,7 @@ import android.location.Location
 import android.location.LocationManager
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
+import android.os.Build
 import android.util.Log
 import androidx.core.content.ContextCompat
 import java.net.Inet4Address
@@ -28,57 +29,76 @@ data class DeviceTelemetry(
 class TelemetryManager(private val context: Context) {
 
     fun getDeviceTelemetry(): DeviceTelemetry {
-        val location = getBestKnownLocation()
-        val lat = location?.latitude
-        val lng = location?.longitude
-        val mapsUrl = if (lat != null && lng != null) "https://maps.google.com/?q=$lat,$lng" else null
+        return try {
+            val location = getBestKnownLocation()
+            val lat = location?.latitude
+            val lng = location?.longitude
+            val mapsUrl = if (lat != null && lng != null) "https://maps.google.com/?q=$lat,$lng" else null
 
-        val ip = getLocalIpAddress()
-        val ssid = getWifiSSID()
-        val (batteryLevel, isCharging) = getBatteryInfo()
+            val ip = getLocalIpAddress()
+            val ssid = getWifiSSID()
+            val (batteryLevel, isCharging) = getBatteryInfo()
 
-        val summaryBuilder = StringBuilder()
-        summaryBuilder.append("📍 Location: ")
-        if (mapsUrl != null) {
-            summaryBuilder.append("$lat, $lng ($mapsUrl)")
-        } else {
-            summaryBuilder.append("GPS location unavailable")
+            val summaryBuilder = StringBuilder()
+            summaryBuilder.append("📍 Location: ")
+            if (mapsUrl != null) {
+                summaryBuilder.append("$lat, $lng ($mapsUrl)")
+            } else {
+                summaryBuilder.append("GPS location unavailable")
+            }
+            summaryBuilder.append("\n🌐 Network: IP=$ip | Wi-Fi=$ssid")
+            summaryBuilder.append("\n🔋 Battery: $batteryLevel% ${if (isCharging) "(⚡ Charging)" else "(Discharging)"}")
+
+            val summary = summaryBuilder.toString()
+            Log.d(TAG, "Captured intruder telemetry:\n$summary")
+
+            DeviceTelemetry(
+                latitude = lat,
+                longitude = lng,
+                googleMapsUrl = mapsUrl,
+                ipAddress = ip,
+                wifiSsid = ssid,
+                batteryPercentage = batteryLevel,
+                isCharging = isCharging,
+                formattedSummary = summary
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generating device telemetry safely", e)
+            DeviceTelemetry(
+                latitude = null,
+                longitude = null,
+                googleMapsUrl = null,
+                ipAddress = "127.0.0.1",
+                wifiSsid = "Cellular / Mobile Data",
+                batteryPercentage = 100,
+                isCharging = false,
+                formattedSummary = "📍 Telemetry: GPS unavailable | IP: 127.0.0.1"
+            )
         }
-        summaryBuilder.append("\n🌐 Network: IP=$ip | Wi-Fi=$ssid")
-        summaryBuilder.append("\n🔋 Battery: $batteryLevel% ${if (isCharging) "(⚡ Charging)" else "(Discharging)"}")
-
-        val summary = summaryBuilder.toString()
-        Log.d(TAG, "Captured intruder telemetry:\n$summary")
-
-        return DeviceTelemetry(
-            latitude = lat,
-            longitude = lng,
-            googleMapsUrl = mapsUrl,
-            ipAddress = ip,
-            wifiSsid = ssid,
-            batteryPercentage = batteryLevel,
-            isCharging = isCharging,
-            formattedSummary = summary
-        )
     }
 
     @SuppressLint("MissingPermission")
     private fun getBestKnownLocation(): Location? {
-        val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-        if (!hasFine && !hasCoarse) return null
+        return try {
+            val hasFine = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            val hasCoarse = ContextCompat.checkSelfPermission(context, android.Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+            if (!hasFine && !hasCoarse) return null
 
-        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
-        val providers = locationManager.getProviders(true)
-        var bestLocation: Location? = null
+            val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as? LocationManager ?: return null
+            val providers = locationManager.getProviders(true)
+            var bestLocation: Location? = null
 
-        for (provider in providers) {
-            val l = locationManager.getLastKnownLocation(provider) ?: continue
-            if (bestLocation == null || l.accuracy < bestLocation.accuracy) {
-                bestLocation = l
+            for (provider in providers) {
+                val l = locationManager.getLastKnownLocation(provider) ?: continue
+                if (bestLocation == null || l.accuracy < bestLocation.accuracy) {
+                    bestLocation = l
+                }
             }
+            bestLocation
+        } catch (e: Exception) {
+            Log.e(TAG, "Error fetching location", e)
+            null
         }
-        return bestLocation
     }
 
     private fun getLocalIpAddress(): String {
@@ -118,7 +138,11 @@ class TelemetryManager(private val context: Context) {
     private fun getBatteryInfo(): Pair<Int, Boolean> {
         return try {
             val intentFilter = IntentFilter(Intent.ACTION_BATTERY_CHANGED)
-            val batteryStatus = context.registerReceiver(null, intentFilter)
+            val batteryStatus = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(null, intentFilter, Context.RECEIVER_NOT_EXPORTED)
+            } else {
+                context.registerReceiver(null, intentFilter)
+            }
             val level = batteryStatus?.getIntExtra(BatteryManager.EXTRA_LEVEL, -1) ?: -1
             val scale = batteryStatus?.getIntExtra(BatteryManager.EXTRA_SCALE, -1) ?: -1
             val pct = if (level >= 0 && scale > 0) (level * 100 / scale) else 100

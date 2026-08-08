@@ -122,11 +122,12 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEditEmailAdmin1"
                         style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:minHeight="44dp"
-                        android:layout_marginStart="6dp"
-                        android:text="✏️ Email"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="✏️ Edit Email"
                         android:textSize="12sp"
                         android:insetTop="0dp"
                         android:insetBottom="0dp"
@@ -135,10 +136,11 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnClearAdmin1"
                         style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:minHeight="44dp"
-                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
                         android:text="Reset"
                         android:textSize="12sp"
                         android:insetTop="0dp"
@@ -239,11 +241,12 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnEditEmailAdmin2"
                         style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:minHeight="44dp"
-                        android:layout_marginStart="6dp"
-                        android:text="✏️ Email"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
+                        android:text="✏️ Edit Email"
                         android:textSize="12sp"
                         android:insetTop="0dp"
                         android:insetBottom="0dp"
@@ -252,10 +255,11 @@
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnClearAdmin2"
                         style="@style/Widget.Material3.Button.OutlinedButton"
-                        android:layout_width="wrap_content"
+                        android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:minHeight="44dp"
-                        android:layout_marginStart="6dp"
+                        android:layout_weight="1"
+                        android:layout_marginStart="8dp"
                         android:text="Reset"
                         android:textSize="12sp"
                         android:insetTop="0dp"
@@ -266,19 +270,6 @@
 
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
-
-        <!-- SEND TEST ALERT EMAIL BUTTON -->
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btnTestEmailAlert"
-            android:layout_width="match_parent"
-            android:layout_height="48dp"
-            android:text="📧 Send Test Alert Email"
-            android:textColor="@color/white"
-            android:textSize="13sp"
-            android:textStyle="bold"
-            app:backgroundTint="@color/primary_accent"
-            app:cornerRadius="12dp"
-            android:layout_marginBottom="10dp" />
 
         <!-- CLOSE BUTTON -->
         <com.google.android.material.button.MaterialButton

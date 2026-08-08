@@ -9,6 +9,7 @@ import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.face.Face
 import com.google.mlkit.vision.face.FaceDetection
 import com.google.mlkit.vision.face.FaceDetectorOptions
+import com.google.mlkit.vision.face.FaceLandmark
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import java.io.FileOutputStream
@@ -105,6 +106,7 @@ class FaceAuthManager(private val context: Context) {
                     val saved = saveAdminBitmap(bitmap, "admin1_face.jpg")
                     if (saved) {
                         isAdmin1Enrolled = true
+                        extractFaceRatios(detectedFace)?.let { saveAdmin1Ratios(it[0], it[1]) }
                         Log.d(TAG, "Admin 1 face profile enrolled and saved to disk.")
                         continuation.resume(EnrollmentResult(isSuccess = true, message = "Face scan captured! Complete profile details below. ✅"))
                     } else {
@@ -136,6 +138,7 @@ class FaceAuthManager(private val context: Context) {
                     val saved = saveAdminBitmap(bitmap, "admin2_face.jpg")
                     if (saved) {
                         isAdmin2Enrolled = true
+                        extractFaceRatios(detectedFace)?.let { saveAdmin2Ratios(it[0], it[1]) }
                         Log.d(TAG, "Admin 2 face profile enrolled and saved to disk.")
                         continuation.resume(EnrollmentResult(isSuccess = true, message = "Face scan captured! Complete profile details below. ✅"))
                     } else {
@@ -162,6 +165,14 @@ class FaceAuthManager(private val context: Context) {
         }
     }
 
+    private fun saveAdmin1Ratios(r1: Float, r2: Float) {
+        prefs.edit().putFloat(KEY_ADMIN1_R1, r1).putFloat(KEY_ADMIN1_R2, r2).apply()
+    }
+
+    private fun saveAdmin2Ratios(r1: Float, r2: Float) {
+        prefs.edit().putFloat(KEY_ADMIN2_R1, r1).putFloat(KEY_ADMIN2_R2, r2).apply()
+    }
+
     fun getNotificationRecipients(): List<String> {
         val list = mutableListOf<String>()
         admin1Email?.trim()?.takeIf { it.isNotBlank() }?.let { list.add(it) }
@@ -175,7 +186,7 @@ class FaceAuthManager(private val context: Context) {
     fun clearAdmin1() {
         isAdmin1Enrolled = false
         admin1Email = null
-        prefs.edit().remove(KEY_ADMIN1_NAME).apply()
+        prefs.edit().remove(KEY_ADMIN1_NAME).remove(KEY_ADMIN1_R1).remove(KEY_ADMIN1_R2).apply()
         val file = getAdminFile("admin1_face.jpg")
         if (file.exists()) file.delete()
         Log.d(TAG, "Admin 1 face profile cleared")
@@ -184,26 +195,21 @@ class FaceAuthManager(private val context: Context) {
     fun clearAdmin2() {
         isAdmin2Enrolled = false
         admin2Email = null
-        prefs.edit().remove(KEY_ADMIN2_NAME).apply()
+        prefs.edit().remove(KEY_ADMIN2_NAME).remove(KEY_ADMIN2_R1).remove(KEY_ADMIN2_R2).apply()
         val file = getAdminFile("admin2_face.jpg")
         if (file.exists()) file.delete()
         Log.d(TAG, "Admin 2 face profile cleared")
     }
 
-    /**
-     * Performs face authentication against enrolled Admin 1 and Admin 2 facial profiles
-     */
     suspend fun authenticateFace(capturedBitmap: Bitmap): AuthResult = suspendCancellableCoroutine { continuation ->
         val inputImage = InputImage.fromBitmap(capturedBitmap, 0)
         detector.process(inputImage)
             .addOnSuccessListener { faces ->
                 if (faces.isEmpty()) {
-                    Log.d(TAG, "No face detected in capture frame.")
+                    Log.d(TAG, "No face detected in capture frame. Classifying as Intruder.")
                     continuation.resume(AuthResult(isAuthenticated = false))
                 } else {
                     val detectedFace = faces.first()
-                    Log.d(TAG, "Detected face in capture. Comparing with enrolled Admin profiles...")
-
                     val matchedAdmin = compareWithEnrolledAdmins(detectedFace)
                     if (matchedAdmin != null) {
                         continuation.resume(AuthResult(isAuthenticated = true, adminName = matchedAdmin))
@@ -218,6 +224,23 @@ class FaceAuthManager(private val context: Context) {
             }
     }
 
+    private fun extractFaceRatios(face: Face): FloatArray? {
+        val leftEye = face.getLandmark(FaceLandmark.LEFT_EYE)?.position ?: return null
+        val rightEye = face.getLandmark(FaceLandmark.RIGHT_EYE)?.position ?: return null
+        val nose = face.getLandmark(FaceLandmark.NOSE_BASE)?.position ?: return null
+        val bounds = face.boundingBox
+
+        val faceWidth = bounds.width().toFloat().coerceAtLeast(1.0f)
+        val faceHeight = bounds.height().toFloat().coerceAtLeast(1.0f)
+
+        val eyeDist = Math.hypot((leftEye.x - rightEye.x).toDouble(), (leftEye.y - rightEye.y).toDouble()).toFloat()
+        val eyeNoseDist = Math.hypot(((leftEye.x + rightEye.x) / 2.0 - nose.x), ((leftEye.y + rightEye.y) / 2.0 - nose.y)).toFloat()
+
+        val r1 = eyeDist / faceWidth
+        val r2 = eyeNoseDist / faceHeight
+        return floatArrayOf(r1, r2)
+    }
+
     private fun compareWithEnrolledAdmins(face: Face): String? {
         val admin1File = getAdminFile("admin1_face.jpg")
         val admin2File = getAdminFile("admin2_face.jpg")
@@ -226,23 +249,37 @@ class FaceAuthManager(private val context: Context) {
         val hasAdmin2 = isAdmin2Enrolled && admin2File.exists()
 
         if (!hasAdmin1 && !hasAdmin2) {
-            // If no admin face is enrolled, all detected faces are unauthorized (Intruders)
             Log.d(TAG, "No Admin faces enrolled. Classifying detected face as Intruder.")
             return null
         }
 
-        val trackingId = face.trackingId ?: 0
-        Log.d(TAG, "Face comparison trackingId=$trackingId | Admin1=$hasAdmin1 ($admin1Name) | Admin2=$hasAdmin2 ($admin2Name)")
+        val capturedRatios = extractFaceRatios(face) ?: return null
 
-        if (hasAdmin1 && (trackingId % 2 == 0 || !hasAdmin2)) {
-            return admin1Name
-        }
-        if (hasAdmin2) {
-            return admin2Name
-        }
         if (hasAdmin1) {
-            return admin1Name
+            val r1_1 = prefs.getFloat(KEY_ADMIN1_R1, -1f)
+            val r1_2 = prefs.getFloat(KEY_ADMIN1_R2, -1f)
+            if (r1_1 > 0 && r1_2 > 0) {
+                val diff1 = Math.abs(capturedRatios[0] - r1_1) + Math.abs(capturedRatios[1] - r1_2)
+                if (diff1 < 0.12f) {
+                    Log.d(TAG, "Captured face matched Admin 1 ($admin1Name) with diff=$diff1")
+                    return admin1Name
+                }
+            }
         }
+
+        if (hasAdmin2) {
+            val r2_1 = prefs.getFloat(KEY_ADMIN2_R1, -1f)
+            val r2_2 = prefs.getFloat(KEY_ADMIN2_R2, -1f)
+            if (r2_1 > 0 && r2_2 > 0) {
+                val diff2 = Math.abs(capturedRatios[0] - r2_1) + Math.abs(capturedRatios[1] - r2_2)
+                if (diff2 < 0.12f) {
+                    Log.d(TAG, "Captured face matched Admin 2 ($admin2Name) with diff=$diff2")
+                    return admin2Name
+                }
+            }
+        }
+
+        Log.d(TAG, "Captured face did NOT match enrolled Admin 1 or Admin 2 ratios. Classifying as INTRUDER 🚨")
         return null
     }
 
@@ -255,5 +292,9 @@ class FaceAuthManager(private val context: Context) {
         private const val KEY_ADMIN2_NAME = "key_admin2_name"
         private const val KEY_ADMIN1_EMAIL = "key_admin1_email"
         private const val KEY_ADMIN2_EMAIL = "key_admin2_email"
+        private const val KEY_ADMIN1_R1 = "key_admin1_r1"
+        private const val KEY_ADMIN1_R2 = "key_admin1_r2"
+        private const val KEY_ADMIN2_R1 = "key_admin2_r1"
+        private const val KEY_ADMIN2_R2 = "key_admin2_r2"
     }
 }

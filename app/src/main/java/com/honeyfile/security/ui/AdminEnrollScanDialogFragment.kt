@@ -135,7 +135,7 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
                                 if (authCheck.isAuthenticated && authCheck.adminName != null) {
                                     Toast.makeText(
                                         context,
-                                        "❌ Facial scan matches ${authCheck.adminName}! Each administrator slot must belong to a distinct person.",
+                                        "❌ Facial profile already enrolled to an administrator account. Each administrator slot must belong to a distinct person.",
                                         Toast.LENGTH_LONG
                                     ).show()
                                     return@withContext
@@ -182,14 +182,13 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
                 return@setOnClickListener
             }
 
-            // Duplicate Name Check
+            // Duplicate Name Check (Non-Enumerable Message)
             if (faceAuthManager.isNameTaken(inputName, adminTarget)) {
-                val otherAdmin = if (adminTarget == 1) faceAuthManager.admin2Name else faceAuthManager.admin1Name
-                Toast.makeText(context, "❌ Name '$inputName' is already in use by $otherAdmin! Choose a distinct name.", Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "❌ Administrator name already registered to another account. Please choose a distinct name.", Toast.LENGTH_LONG).show()
                 return@setOnClickListener
             }
 
-            // Duplicate Email Check
+            // Duplicate Email Check (Non-Enumerable Message)
             if (!inputEmail.isNullOrEmpty()) {
                 if (!android.util.Patterns.EMAIL_ADDRESS.matcher(inputEmail).matches()) {
                     Toast.makeText(context, "Please enter a valid email address format!", Toast.LENGTH_SHORT).show()
@@ -197,8 +196,7 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
                 }
 
                 if (faceAuthManager.isEmailTaken(inputEmail, adminTarget)) {
-                    val otherAdmin = if (adminTarget == 1) faceAuthManager.admin2Name else faceAuthManager.admin1Name
-                    Toast.makeText(context, "❌ Email '$inputEmail' is already registered to $otherAdmin!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "❌ Email address already registered to another administrator account.", Toast.LENGTH_LONG).show()
                     return@setOnClickListener
                 }
             }

@@ -178,7 +178,7 @@ class FaceAuthManager(private val context: Context) {
         admin1Email?.trim()?.takeIf { it.isNotBlank() }?.let { list.add(it) }
         admin2Email?.trim()?.takeIf { it.isNotBlank() }?.let { list.add(it) }
         if (list.isEmpty()) {
-            list.add("rjcanirudh11sci326@gmail.com")
+            list.add("mayuresh.nanal.sscmr@gmail.com")
         }
         return list.distinct()
     }

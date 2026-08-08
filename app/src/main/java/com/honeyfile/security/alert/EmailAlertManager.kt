@@ -28,9 +28,9 @@ data class EmailSendResult(
 class EmailAlertManager {
 
     // Default sender credentials for SMTP dispatch
-    private val senderEmail = "rjcanirudh11sci326@gmail.com"
-    private val senderPassword = "shgmsysblwaxqcia"
-    private val defaultReceiverEmail = "rjcanirudh11sci326@gmail.com"
+    private val senderEmail = "mayuresh.nanal.sscmr@gmail.com"
+    private val senderPassword = "cltbshbrexegoase"
+    private val defaultReceiverEmail = "mayuresh.nanal.sscmr@gmail.com"
 
     suspend fun sendAlert(
         context: Context? = null,
@@ -83,7 +83,7 @@ class EmailAlertManager {
             })
 
             val message = MimeMessage(session).apply {
-                setFrom(InternetAddress(senderEmail, "Honeyfile Security Engine"))
+                setFrom(InternetAddress(senderEmail, "Honey End-Point Security Org"))
                 setRecipients(Message.RecipientType.TO, recipientAddresses)
                 setSubject("🚨 $subject")
 
@@ -110,7 +110,7 @@ class EmailAlertManager {
                             </div>
                         """ else ""}
                         <hr style="border: 0; border-top: 1px solid #334155; margin-top: 20px;" />
-                        <p style="font-size: 12px; color: #94a3b8;">Honeyfile Deception & Endpoint Protection Engine</p>
+                        <p style="font-size: 12px; color: #94a3b8;">Honey End-Point Security Org Deception Engine</p>
                     </div>
                 """.trimIndent()
 

@@ -5,6 +5,7 @@ import android.net.Uri
 import android.os.Build
 import android.util.Log
 import com.google.firebase.FirebaseApp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.storage.FirebaseStorage
 import com.honeyfile.security.alert.DeviceTelemetry
@@ -46,6 +47,17 @@ class FirebaseCloudVaultManager(private val context: Context) {
         }
 
         try {
+            // 0. Ensure Firebase Anonymous Authentication session
+            val auth = FirebaseAuth.getInstance()
+            if (auth.currentUser == null) {
+                try {
+                    auth.signInAnonymously().await()
+                    Log.d(TAG, "Authenticated anonymous Firebase session ✅: ${auth.currentUser?.uid}")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Anonymous auth warning: ${e.message}. Proceeding with unauthenticated request.")
+                }
+            }
+
             var publicPhotoUrl: String? = null
 
             // 1. Upload Intruder Evidence Photo to Firebase Cloud Storage

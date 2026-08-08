@@ -7,8 +7,10 @@ import androidx.recyclerview.widget.RecyclerView
 import com.honeyfile.security.databinding.ItemCapturedImageBinding
 import java.io.File
 
-class CapturedImageAdapter(private val onImageClick: (File) -> Unit) :
-    RecyclerView.Adapter<CapturedImageAdapter.ImageViewHolder>() {
+class CapturedImageAdapter(
+    private val onImageClick: (File) -> Unit,
+    private val onImageLongClick: (File) -> Unit
+) : RecyclerView.Adapter<CapturedImageAdapter.ImageViewHolder>() {
 
     private var imageFiles: List<File> = emptyList()
 
@@ -34,6 +36,10 @@ class CapturedImageAdapter(private val onImageClick: (File) -> Unit) :
         fun bind(file: File) {
             binding.ivCaptured.setImageURI(Uri.fromFile(file))
             binding.root.setOnClickListener { onImageClick(file) }
+            binding.root.setOnLongClickListener {
+                onImageLongClick(file)
+                true
+            }
         }
     }
 }

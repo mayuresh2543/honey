@@ -1,5 +1,6 @@
 package com.honeyfile.security.ui
 
+import android.app.AlertDialog
 import android.content.Intent
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -8,10 +9,12 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.FileProvider
 import androidx.fragment.app.DialogFragment
 import com.honeyfile.security.databinding.DialogPhotoDetailBinding
 import java.io.File
+import java.io.FileOutputStream
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -22,6 +25,15 @@ class PhotoDetailDialogFragment : DialogFragment() {
     private val binding get() = _binding!!
 
     private var photoFile: File? = null
+    var onPhotoDeletedListener: (() -> Unit)? = null
+
+    private val createDocumentLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("image/jpeg")
+    ) { destUri: Uri? ->
+        if (destUri != null && photoFile != null && photoFile!!.exists()) {
+            exportPhotoToUri(photoFile!!, destUri)
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,6 +83,52 @@ class PhotoDetailDialogFragment : DialogFragment() {
         binding.btnShareEvidence.setOnClickListener {
             shareEvidence()
         }
+
+        binding.btnExportPhoto.setOnClickListener {
+            file?.let { exportPhoto(it) }
+        }
+
+        binding.btnDeletePhoto.setOnClickListener {
+            file?.let { confirmAndDeletePhoto(it) }
+        }
+    }
+
+    private fun exportPhoto(file: File) {
+        if (!file.exists()) {
+            Toast.makeText(context, "Photo file not found", Toast.LENGTH_SHORT).show()
+            return
+        }
+        createDocumentLauncher.launch(file.name)
+    }
+
+    private fun exportPhotoToUri(sourceFile: File, destUri: Uri) {
+        try {
+            requireContext().contentResolver.openOutputStream(destUri)?.use { outputStream ->
+                sourceFile.inputStream().use { inputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+            Toast.makeText(context, "Photo exported successfully! 📁", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(context, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
+    private fun confirmAndDeletePhoto(file: File) {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Delete Photo from Vault")
+            .setMessage("Are you sure you want to permanently delete snapshot '${file.name}' from the Vault?")
+            .setPositiveButton("Delete") { _, _ ->
+                if (file.exists() && file.delete()) {
+                    Toast.makeText(context, "Photo deleted from Vault", Toast.LENGTH_SHORT).show()
+                    onPhotoDeletedListener?.invoke()
+                    dismiss()
+                } else {
+                    Toast.makeText(context, "Failed to delete file", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun shareEvidence() {

@@ -107,6 +107,28 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private var pendingExportFile: File? = null
+    private val exportImageLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("image/jpeg")
+    ) { destUri: Uri? ->
+        if (destUri != null && pendingExportFile != null && pendingExportFile!!.exists()) {
+            exportPhotoToUri(pendingExportFile!!, destUri)
+        }
+    }
+
+    private fun exportPhotoToUri(sourceFile: File, destUri: Uri) {
+        try {
+            contentResolver.openOutputStream(destUri)?.use { outputStream ->
+                sourceFile.inputStream().use { inputStream ->
+                    inputStream.copyTo(outputStream)
+                }
+            }
+            Toast.makeText(this, "Photo exported to internal storage! 📁", Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "Export failed: ${e.message}", Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         themeManager = ThemeManager(this)
 
@@ -171,11 +193,17 @@ class MainActivity : AppCompatActivity() {
             directoryLogAdapter.setFilterCategory(category)
         }
 
-        // Open Intruder Photo Evidence Detail Dialog on item click
-        galleryAdapter = CapturedImageAdapter { file ->
-            PhotoDetailDialogFragment.newInstance(file)
-                .show(supportFragmentManager, PhotoDetailDialogFragment.TAG)
-        }
+        // Open Intruder Photo Evidence Detail Dialog on item click & Long-press for Delete / Export
+        galleryAdapter = CapturedImageAdapter(
+            onImageClick = { file ->
+                val dialog = PhotoDetailDialogFragment.newInstance(file)
+                dialog.onPhotoDeletedListener = { refreshGallery() }
+                dialog.show(supportFragmentManager, PhotoDetailDialogFragment.TAG)
+            },
+            onImageLongClick = { file ->
+                showVaultItemOptionsDialog(file)
+            }
+        )
         binding.rvGallery.layoutManager = GridLayoutManager(this, 3)
         binding.rvGallery.adapter = galleryAdapter
 
@@ -641,11 +669,55 @@ class MainActivity : AppCompatActivity() {
 
     private fun refreshGallery() {
         lifecycleScope.launch(Dispatchers.IO) {
-            val files = intruderCaptureManager.getCapturedImages()
+            val folder = File(filesDir, "captured")
+            val files = folder.listFiles()
+                ?.filter { it.extension.equals("jpg", ignoreCase = true) || it.extension.equals("jpeg", ignoreCase = true) }
+                ?.sortedByDescending { it.lastModified() }
+                ?: emptyList()
+
             withContext(Dispatchers.Main) {
                 galleryAdapter.submitList(files)
             }
         }
+    }
+
+    private fun showVaultItemOptionsDialog(file: File) {
+        val options = arrayOf("📸 View Detail", "📁 Export to Internal Storage", "🗑️ Delete from Vault")
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Vault Snapshot: ${file.name}")
+            .setItems(options) { _, which ->
+                when (which) {
+                    0 -> {
+                        val dialog = PhotoDetailDialogFragment.newInstance(file)
+                        dialog.onPhotoDeletedListener = { refreshGallery() }
+                        dialog.show(supportFragmentManager, PhotoDetailDialogFragment.TAG)
+                    }
+                    1 -> {
+                        pendingExportFile = file
+                        exportImageLauncher.launch(file.name)
+                    }
+                    2 -> {
+                        confirmAndDeleteVaultPhoto(file)
+                    }
+                }
+            }
+            .show()
+    }
+
+    private fun confirmAndDeleteVaultPhoto(file: File) {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("Delete Photo")
+            .setMessage("Are you sure you want to delete '${file.name}' from the Vault?")
+            .setPositiveButton("Delete") { _, _ ->
+                if (file.exists() && file.delete()) {
+                    Toast.makeText(this, "Photo deleted from Vault", Toast.LENGTH_SHORT).show()
+                    refreshGallery()
+                } else {
+                    Toast.makeText(this, "Failed to delete photo", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun deployDecoyFilesToMonitoredFolder() {

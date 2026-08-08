@@ -63,12 +63,15 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvAdmin1Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="👤 Admin 1 Profile"
                             android:textColor="?attr/appTextColorPrimary"
                             android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:ellipsize="end"
+                            android:maxLines="1" />
 
                         <TextView
                             android:id="@+id/tvAdmin1Email"
@@ -76,11 +79,11 @@
                             android:layout_height="wrap_content"
                             android:text="📧 No email registered"
                             android:textColor="?attr/appTextColorSecondary"
-                            android:textSize="11sp"
+                            android:textSize="12sp"
                             android:visibility="gone"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:layout_marginTop="2dp" />
+                            android:layout_marginTop="3dp" />
 
                     </LinearLayout>
 
@@ -129,7 +132,7 @@
                         android:minHeight="44dp"
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
-                        android:text="✏️ Edit Email"
+                        android:text="✏️ Edit Profile"
                         android:textSize="11.5sp"
                         android:singleLine="true"
                         android:maxLines="1"
@@ -188,12 +191,15 @@
                         android:orientation="vertical">
 
                         <TextView
+                            android:id="@+id/tvAdmin2Title"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="👤 Admin 2 Profile"
                             android:textColor="?attr/appTextColorPrimary"
                             android:textSize="15sp"
-                            android:textStyle="bold" />
+                            android:textStyle="bold"
+                            android:ellipsize="end"
+                            android:maxLines="1" />
 
                         <TextView
                             android:id="@+id/tvAdmin2Email"
@@ -201,11 +207,11 @@
                             android:layout_height="wrap_content"
                             android:text="📧 No email registered"
                             android:textColor="?attr/appTextColorSecondary"
-                            android:textSize="11sp"
+                            android:textSize="12sp"
                             android:visibility="gone"
                             android:ellipsize="end"
                             android:maxLines="1"
-                            android:layout_marginTop="2dp" />
+                            android:layout_marginTop="3dp" />
 
                     </LinearLayout>
 
@@ -254,7 +260,7 @@
                         android:minHeight="44dp"
                         android:layout_weight="1"
                         android:layout_marginStart="8dp"
-                        android:text="✏️ Edit Email"
+                        android:text="✏️ Edit Profile"
                         android:textSize="11.5sp"
                         android:singleLine="true"
                         android:maxLines="1"

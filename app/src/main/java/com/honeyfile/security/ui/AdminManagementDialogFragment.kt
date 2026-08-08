@@ -181,28 +181,25 @@ class AdminManagementDialogFragment : DialogFragment() {
         val secondaryColor = ContextCompat.getColor(ctx, R.color.dark_text_secondary)
 
         if (faceAuthManager.isAdmin1Enrolled) {
+            binding.tvAdmin1Title.text = "👤 Admin 1: ${faceAuthManager.admin1Name}"
             binding.tvAdmin1Status.text = "Enrolled ✅"
             binding.tvAdmin1Status.setTextColor(greenColor)
             binding.tvAdmin1Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email1 = faceAuthManager.admin1Email
-            if (!email1.isNullOrBlank()) {
-                binding.tvAdmin1Email.text = "👤 ${faceAuthManager.admin1Name}  •  📧 $email1"
-                binding.tvAdmin1Email.visibility = View.VISIBLE
-            } else {
-                binding.tvAdmin1Email.text = "👤 ${faceAuthManager.admin1Name}  •  📧 No email registered"
-                binding.tvAdmin1Email.visibility = View.VISIBLE
-            }
+            binding.tvAdmin1Email.text = if (!email1.isNullOrBlank()) "📧 $email1" else "📧 No email registered"
+            binding.tvAdmin1Email.visibility = View.VISIBLE
 
             binding.btnEnrollAdmin1.visibility = View.GONE
             binding.btnEditEmailAdmin1.visibility = View.VISIBLE
             binding.btnClearAdmin1.visibility = View.VISIBLE
         } else {
+            binding.tvAdmin1Title.text = if (faceAuthManager.admin1Name != "Admin 1") "👤 Admin 1: ${faceAuthManager.admin1Name}" else "👤 Admin 1 Profile"
             binding.tvAdmin1Status.text = "Empty ⚪"
             binding.tvAdmin1Status.setTextColor(secondaryColor)
             binding.tvAdmin1Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email1 = faceAuthManager.admin1Email
             if (!email1.isNullOrBlank()) {
-                binding.tvAdmin1Email.text = "👤 ${faceAuthManager.admin1Name}  •  📧 $email1"
+                binding.tvAdmin1Email.text = "📧 $email1"
                 binding.tvAdmin1Email.visibility = View.VISIBLE
             } else {
                 binding.tvAdmin1Email.visibility = View.GONE
@@ -214,28 +211,25 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
 
         if (faceAuthManager.isAdmin2Enrolled) {
+            binding.tvAdmin2Title.text = "👤 Admin 2: ${faceAuthManager.admin2Name}"
             binding.tvAdmin2Status.text = "Enrolled ✅"
             binding.tvAdmin2Status.setTextColor(greenColor)
             binding.tvAdmin2Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email2 = faceAuthManager.admin2Email
-            if (!email2.isNullOrBlank()) {
-                binding.tvAdmin2Email.text = "👤 ${faceAuthManager.admin2Name}  •  📧 $email2"
-                binding.tvAdmin2Email.visibility = View.VISIBLE
-            } else {
-                binding.tvAdmin2Email.text = "👤 ${faceAuthManager.admin2Name}  •  📧 No email registered"
-                binding.tvAdmin2Email.visibility = View.VISIBLE
-            }
+            binding.tvAdmin2Email.text = if (!email2.isNullOrBlank()) "📧 $email2" else "📧 No email registered"
+            binding.tvAdmin2Email.visibility = View.VISIBLE
 
             binding.btnEnrollAdmin2.visibility = View.GONE
             binding.btnEditEmailAdmin2.visibility = View.VISIBLE
             binding.btnClearAdmin2.visibility = View.VISIBLE
         } else {
+            binding.tvAdmin2Title.text = if (faceAuthManager.admin2Name != "Admin 2") "👤 Admin 2: ${faceAuthManager.admin2Name}" else "👤 Admin 2 Profile"
             binding.tvAdmin2Status.text = "Empty ⚪"
             binding.tvAdmin2Status.setTextColor(secondaryColor)
             binding.tvAdmin2Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email2 = faceAuthManager.admin2Email
             if (!email2.isNullOrBlank()) {
-                binding.tvAdmin2Email.text = "👤 ${faceAuthManager.admin2Name}  •  📧 $email2"
+                binding.tvAdmin2Email.text = "📧 $email2"
                 binding.tvAdmin2Email.visibility = View.VISIBLE
             } else {
                 binding.tvAdmin2Email.visibility = View.GONE

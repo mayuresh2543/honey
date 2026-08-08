@@ -160,26 +160,53 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
         binding.layoutScanStep.visibility = View.GONE
         binding.layoutEmailStep.visibility = View.VISIBLE
 
-        binding.tvEnrollTitle.text = "📧 Admin $adminTarget Email Alerts"
-        binding.tvEnrollSubtitle.text = "Enter email address to receive real-time intruder photo alerts"
+        val defaultName = if (adminTarget == 1) faceAuthManager.admin1Name else faceAuthManager.admin2Name
+        binding.tvEnrollTitle.text = "👤 Admin $adminTarget Profile Details"
+        binding.tvEnrollSubtitle.text = "Enter administrator name and email address for intruder alerts"
 
+        binding.etAdminName.setText(defaultName)
         val currentEmail = if (adminTarget == 1) faceAuthManager.admin1Email else faceAuthManager.admin2Email
         binding.etAdminEmail.setText(currentEmail ?: "")
 
         binding.btnSaveEmail.setOnClickListener {
+            val inputName = binding.etAdminName.text?.toString()?.trim()
             val inputEmail = binding.etAdminEmail.text?.toString()?.trim()
-            if (inputEmail.isNullOrEmpty() || !android.util.Patterns.EMAIL_ADDRESS.matcher(inputEmail).matches()) {
-                Toast.makeText(context, "Please enter a valid email address", Toast.LENGTH_SHORT).show()
+
+            if (inputName.isNullOrEmpty()) {
+                Toast.makeText(context, "Please enter Admin $adminTarget's name!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
-            if (adminTarget == 1) {
-                faceAuthManager.admin1Email = inputEmail
-            } else {
-                faceAuthManager.admin2Email = inputEmail
+            // Duplicate Name Check
+            if (faceAuthManager.isNameTaken(inputName, adminTarget)) {
+                val otherAdmin = if (adminTarget == 1) faceAuthManager.admin2Name else faceAuthManager.admin1Name
+                Toast.makeText(context, "❌ Name '$inputName' is already used by $otherAdmin! Choose a distinct name.", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
             }
 
-            Toast.makeText(context, "Admin $adminTarget email registered: $inputEmail ✅", Toast.LENGTH_LONG).show()
+            // Duplicate Email Check
+            if (!inputEmail.isNullOrEmpty()) {
+                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(inputEmail).matches()) {
+                    Toast.makeText(context, "Please enter a valid email address format!", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                if (faceAuthManager.isEmailTaken(inputEmail, adminTarget)) {
+                    val otherAdmin = if (adminTarget == 1) faceAuthManager.admin2Name else faceAuthManager.admin1Name
+                    Toast.makeText(context, "❌ Email '$inputEmail' is already registered to $otherAdmin!", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+            }
+
+            if (adminTarget == 1) {
+                faceAuthManager.admin1Name = inputName
+                faceAuthManager.admin1Email = if (inputEmail.isNullOrEmpty()) null else inputEmail
+            } else {
+                faceAuthManager.admin2Name = inputName
+                faceAuthManager.admin2Email = if (inputEmail.isNullOrEmpty()) null else inputEmail
+            }
+
+            Toast.makeText(context, "Admin $adminTarget profile saved: $inputName ✅", Toast.LENGTH_LONG).show()
             onEnrollmentCompleted?.invoke(true)
             dismiss()
         }

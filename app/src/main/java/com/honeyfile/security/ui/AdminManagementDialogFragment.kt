@@ -62,9 +62,9 @@ class AdminManagementDialogFragment : DialogFragment() {
 
         binding.btnClearAdmin1.setOnClickListener {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle("⚠️ Reset Admin 1 Profile?")
-                .setMessage("Are you sure you want to delete Admin 1's facial biometric profile and registered email notification address? This action cannot be undone.")
-                .setPositiveButton("Reset Admin 1") { _, _ ->
+                .setTitle("⚠️ Reset ${faceAuthManager.admin1Name} Profile?")
+                .setMessage("Are you sure you want to delete ${faceAuthManager.admin1Name}'s facial biometric profile and registered email notification address? This action cannot be undone.")
+                .setPositiveButton("Reset Profile") { _, _ ->
                     faceAuthManager.clearAdmin1()
                     Toast.makeText(context, "Admin 1 profile cleared ✅", Toast.LENGTH_SHORT).show()
                     updateAdminStatusUI()
@@ -87,9 +87,9 @@ class AdminManagementDialogFragment : DialogFragment() {
 
         binding.btnClearAdmin2.setOnClickListener {
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
-                .setTitle("⚠️ Reset Admin 2 Profile?")
-                .setMessage("Are you sure you want to delete Admin 2's facial biometric profile and registered email notification address? This action cannot be undone.")
-                .setPositiveButton("Reset Admin 2") { _, _ ->
+                .setTitle("⚠️ Reset ${faceAuthManager.admin2Name} Profile?")
+                .setMessage("Are you sure you want to delete ${faceAuthManager.admin2Name}'s facial biometric profile and registered email notification address? This action cannot be undone.")
+                .setPositiveButton("Reset Profile") { _, _ ->
                     faceAuthManager.clearAdmin2()
                     Toast.makeText(context, "Admin 2 profile cleared ✅", Toast.LENGTH_SHORT).show()
                     updateAdminStatusUI()
@@ -116,8 +116,13 @@ class AdminManagementDialogFragment : DialogFragment() {
         val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
         themeManager.applyInstant(bindingDialog.root, dialog.window, themeManager.isDarkMode)
 
-        bindingDialog.tvEditEmailTitle.text = "📧 Admin $adminTarget Alert Email"
+        val targetTitle = if (adminTarget == 1) faceAuthManager.admin1Name else faceAuthManager.admin2Name
+        bindingDialog.tvEditEmailTitle.text = "👤 Edit $targetTitle Profile"
+
+        val currentName = if (adminTarget == 1) faceAuthManager.admin1Name else faceAuthManager.admin2Name
         val currentEmail = if (adminTarget == 1) faceAuthManager.admin1Email else faceAuthManager.admin2Email
+
+        bindingDialog.etAdminNameInput.setText(currentName)
         bindingDialog.etAdminEmailInput.setText(currentEmail ?: "")
 
         bindingDialog.btnCancelEditEmail.setOnClickListener {
@@ -125,19 +130,44 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
 
         bindingDialog.btnSaveAdminEmail.setOnClickListener {
+            val inputName = bindingDialog.etAdminNameInput.text?.toString()?.trim()
             val inputEmail = bindingDialog.etAdminEmailInput.text?.toString()?.trim()
-            if (!inputEmail.isNullOrBlank() && !android.util.Patterns.EMAIL_ADDRESS.matcher(inputEmail).matches()) {
-                Toast.makeText(context, "Please enter a valid email address format!", Toast.LENGTH_SHORT).show()
+
+            if (inputName.isNullOrBlank()) {
+                Toast.makeText(context, "Please enter Admin $adminTarget's name!", Toast.LENGTH_SHORT).show()
                 return@setOnClickListener
             }
 
+            // Duplicate Name Validation Check
+            if (faceAuthManager.isNameTaken(inputName, adminTarget)) {
+                val otherAdmin = if (adminTarget == 1) faceAuthManager.admin2Name else faceAuthManager.admin1Name
+                Toast.makeText(context, "❌ Name '$inputName' is already in use by $otherAdmin!", Toast.LENGTH_LONG).show()
+                return@setOnClickListener
+            }
+
+            // Duplicate Email Validation Check
+            if (!inputEmail.isNullOrBlank()) {
+                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(inputEmail).matches()) {
+                    Toast.makeText(context, "Please enter a valid email address format!", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+
+                if (faceAuthManager.isEmailTaken(inputEmail, adminTarget)) {
+                    val otherAdmin = if (adminTarget == 1) faceAuthManager.admin2Name else faceAuthManager.admin1Name
+                    Toast.makeText(context, "❌ Email '$inputEmail' is already registered to $otherAdmin!", Toast.LENGTH_LONG).show()
+                    return@setOnClickListener
+                }
+            }
+
             if (adminTarget == 1) {
+                faceAuthManager.admin1Name = inputName
                 faceAuthManager.admin1Email = if (inputEmail.isNullOrBlank()) null else inputEmail
             } else {
+                faceAuthManager.admin2Name = inputName
                 faceAuthManager.admin2Email = if (inputEmail.isNullOrBlank()) null else inputEmail
             }
 
-            Toast.makeText(context, "Admin $adminTarget email updated ✅", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Admin $adminTarget profile updated: $inputName ✅", Toast.LENGTH_SHORT).show()
             updateAdminStatusUI()
             dialog.dismiss()
         }
@@ -156,10 +186,10 @@ class AdminManagementDialogFragment : DialogFragment() {
             binding.tvAdmin1Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email1 = faceAuthManager.admin1Email
             if (!email1.isNullOrBlank()) {
-                binding.tvAdmin1Email.text = "📧 $email1"
+                binding.tvAdmin1Email.text = "👤 ${faceAuthManager.admin1Name}  •  📧 $email1"
                 binding.tvAdmin1Email.visibility = View.VISIBLE
             } else {
-                binding.tvAdmin1Email.text = "📧 No email registered (Tap ✏️ Edit Email)"
+                binding.tvAdmin1Email.text = "👤 ${faceAuthManager.admin1Name}  •  📧 No email registered"
                 binding.tvAdmin1Email.visibility = View.VISIBLE
             }
 
@@ -172,7 +202,7 @@ class AdminManagementDialogFragment : DialogFragment() {
             binding.tvAdmin1Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email1 = faceAuthManager.admin1Email
             if (!email1.isNullOrBlank()) {
-                binding.tvAdmin1Email.text = "📧 $email1"
+                binding.tvAdmin1Email.text = "👤 ${faceAuthManager.admin1Name}  •  📧 $email1"
                 binding.tvAdmin1Email.visibility = View.VISIBLE
             } else {
                 binding.tvAdmin1Email.visibility = View.GONE
@@ -189,10 +219,10 @@ class AdminManagementDialogFragment : DialogFragment() {
             binding.tvAdmin2Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email2 = faceAuthManager.admin2Email
             if (!email2.isNullOrBlank()) {
-                binding.tvAdmin2Email.text = "📧 $email2"
+                binding.tvAdmin2Email.text = "👤 ${faceAuthManager.admin2Name}  •  📧 $email2"
                 binding.tvAdmin2Email.visibility = View.VISIBLE
             } else {
-                binding.tvAdmin2Email.text = "📧 No email registered (Tap ✏️ Edit Email)"
+                binding.tvAdmin2Email.text = "👤 ${faceAuthManager.admin2Name}  •  📧 No email registered"
                 binding.tvAdmin2Email.visibility = View.VISIBLE
             }
 
@@ -205,7 +235,7 @@ class AdminManagementDialogFragment : DialogFragment() {
             binding.tvAdmin2Status.setBackgroundResource(R.drawable.badge_rounded_green)
             val email2 = faceAuthManager.admin2Email
             if (!email2.isNullOrBlank()) {
-                binding.tvAdmin2Email.text = "📧 $email2"
+                binding.tvAdmin2Email.text = "👤 ${faceAuthManager.admin2Name}  •  📧 $email2"
                 binding.tvAdmin2Email.visibility = View.VISIBLE
             } else {
                 binding.tvAdmin2Email.visibility = View.GONE

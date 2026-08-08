@@ -99,7 +99,7 @@
             </LinearLayout>
         </LinearLayout>
 
-        <!-- STEP 2: EMAIL NOTIFICATION CONTAINER (Shown after Face Scan) -->
+        <!-- STEP 2: PROFILE DETAILS CONTAINER (Shown after Face Scan) -->
         <LinearLayout
             android:id="@+id/layoutEmailStep"
             android:layout_width="match_parent"
@@ -109,17 +109,40 @@
             android:gravity="center_horizontal">
 
             <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/tilAdminName"
+                style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="10dp"
+                android:hint="Administrator Name"
+                app:boxCornerRadiusBottomEnd="12dp"
+                app:boxCornerRadiusBottomStart="12dp"
+                app:boxCornerRadiusTopEnd="12dp"
+                app:boxCornerRadiusTopStart="12dp">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/etAdminName"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPersonName|textCapWords"
+                    android:singleLine="true"
+                    android:textColor="?attr/appTextColorPrimary"
+                    android:textSize="14sp" />
+
+            </com.google.android.material.textfield.TextInputLayout>
+
+            <com.google.android.material.textfield.TextInputLayout
                 android:id="@+id/tilAdminEmail"
                 style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginVertical="16dp"
-                android:hint="Admin Email Address"
+                android:layout_marginBottom="16dp"
+                android:hint="Alert Email Address"
                 app:boxCornerRadiusBottomEnd="12dp"
                 app:boxCornerRadiusBottomStart="12dp"
                 app:boxCornerRadiusTopEnd="12dp"
-                app:boxCornerRadiusTopStart="12dp"
-                app:startIconDrawable="@android:drawable/ic_dialog_email">
+                app:boxCornerRadiusTopStart="12dp">
 
                 <com.google.android.material.textfield.TextInputEditText
                     android:id="@+id/etAdminEmail"
@@ -157,7 +180,7 @@
                     android:minHeight="48dp"
                     android:layout_weight="1.4"
                     android:layout_marginStart="10dp"
-                    android:text="📧 Save &amp; Finish"
+                    android:text="💾 Save &amp; Finish"
                     android:textColor="@color/black"
                     android:textSize="12sp"
                     android:textStyle="bold"

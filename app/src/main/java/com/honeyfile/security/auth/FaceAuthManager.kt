@@ -45,6 +45,42 @@ class FaceAuthManager(private val context: Context) {
         get() = prefs.getBoolean(KEY_ADMIN2_ENROLLED, false) && getAdminFile("admin2_face.jpg").exists()
         set(value) = prefs.edit().putBoolean(KEY_ADMIN2_ENROLLED, value).apply()
 
+    var admin1Name: String
+        get() = prefs.getString(KEY_ADMIN1_NAME, null)?.trim()?.takeIf { it.isNotBlank() } ?: "Admin 1"
+        set(value) = prefs.edit().putString(KEY_ADMIN1_NAME, value.trim()).apply()
+
+    var admin2Name: String
+        get() = prefs.getString(KEY_ADMIN2_NAME, null)?.trim()?.takeIf { it.isNotBlank() } ?: "Admin 2"
+        set(value) = prefs.edit().putString(KEY_ADMIN2_NAME, value.trim()).apply()
+
+    var admin1Email: String?
+        get() = prefs.getString(KEY_ADMIN1_EMAIL, null)
+        set(value) = prefs.edit().putString(KEY_ADMIN1_EMAIL, value).apply()
+
+    var admin2Email: String?
+        get() = prefs.getString(KEY_ADMIN2_EMAIL, null)
+        set(value) = prefs.edit().putString(KEY_ADMIN2_EMAIL, value).apply()
+
+    fun isEmailTaken(email: String, targetAdmin: Int): Boolean {
+        val cleanEmail = email.trim().lowercase()
+        if (cleanEmail.isEmpty()) return false
+        return if (targetAdmin == 1) {
+            admin2Email?.trim()?.lowercase() == cleanEmail
+        } else {
+            admin1Email?.trim()?.lowercase() == cleanEmail
+        }
+    }
+
+    fun isNameTaken(name: String, targetAdmin: Int): Boolean {
+        val cleanName = name.trim().lowercase()
+        if (cleanName.isEmpty()) return false
+        return if (targetAdmin == 1) {
+            isAdmin2Enrolled && admin2Name.lowercase() == cleanName
+        } else {
+            isAdmin1Enrolled && admin1Name.lowercase() == cleanName
+        }
+    }
+
     private fun getAdminFile(filename: String): File {
         val dir = File(context.filesDir, "admin_faces")
         if (!dir.exists()) dir.mkdirs()
@@ -63,7 +99,7 @@ class FaceAuthManager(private val context: Context) {
                     if (saved) {
                         isAdmin1Enrolled = true
                         Log.d(TAG, "Admin 1 face profile enrolled and saved to disk.")
-                        continuation.resume(EnrollmentResult(isSuccess = true, message = "Admin 1 face profile enrolled successfully! ✅"))
+                        continuation.resume(EnrollmentResult(isSuccess = true, message = "$admin1Name face profile enrolled successfully! ✅"))
                     } else {
                         continuation.resume(EnrollmentResult(isSuccess = false, message = "Failed to save Admin 1 face profile."))
                     }
@@ -87,7 +123,7 @@ class FaceAuthManager(private val context: Context) {
                     if (saved) {
                         isAdmin2Enrolled = true
                         Log.d(TAG, "Admin 2 face profile enrolled and saved to disk.")
-                        continuation.resume(EnrollmentResult(isSuccess = true, message = "Admin 2 face profile enrolled successfully! ✅"))
+                        continuation.resume(EnrollmentResult(isSuccess = true, message = "$admin2Name face profile enrolled successfully! ✅"))
                     } else {
                         continuation.resume(EnrollmentResult(isSuccess = false, message = "Failed to save Admin 2 face profile."))
                     }
@@ -112,14 +148,6 @@ class FaceAuthManager(private val context: Context) {
         }
     }
 
-    var admin1Email: String?
-        get() = prefs.getString(KEY_ADMIN1_EMAIL, null)
-        set(value) = prefs.edit().putString(KEY_ADMIN1_EMAIL, value).apply()
-
-    var admin2Email: String?
-        get() = prefs.getString(KEY_ADMIN2_EMAIL, null)
-        set(value) = prefs.edit().putString(KEY_ADMIN2_EMAIL, value).apply()
-
     fun getNotificationRecipients(): List<String> {
         val list = mutableListOf<String>()
         admin1Email?.trim()?.takeIf { it.isNotBlank() }?.let { list.add(it) }
@@ -133,6 +161,7 @@ class FaceAuthManager(private val context: Context) {
     fun clearAdmin1() {
         isAdmin1Enrolled = false
         admin1Email = null
+        prefs.edit().remove(KEY_ADMIN1_NAME).apply()
         val file = getAdminFile("admin1_face.jpg")
         if (file.exists()) file.delete()
         Log.d(TAG, "Admin 1 face profile cleared")
@@ -141,6 +170,7 @@ class FaceAuthManager(private val context: Context) {
     fun clearAdmin2() {
         isAdmin2Enrolled = false
         admin2Email = null
+        prefs.edit().remove(KEY_ADMIN2_NAME).apply()
         val file = getAdminFile("admin2_face.jpg")
         if (file.exists()) file.delete()
         Log.d(TAG, "Admin 2 face profile cleared")
@@ -158,7 +188,7 @@ class FaceAuthManager(private val context: Context) {
                     continuation.resume(AuthResult(isAuthenticated = false))
                 } else {
                     val detectedFace = faces.first()
-                    Log.d(TAG, "Detected face in capture. Comparing with enrolled Admin 1 & Admin 2 profiles...")
+                    Log.d(TAG, "Detected face in capture. Comparing with enrolled Admin profiles...")
 
                     val matchedAdmin = compareWithEnrolledAdmins(detectedFace)
                     if (matchedAdmin != null) {
@@ -188,16 +218,16 @@ class FaceAuthManager(private val context: Context) {
         }
 
         val trackingId = face.trackingId ?: 0
-        Log.d(TAG, "Face comparison trackingId=$trackingId | Admin1=$hasAdmin1 | Admin2=$hasAdmin2")
+        Log.d(TAG, "Face comparison trackingId=$trackingId | Admin1=$hasAdmin1 ($admin1Name) | Admin2=$hasAdmin2 ($admin2Name)")
 
         if (hasAdmin1 && (trackingId % 2 == 0 || !hasAdmin2)) {
-            return "Admin 1"
+            return admin1Name
         }
         if (hasAdmin2) {
-            return "Admin 2"
+            return admin2Name
         }
         if (hasAdmin1) {
-            return "Admin 1"
+            return admin1Name
         }
         return null
     }
@@ -207,6 +237,8 @@ class FaceAuthManager(private val context: Context) {
         private const val PREF_NAME = "honeyfile_admin_prefs"
         private const val KEY_ADMIN1_ENROLLED = "key_admin1_enrolled"
         private const val KEY_ADMIN2_ENROLLED = "key_admin2_enrolled"
+        private const val KEY_ADMIN1_NAME = "key_admin1_name"
+        private const val KEY_ADMIN2_NAME = "key_admin2_name"
         private const val KEY_ADMIN1_EMAIL = "key_admin1_email"
         private const val KEY_ADMIN2_EMAIL = "key_admin2_email"
     }

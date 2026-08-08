@@ -20,7 +20,7 @@
             android:id="@+id/tvEditEmailTitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="📧 Register Admin Email"
+            android:text="👤 Edit Admin Profile"
             android:textColor="?attr/appTextColorPrimary"
             android:textSize="18sp"
             android:textStyle="bold" />
@@ -29,18 +29,46 @@
             android:id="@+id/tvEditEmailSubtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Enter notification email address for intruder photo breach alerts:"
+            android:text="Enter administrator name and email address for intruder alerts:"
             android:textColor="?attr/appTextColorSecondary"
             android:textSize="12sp"
             android:layout_marginTop="4dp"
-            android:layout_marginBottom="18dp" />
+            android:layout_marginBottom="16dp" />
 
+        <!-- ADMIN NAME INPUT -->
+        <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/tilAdminName"
+            style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            android:hint="Administrator Name"
+            android:textColorHint="?attr/appTextColorSecondary"
+            app:boxCornerRadiusBottomEnd="14dp"
+            app:boxCornerRadiusBottomStart="14dp"
+            app:boxCornerRadiusTopEnd="14dp"
+            app:boxCornerRadiusTopStart="14dp"
+            app:boxStrokeColor="@color/primary_accent"
+            app:hintTextColor="@color/primary_accent">
+
+            <com.google.android.material.textfield.TextInputEditText
+                android:id="@+id/etAdminNameInput"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:inputType="textPersonName|textCapWords"
+                android:singleLine="true"
+                android:textColor="?attr/appTextColorPrimary"
+                android:textSize="14sp" />
+
+        </com.google.android.material.textfield.TextInputLayout>
+
+        <!-- ADMIN EMAIL INPUT -->
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/tilAdminEmail"
             style="@style/Widget.Material3.TextInputLayout.OutlinedBox"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Admin Email Address"
+            android:hint="Alert Email Address"
             android:textColorHint="?attr/appTextColorSecondary"
             app:boxCornerRadiusBottomEnd="14dp"
             app:boxCornerRadiusBottomStart="14dp"
@@ -83,7 +111,7 @@
                 android:layout_height="48dp"
                 android:layout_weight="1"
                 android:layout_marginStart="8dp"
-                android:text="Save Email"
+                android:text="Save Profile"
                 android:textColor="@color/black"
                 android:textSize="13sp"
                 android:textStyle="bold"

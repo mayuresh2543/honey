@@ -7,10 +7,12 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.app.PictureInPictureParams
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.util.Rational
+import java.io.File
 import android.view.View
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts

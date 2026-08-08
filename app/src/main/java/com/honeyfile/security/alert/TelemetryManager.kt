@@ -7,6 +7,9 @@ import android.content.IntentFilter
 import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.os.BatteryManager
 import android.os.Build
@@ -46,7 +49,7 @@ class TelemetryManager(private val context: Context) {
             } else {
                 summaryBuilder.append("GPS location unavailable")
             }
-            summaryBuilder.append("\n🌐 Network: IP=$ip | Wi-Fi=$ssid")
+            summaryBuilder.append("\n🌐 Network: IP=$ip | Network=$ssid")
             summaryBuilder.append("\n🔋 Battery: $batteryLevel% ${if (isCharging) "(⚡ Charging)" else "(Discharging)"}")
 
             val summary = summaryBuilder.toString()
@@ -122,12 +125,42 @@ class TelemetryManager(private val context: Context) {
 
     private fun getWifiSSID(): String {
         try {
+            val connectivityManager = context.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
             val wifiManager = context.applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+
+            if (connectivityManager != null) {
+                val activeNetwork = connectivityManager.activeNetwork
+                val capabilities = connectivityManager.getNetworkCapabilities(activeNetwork)
+
+                if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                    val wifiInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        capabilities.transportInfo as? WifiInfo
+                    } else {
+                        @Suppress("DEPRECATION")
+                        wifiManager?.connectionInfo
+                    }
+
+                    val ssid = wifiInfo?.ssid?.replace("\"", "")
+                    if (!ssid.isNullOrBlank() && ssid != "<unknown ssid>") {
+                        return ssid
+                    }
+
+                    @Suppress("DEPRECATION")
+                    val legacySsid = wifiManager?.connectionInfo?.ssid?.replace("\"", "")
+                    if (!legacySsid.isNullOrBlank() && legacySsid != "<unknown ssid>") {
+                        return legacySsid
+                    }
+
+                    return "Wi-Fi (Connected)"
+                } else if (capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                    return "Cellular / Mobile Data"
+                }
+            }
+
             @Suppress("DEPRECATION")
-            val info = wifiManager?.connectionInfo
-            val ssid = info?.ssid
-            if (!ssid.isNullOrBlank() && ssid != "<unknown ssid>") {
-                return ssid.replace("\"", "")
+            val legacySsid = wifiManager?.connectionInfo?.ssid?.replace("\"", "")
+            if (!legacySsid.isNullOrBlank() && legacySsid != "<unknown ssid>") {
+                return legacySsid
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error fetching Wi-Fi SSID", e)

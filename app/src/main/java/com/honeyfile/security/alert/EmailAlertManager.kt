@@ -1,6 +1,8 @@
 package com.honeyfile.security.alert
 
+import android.content.Context
 import android.util.Log
+import com.honeyfile.security.auth.FaceAuthManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -17,42 +19,60 @@ import javax.mail.internet.MimeBodyPart
 import javax.mail.internet.MimeMessage
 import javax.mail.internet.MimeMultipart
 
+data class EmailSendResult(
+    val isSuccess: Boolean,
+    val message: String,
+    val recipients: List<String>
+)
+
 class EmailAlertManager {
 
-    // Configurable credentials or environment defaults matching Python email_alert.py
+    // Default sender credentials for SMTP dispatch
     private val senderEmail = "rjcanirudh11sci326@gmail.com"
     private val senderPassword = "shgmsysblwaxqcia"
-    private val receiverEmail = "rjcanirudh11sci326@gmail.com"
+    private val defaultReceiverEmail = "rjcanirudh11sci326@gmail.com"
 
     suspend fun sendAlert(
-        context: android.content.Context? = null,
+        context: Context? = null,
         subject: String,
         body: String,
         imageFile: File? = null
-    ): Boolean = withContext(Dispatchers.IO) {
+    ): Boolean {
+        val result = sendAlertDetailed(context, subject, body, imageFile)
+        return result.isSuccess
+    }
+
+    suspend fun sendAlertDetailed(
+        context: Context? = null,
+        subject: String,
+        body: String,
+        imageFile: File? = null
+    ): EmailSendResult = withContext(Dispatchers.IO) {
         try {
-            val recipients = if (context != null) {
-                val faceAuthManager = com.honeyfile.security.auth.FaceAuthManager(context)
-                faceAuthManager.getNotificationRecipients()
+            val targetRecipients = if (context != null) {
+                val faceAuthManager = FaceAuthManager(context)
+                val list = faceAuthManager.getNotificationRecipients()
+                if (list.isNotEmpty()) list else listOf(defaultReceiverEmail)
             } else {
-                listOf(receiverEmail)
+                listOf(defaultReceiverEmail)
             }
 
-            val targetRecipients = if (recipients.isNotEmpty()) recipients else listOf(receiverEmail)
+            Log.d(TAG, "Attempting email dispatch to recipients: $targetRecipients")
 
             val recipientAddresses = targetRecipients.map { InternetAddress(it) }.toTypedArray()
 
+            // Port 465 direct SSL configuration - most reliable on Android devices
             val props = Properties().apply {
                 put("mail.smtp.auth", "true")
-                put("mail.smtp.starttls.enable", "true")
-                put("mail.smtp.starttls.required", "true")
                 put("mail.smtp.host", "smtp.gmail.com")
-                put("mail.smtp.port", "587")
-                put("mail.smtp.connectiontimeout", "10000")
-                put("mail.smtp.timeout", "10000")
-                put("mail.smtp.writetimeout", "10000")
-                put("mail.smtp.ssl.protocols", "TLSv1.2")
-                put("mail.smtp.ssl.trust", "smtp.gmail.com")
+                put("mail.smtp.port", "465")
+                put("mail.smtp.socketFactory.port", "465")
+                put("mail.smtp.socketFactory.class", "javax.net.ssl.SSLSocketFactory")
+                put("mail.smtp.socketFactory.fallback", "false")
+                put("mail.smtp.ssl.enable", "true")
+                put("mail.smtp.connectiontimeout", "15000")
+                put("mail.smtp.timeout", "15000")
+                put("mail.smtp.writetimeout", "15000")
             }
 
             val session = Session.getInstance(props, object : Authenticator() {
@@ -66,7 +86,7 @@ class EmailAlertManager {
                 setRecipients(Message.RecipientType.TO, recipientAddresses)
                 setSubject("🚨 $subject")
 
-                val multipart = MimeMultipart("related")
+                val multipart = MimeMultipart("mixed")
 
                 val htmlBody = """
                     <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #f8fafc; padding: 20px; border-radius: 12px;">
@@ -89,25 +109,37 @@ class EmailAlertManager {
                 multipart.addBodyPart(htmlPart)
 
                 if (imageFile != null && imageFile.exists()) {
-                    val imagePart = MimeBodyPart().apply {
+                    // 1. Inline CID part for embedded HTML display
+                    val inlinePart = MimeBodyPart().apply {
                         val source = FileDataSource(imageFile)
                         dataHandler = DataHandler(source)
                         setHeader("Content-ID", "<intruder_photo>")
                         disposition = MimeBodyPart.INLINE
                         fileName = imageFile.name
                     }
-                    multipart.addBodyPart(imagePart)
+                    multipart.addBodyPart(inlinePart)
+
+                    // 2. Attachment part so all mail apps show file attachment download
+                    val attachPart = MimeBodyPart().apply {
+                        val source = FileDataSource(imageFile)
+                        dataHandler = DataHandler(source)
+                        disposition = MimeBodyPart.ATTACHMENT
+                        fileName = "INTRUDER_EVIDENCE_${imageFile.name}"
+                    }
+                    multipart.addBodyPart(attachPart)
                 }
 
                 setContent(multipart)
             }
 
             Transport.send(message)
-            Log.d(TAG, "Email alert with intruder photo sent successfully to ${recipients.joinToString(", ")} 📧")
-            true
+            val successMsg = "Email alert sent successfully to ${targetRecipients.joinToString(", ")}"
+            Log.d(TAG, "$successMsg 📧")
+            EmailSendResult(isSuccess = true, message = successMsg, recipients = targetRecipients)
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to send email alert ❌ (Check internet connection or SMTP credentials)", e)
-            false
+            val errorMsg = "SMTP Dispatch Error: ${e.localizedMessage ?: e.message ?: "Connection failed"}"
+            Log.e(TAG, "Failed to send email alert ❌: $errorMsg", e)
+            EmailSendResult(isSuccess = false, message = errorMsg, recipients = emptyList())
         }
     }
 

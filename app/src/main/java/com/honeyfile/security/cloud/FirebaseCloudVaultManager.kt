@@ -1,17 +1,19 @@
 package com.honeyfile.security.cloud
 
 import android.content.Context
-import android.net.Uri
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Build
+import android.util.Base64
 import android.util.Log
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.storage.FirebaseStorage
 import com.honeyfile.security.alert.DeviceTelemetry
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import java.io.File
 
 data class CloudVaultSyncResult(
@@ -58,31 +60,17 @@ class FirebaseCloudVaultManager(private val context: Context) {
                 }
             }
 
-            var publicPhotoUrl: String? = null
+            // 1. Encode Intruder Evidence Photo directly to Base64 String (No Paid Storage Needed!)
+            val photoBase64 = encodeImageToBase64(imageFile)
 
-            // 1. Upload Intruder Evidence Photo to Firebase Cloud Storage
-            if (imageFile != null && imageFile.exists()) {
-                try {
-                    val storageRef = FirebaseStorage.getInstance().reference
-                    val photoRef = storageRef.child("intruder_evidence/${System.currentTimeMillis()}_${imageFile.name}")
-                    val fileUri = Uri.fromFile(imageFile)
-
-                    photoRef.putFile(fileUri).await()
-                    publicPhotoUrl = photoRef.downloadUrl.await().toString()
-                    Log.d(TAG, "Intruder photo uploaded to Firebase Storage ✅: $publicPhotoUrl")
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error uploading intruder photo to Firebase Storage", e)
-                }
-            }
-
-            // 2. Insert Off-Device Incident Record into Firebase Firestore
+            // 2. Insert Off-Device Incident Record into 100% Free Firebase Firestore Database
             val firestore = FirebaseFirestore.getInstance()
             val incidentData = hashMapOf(
                 "file_name" to fileName,
                 "action_type" to actionType,
                 "timestamp" to timestamp,
                 "details" to details,
-                "photo_url" to (publicPhotoUrl ?: ""),
+                "photo_base64" to (photoBase64 ?: ""),
                 "device_model" to "${Build.MANUFACTURER} ${Build.MODEL}",
                 "android_version" to "Android ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
                 "synced_at_ms" to System.currentTimeMillis(),
@@ -99,12 +87,12 @@ class FirebaseCloudVaultManager(private val context: Context) {
 
             val docRef = firestore.collection("breach_incidents").add(incidentData).await()
             val docId = docRef.id
-            val successMsg = "Synced breach incident to Firebase Cloud Vault ✅ Document ID: $docId"
+            val successMsg = "Synced breach incident & photo directly to free Firestore Vault ✅ Document ID: $docId"
             Log.d(TAG, successMsg)
 
             CloudVaultSyncResult(
                 isSuccess = true,
-                imageUrl = publicPhotoUrl,
+                imageUrl = if (photoBase64 != null) "data:image/jpeg;base64,$photoBase64" else null,
                 documentId = docId,
                 message = successMsg
             )
@@ -112,6 +100,21 @@ class FirebaseCloudVaultManager(private val context: Context) {
             val errorMsg = "Firebase Cloud Vault Sync Error: ${e.localizedMessage ?: e.message}"
             Log.e(TAG, errorMsg, e)
             CloudVaultSyncResult(isSuccess = false, message = errorMsg)
+        }
+    }
+
+    private fun encodeImageToBase64(imageFile: File?): String? {
+        if (imageFile == null || !imageFile.exists()) return null
+        return try {
+            val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath) ?: return null
+            val outputStream = ByteArrayOutputStream()
+            // Compress bitmap to 60% quality JPEG thumbnail for efficient Firestore document storage
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 60, outputStream)
+            val byteArray = outputStream.toByteArray()
+            Base64.encodeToString(byteArray, Base64.NO_WRAP)
+        } catch (e: Exception) {
+            Log.e(TAG, "Error encoding intruder photo to Base64", e)
+            null
         }
     }
 

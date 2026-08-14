@@ -14,7 +14,6 @@ import androidx.lifecycle.LifecycleService
 import androidx.lifecycle.lifecycleScope
 import com.honeyfile.security.R
 import com.honeyfile.security.camera.OverlayCaptureActivity
-import com.honeyfile.security.integrity.HoneyFileObserver
 import com.honeyfile.security.scanner.FolderScannerManager
 import com.honeyfile.security.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
@@ -26,20 +25,19 @@ import kotlinx.coroutines.launch
 class HoneyMonitoringService : LifecycleService() {
 
     private lateinit var folderScannerManager: FolderScannerManager
-    private var fileObserver: HoneyFileObserver? = null
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
     override fun onCreate() {
         super.onCreate()
         folderScannerManager = FolderScannerManager(this)
         createNotificationChannel()
-        Log.d(TAG, "HoneyMonitoringService created — waiting for breach events")
+        Log.d(TAG, "HoneyMonitoringService created")
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         super.onStartCommand(intent, flags, startId)
-        val action = intent?.action
-        if (action == ACTION_STOP) {
+
+        if (intent?.action == ACTION_STOP) {
             stopForegroundService()
             return START_NOT_STICKY
         }
@@ -48,55 +46,41 @@ class HoneyMonitoringService : LifecycleService() {
         if (folderUriStr != null) {
             val uri = Uri.parse(folderUriStr)
             startForeground(NOTIFICATION_ID, buildNotification(uri.lastPathSegment ?: "Monitored Folder"))
+
+            // Start SAF-based polling scanner (works with content:// URIs picked via folder picker)
             folderScannerManager.startContinuousScanning(uri)
 
-            val folderPath = uri.path
-            if (folderPath != null) {
-                startFileObserver(folderPath)
+            // Subscribe to file change events emitted by the scanner
+            // This is the CORRECT way: FolderScannerManager uses DocumentFile (SAF) to poll
+            // the folder every 500ms and emits events via SharedFlow when changes are detected.
+            serviceScope.launch {
+                folderScannerManager.fileChangeEvents.collect { event ->
+                    Log.w(TAG, "Breach detected in background: ${event.fileName} (${event.eventType})")
+                    handleBackgroundFileBreach(event.fileName, event.eventType)
+                }
             }
 
-            Log.d(TAG, "Started background folder monitoring for: $folderUriStr")
+            Log.d(TAG, "Started background SAF folder monitoring for: $folderUriStr")
         }
 
         return START_STICKY
     }
 
-    private fun startFileObserver(path: String) {
-        try {
-            fileObserver?.stopWatching()
-            fileObserver = HoneyFileObserver(path) { event ->
-                Log.w(TAG, "Breach event: ${event.fileName} (${event.eventType})")
-                handleBackgroundFileBreach(event.fileName, event.eventType.name)
-            }.also {
-                it.startWatching()
-            }
-            Log.d(TAG, "HoneyFileObserver watching: $path")
-        } catch (e: Exception) {
-            Log.e(TAG, "Failed to start HoneyFileObserver on $path", e)
-        }
-    }
-
     /**
-     * Called when the folder observer detects a file alteration while the app is in background.
+     * Called when FolderScannerManager detects a file change while the app is in background.
      *
      * CAMERA STRATEGY:
-     * We do NOT try to hold the camera open in this service. Android's cameraserver revokes
-     * camera access from any process that has no visible UI (Activity or PiP window).
-     *
-     * Instead, we launch OverlayCaptureActivity — a fully transparent, 1x1 pixel Activity —
-     * which becomes the "visible" element that grants our process camera access for ~2-3 seconds
-     * to capture the intruder, then finishes itself automatically.
-     *
-     * This is the only Android-compliant way to access the camera from background.
+     * Android's cameraserver revokes camera access from any process that has no visible UI.
+     * We launch OverlayCaptureActivity — a fully transparent 1x1 pixel Activity — which
+     * briefly becomes the "visible" foreground element that lets us access the camera for
+     * ~2-3 seconds to capture the intruder, then finishes itself automatically.
      */
     private fun handleBackgroundFileBreach(fileName: String, actionType: String) {
-        Log.w(TAG, "Breach detected! Launching OverlayCaptureActivity for: $fileName ($actionType)")
+        Log.w(TAG, "Launching OverlayCaptureActivity for: $fileName ($actionType)")
 
-        // Launch the transparent capture activity — it handles camera + logging + alert
         val captureIntent = OverlayCaptureActivity.createLaunchIntent(this, fileName, actionType)
         startActivity(captureIntent)
 
-        // Also immediately fire the breach notification so the user is alerted
         sendAlterationNotification(fileName, actionType)
     }
 
@@ -156,8 +140,6 @@ class HoneyMonitoringService : LifecycleService() {
 
     private fun stopForegroundService() {
         folderScannerManager.stopScanning()
-        fileObserver?.stopWatching()
-        fileObserver = null
         serviceScope.cancel()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -171,7 +153,6 @@ class HoneyMonitoringService : LifecycleService() {
     override fun onDestroy() {
         super.onDestroy()
         folderScannerManager.stopScanning()
-        fileObserver?.stopWatching()
         serviceScope.cancel()
         Log.d(TAG, "HoneyMonitoringService destroyed")
     }

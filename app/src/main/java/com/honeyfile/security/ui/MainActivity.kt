@@ -206,6 +206,9 @@ class MainActivity : AppCompatActivity() {
         )
         binding.rvGallery.layoutManager = GridLayoutManager(this, 3)
         binding.rvGallery.adapter = galleryAdapter
+        // setHasFixedSize: RecyclerView won't call requestLayout() when items change,
+        // since the grid size doesn't depend on the number of items.
+        binding.rvGallery.setHasFixedSize(true)
 
         binding.btnManageAdmins.setOnClickListener {
             val dialog = AdminManagementDialogFragment.newInstance()

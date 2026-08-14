@@ -106,6 +106,11 @@ dependencies {
     implementation("com.google.firebase:firebase-firestore-ktx")
     implementation("com.google.firebase:firebase-auth-ktx")
 
+    // Coil — Kotlin-first async image loading with memory + disk cache.
+    // Replaces setImageURI() in CapturedImageAdapter which decoded full JPEGs on the main
+    // thread causing the vault RecyclerView to freeze on scroll on low-end devices.
+    implementation("io.coil-kt:coil:2.6.0")
+
     // Testing
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")

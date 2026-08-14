@@ -50,7 +50,9 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
         ActivityResultContracts.RequestPermission()
     ) { isGranted ->
         if (isGranted) {
-            startCameraPreview()
+            _binding?.enrollPreviewView?.post {
+                startCameraPreview()
+            }
         } else {
             Toast.makeText(context, "Camera permission is required to scan administrator face profile.", Toast.LENGTH_LONG).show()
         }
@@ -112,7 +114,9 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
         }
 
         if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            startCameraPreview()
+            binding.enrollPreviewView.post {
+                startCameraPreview()
+            }
         } else {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
         }
@@ -125,8 +129,10 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
     override fun onResume() {
         super.onResume()
         if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            if (binding.layoutScanStep.visibility == View.VISIBLE && imageCapture == null) {
-                startCameraPreview()
+            if (_binding != null && binding.layoutScanStep.visibility == View.VISIBLE && imageCapture == null) {
+                binding.enrollPreviewView.post {
+                    startCameraPreview()
+                }
             }
         }
     }
@@ -144,12 +150,13 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
 
     private fun startCameraPreview() {
         if (_binding == null || !isAdded) return
-        if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+        val ctx = context ?: return
+        if (ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
             cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
             return
         }
 
-        val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
         cameraProviderFuture.addListener({
             try {
                 if (_binding == null || !isAdded) return@addListener
@@ -172,19 +179,19 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
                 }
 
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, imageCapture)
-                Log.d(TAG, "Enrollment camera preview initialized successfully")
+                cameraProvider.bindToLifecycle(viewLifecycleOwner, cameraSelector, preview, imageCapture)
+                Log.d(TAG, "Enrollment camera preview initialized successfully with viewLifecycleOwner")
             } catch (e: Exception) {
                 Log.e(TAG, "Error binding enrollment camera preview", e)
                 Toast.makeText(context, "Failed to start camera preview: ${e.message}", Toast.LENGTH_SHORT).show()
             }
-        }, ContextCompat.getMainExecutor(requireContext()))
+        }, ContextCompat.getMainExecutor(ctx))
     }
 
     private fun captureAndEnrollFace() {
         val capture = imageCapture ?: run {
             Toast.makeText(context, "Camera initializing... Please wait a moment.", Toast.LENGTH_SHORT).show()
-            startCameraPreview()
+            binding.enrollPreviewView.post { startCameraPreview() }
             return
         }
 
@@ -229,7 +236,7 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
                     binding.btnCaptureEnroll.isEnabled = true
                     Toast.makeText(context, "Capture error: ${exception.message}", Toast.LENGTH_SHORT).show()
                     // Rebind camera if needed
-                    startCameraPreview()
+                    binding.enrollPreviewView.post { startCameraPreview() }
                 }
             }
         )
@@ -330,7 +337,9 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
             binding.tvEnrollTitle.text = "📸 Admin $adminTarget Facial Enrollment"
             binding.tvEnrollSubtitle.text = "Align Admin $adminTarget's face in the camera preview below"
         }
-        startCameraPreview()
+        binding.enrollPreviewView.post {
+            startCameraPreview()
+        }
     }
 
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {

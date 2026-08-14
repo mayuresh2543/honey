@@ -7,7 +7,7 @@ import androidx.recyclerview.widget.ListAdapter
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
 import coil.request.CachePolicy
-import coil.size.Scale
+
 import coil.transform.RoundedCornersTransformation
 import com.honeyfile.security.databinding.ItemCapturedImageBinding
 import java.io.File
@@ -66,7 +66,6 @@ class CapturedImageAdapter(
             // crossfade(150) gives a smooth fade-in instead of a jarring pop
             binding.ivCaptured.load(file) {
                 crossfade(150)
-                scale(Scale.CROP)
                 transformations(RoundedCornersTransformation(8f))
                 memoryCachePolicy(CachePolicy.ENABLED)
                 diskCachePolicy(CachePolicy.ENABLED)

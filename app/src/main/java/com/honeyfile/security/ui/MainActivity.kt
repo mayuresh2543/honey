@@ -320,16 +320,25 @@ class MainActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
             folderScannerManager.fileChangeEvents.collect { event ->
-                Log.w(TAG, "File change event detected: ${event.fileName} (${event.eventType})")
-                // Process security verification immediately for every file change event
-                lifecycleScope.launch(Dispatchers.IO) {
-                    processBackgroundSecurityVerification(event)
+                Log.w(TAG, "File change event: ${event.fileName} (${event.eventType}), foreground=$isInForeground")
+                // Only handle capture here when the app is in the foreground.
+                // When the app is in the background, HoneyMonitoringService launches
+                // OverlayCaptureActivity which handles the capture independently.
+                // Handling it here too causes a second (fallback) photo to be saved.
+                if (isInForeground) {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        processBackgroundSecurityVerification(event)
+                    }
+                } else {
+                    Log.d(TAG, "App in background — skipping MainActivity capture, service handles it")
                 }
             }
         }
     }
 
-    private var lastSecurityAlertTimeMs = 0L
+    // AtomicLong for thread-safe debounce in processBackgroundSecurityVerification.
+    // 6s matches the service's BREACH_DEBOUNCE_MS so one event doesn't fire in both places.
+    private val lastSecurityAlertTimeMs = java.util.concurrent.atomic.AtomicLong(0L)
 
     fun rebindBackgroundCamera() {
         lifecycleScope.launch(Dispatchers.Main) {
@@ -341,11 +350,11 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun processBackgroundSecurityVerification(event: com.honeyfile.security.scanner.FileChangeEvent) {
         val now = System.currentTimeMillis()
-        if (now - lastSecurityAlertTimeMs < 1000L) {
-            Log.d(TAG, "Security verification throttled for recent burst operation: ${event.fileName}")
+        val last = lastSecurityAlertTimeMs.get()
+        if (now - last < 6000L || !lastSecurityAlertTimeMs.compareAndSet(last, now)) {
+            Log.d(TAG, "Security verification debounced for: ${event.fileName}")
             return
         }
-        lastSecurityAlertTimeMs = now
 
         if (imageCapture == null) {
             initializeBackgroundCamera()

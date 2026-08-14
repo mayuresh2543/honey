@@ -10,14 +10,12 @@ import android.util.Log
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.Preview
 import androidx.camera.lifecycle.ProcessCameraProvider
-import androidx.camera.view.PreviewView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
-import com.honeyfile.security.R
 import com.honeyfile.security.alert.EmailAlertManager
 import com.honeyfile.security.alert.TelemetryManager
 import com.honeyfile.security.cloud.FirebaseCloudVaultManager
@@ -26,45 +24,42 @@ import com.honeyfile.security.data.AppDatabase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.Executors
+import kotlin.coroutines.resume
 
 /**
- * Transparent activity launched by HoneyMonitoringService on breach detection.
+ * Fully invisible activity launched by HoneyMonitoringService on breach detection.
  *
- * KEY DESIGN DECISIONS:
+ * DESIGN DECISIONS:
  *
- * 1. NOT windowIsFloating: We removed this from the theme because floating windows
- *    are treated as dialogs by Android. Dialog-mode activities are NOT considered
- *    the foreground activity for camera access purposes on some devices/OS versions.
- *    Full-screen translucent = properly foreground = guaranteed camera access.
+ * 1. No PreviewView / no layout: A PreviewView renders its camera texture directly
+ *    onto the display surface, bypassing the window's translucency — it would be
+ *    visible to the user even with a transparent theme. We use ImageAnalysis instead
+ *    to prime the camera HAL without any visible surface.
  *
- * 2. Has a real PreviewView (1dp, alpha=0): Without a Preview use case surface,
- *    many camera HALs enter a degraded initialization mode where the imaging pipeline
- *    isn't fully warmed up. takePicture() then silently times out because the
- *    repeating capture session hasn't converged. The PreviewView is invisible to the
- *    user (alpha=0, 1dp) but gives the HAL a real surface to stream frames to.
+ * 2. suspendCancellableCoroutine for takePicture: takePicture() with callbacks is NOT
+ *    a suspend function — it returns immediately. Without this wrapper, waitAndCapture()
+ *    would finish before the photo is taken, the lifecycleScope coroutine would end,
+ *    and the onImageSaved callback would fire into a dead/cancelled scope → no photo saved.
+ *    suspendCancellableCoroutine keeps the coroutine alive until the callback fires.
  *
- * 3. Camera binding in onResume(): Guarantees lifecycle is at RESUMED state before
- *    the camera is asked to open. bindToLifecycle() in onCreate() can result in the
- *    camera warming up before onResume is called, meaning our 4s delay starts from
- *    the wrong reference point.
+ * 3. Camera binding in onResume(): ensures lifecycle is at RESUMED when bindToLifecycle
+ *    is called, so CameraX opens the camera hardware immediately.
  *
- * 4. File-based capture as primary: OutputFileOptions.Builder(File) is more reliable
- *    than in-memory OnImageCapturedCallback in background/overlay contexts because
- *    it uses the file I/O path instead of the shared memory path, which is less prone
- *    to buffer allocation failures under memory pressure.
+ * 4. 4000ms warmup delay: gives the camera HAL time to open the sensor, start the
+ *    repeating session (driven by ImageAnalysis), and converge AE/AF/AWB.
  */
 class OverlayCaptureActivity : AppCompatActivity() {
 
     private var imageCapture: ImageCapture? = null
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private lateinit var intruderCaptureManager: IntruderCaptureManager
-    private lateinit var previewView: PreviewView
     private var captureTriggered = false
 
     private var fileName = "unknown_file"
@@ -72,7 +67,7 @@ class OverlayCaptureActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_overlay_capture)
+        // No setContentView — zero visible UI
 
         window.addFlags(
             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -82,12 +77,9 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         )
 
-        previewView = findViewById(R.id.previewView)
         intruderCaptureManager = IntruderCaptureManager(this)
-
         fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: "unknown_file"
         actionType = intent.getStringExtra(EXTRA_ACTION_TYPE) ?: "UNKNOWN"
-
         Log.d(TAG, "OverlayCaptureActivity created for: $fileName ($actionType)")
     }
 
@@ -99,7 +91,7 @@ class OverlayCaptureActivity : AppCompatActivity() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.e(TAG, "Camera permission not granted — fallback")
+            Log.e(TAG, "Camera permission denied — saving fallback")
             saveFallbackAndFinish()
             return
         }
@@ -118,12 +110,12 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     .build()
                 imageCapture = capture
 
-                // Preview use case — gives the camera HAL a real surface.
-                // This is critical: without Preview, the camera pipeline on many devices
-                // never fully initializes and takePicture() times out.
-                val preview = Preview.Builder().build().also {
-                    it.setSurfaceProvider(previewView.surfaceProvider)
-                }
+                // ImageAnalysis starts the repeating capture session without any visible surface.
+                // This primes the camera HAL so that takePicture() has a live pipeline to work with.
+                val analysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also { it.setAnalyzer(cameraExecutor) { proxy -> proxy.close() } }
 
                 val cameraSelector = when {
                     cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) ->
@@ -132,11 +124,11 @@ class OverlayCaptureActivity : AppCompatActivity() {
                 }
 
                 cameraProvider.unbindAll()
-                // Bind Preview + ImageCapture together. Both will start immediately
-                // because the lifecycle is at RESUMED when this listener fires from onResume().
-                cameraProvider.bindToLifecycle(this, cameraSelector, preview, capture)
-                Log.d(TAG, "CameraX bound (Preview + ImageCapture) in RESUMED state")
+                cameraProvider.bindToLifecycle(this, cameraSelector, capture, analysis)
+                Log.d(TAG, "CameraX bound (ImageAnalysis + ImageCapture) in RESUMED state")
 
+                // Now wait for the pipeline to warm up, then capture.
+                // The coroutine stays alive until persistAndAlert() calls finish().
                 lifecycleScope.launch { waitAndCapture() }
 
             } catch (e: Exception) {
@@ -147,83 +139,78 @@ class OverlayCaptureActivity : AppCompatActivity() {
     }
 
     private suspend fun waitAndCapture() {
-        // Wait for the camera pipeline to fully warm up:
-        //   ~500ms  sensor open
-        //   ~500ms  session start + first repeating frame
-        //   ~1000ms AE/AF/AWB convergence (first few frames)
-        //   ~1000ms buffer to account for slow devices
-        // Total: 3000ms conservative baseline.
-        delay(3000L)
+        // Allow the camera HAL to fully initialize before we try to capture.
+        delay(4000L)
 
         val capture = imageCapture ?: run {
-            Log.e(TAG, "ImageCapture null — fallback")
+            Log.e(TAG, "ImageCapture null after binding — fallback")
             saveFallbackAndFinish()
             return
         }
 
-        // File-based capture: write directly to a temp file, then read back as Bitmap.
-        // This path is more reliable in overlay/background contexts than the shared-memory
-        // in-memory path used by OnImageCapturedCallback.
-        val tempFile = File(cacheDir, "overlay_capture_${System.currentTimeMillis()}.jpg")
-        val outputOptions = ImageCapture.OutputFileOptions.Builder(tempFile).build()
+        val tempFile = File(cacheDir, "overlay_${System.currentTimeMillis()}.jpg")
+        Log.d(TAG, "Calling takePicture for: $fileName")
 
-        Log.d(TAG, "Calling takePicture() for: $fileName")
-
-        capture.takePicture(
-            outputOptions,
-            cameraExecutor,
-            object : ImageCapture.OnImageSavedCallback {
-                override fun onImageSaved(results: ImageCapture.OutputFileResults) {
-                    Log.d(TAG, "takePicture() onImageSaved — file: ${tempFile.absolutePath}")
-                    lifecycleScope.launch {
-                        try {
-                            var bitmap = BitmapFactory.decodeFile(tempFile.absolutePath)
-                            // Correct rotation using EXIF data
-                            try {
-                                val exif = ExifInterface(tempFile.absolutePath)
-                                val orientation = exif.getAttributeInt(
-                                    ExifInterface.TAG_ORIENTATION,
-                                    ExifInterface.ORIENTATION_NORMAL
-                                )
-                                val degrees = when (orientation) {
-                                    ExifInterface.ORIENTATION_ROTATE_90 -> 90
-                                    ExifInterface.ORIENTATION_ROTATE_180 -> 180
-                                    ExifInterface.ORIENTATION_ROTATE_270 -> 270
-                                    else -> 0
-                                }
-                                if (degrees != 0 && bitmap != null) {
-                                    val matrix = android.graphics.Matrix().apply { postRotate(degrees.toFloat()) }
-                                    bitmap = android.graphics.Bitmap.createBitmap(
-                                        bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true
-                                    )
-                                }
-                            } catch (e: Exception) {
-                                Log.w(TAG, "EXIF rotation failed", e)
-                            }
-                            tempFile.delete()
-
-                            val photoFile = intruderCaptureManager.captureIntruderImage(bitmap)
-                            Log.d(TAG, "Real intruder photo saved: ${photoFile?.name}")
-                            persistAndAlert(photoFile)
-                        } catch (e: Exception) {
-                            Log.e(TAG, "Error processing captured image", e)
-                            tempFile.delete()
-                            saveFallbackAndFinish()
-                        }
+        // suspendCancellableCoroutine converts the callback API into a suspend call.
+        // The coroutine WAITS HERE until onImageSaved or onError fires.
+        // Without this, the coroutine would finish before the photo is taken.
+        val success = suspendCancellableCoroutine { cont ->
+            val options = ImageCapture.OutputFileOptions.Builder(tempFile).build()
+            capture.takePicture(
+                options,
+                cameraExecutor,
+                object : ImageCapture.OnImageSavedCallback {
+                    override fun onImageSaved(results: ImageCapture.OutputFileResults) {
+                        Log.d(TAG, "takePicture succeeded: ${tempFile.name}")
+                        cont.resume(true)
+                    }
+                    override fun onError(exception: ImageCaptureException) {
+                        Log.e(TAG, "takePicture failed [${exception.imageCaptureError}]: ${exception.message}")
+                        tempFile.delete()
+                        cont.resume(false)
                     }
                 }
+            )
+            cont.invokeOnCancellation { tempFile.delete() }
+        }
 
-                override fun onError(exception: ImageCaptureException) {
-                    Log.e(TAG, "takePicture() onError code=${exception.imageCaptureError}: ${exception.message}", exception)
-                    tempFile.delete()
-                    saveFallbackAndFinish()
+        if (success && tempFile.exists()) {
+            // Decode captured JPEG, apply EXIF rotation correction
+            var bitmap = BitmapFactory.decodeFile(tempFile.absolutePath)
+            try {
+                val exif = ExifInterface(tempFile.absolutePath)
+                val degrees = when (
+                    exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)
+                ) {
+                    ExifInterface.ORIENTATION_ROTATE_90 -> 90
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270
+                    else -> 0
                 }
+                if (degrees != 0 && bitmap != null) {
+                    val m = android.graphics.Matrix().apply { postRotate(degrees.toFloat()) }
+                    bitmap = android.graphics.Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, m, true)
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "EXIF correction failed", e)
             }
-        )
+            tempFile.delete()
+
+            val photoFile = withContext(Dispatchers.IO) {
+                intruderCaptureManager.captureIntruderImage(bitmap)
+            }
+            Log.d(TAG, "Real intruder photo saved: ${photoFile?.name}")
+            persistAndAlert(photoFile)
+        } else {
+            Log.w(TAG, "takePicture returned false — saving fallback evidence")
+            val photoFile = withContext(Dispatchers.IO) {
+                intruderCaptureManager.captureIntruderImage(null)
+            }
+            persistAndAlert(photoFile)
+        }
     }
 
-    // Not suspend — can be called from any context (callbacks, catch blocks, suspend funs).
-    // Internally launches a coroutine to do the async work.
+    // Non-suspend: can be called from callbacks and catch blocks.
     private fun saveFallbackAndFinish() {
         lifecycleScope.launch {
             val photoFile = withContext(Dispatchers.IO) {
@@ -252,7 +239,7 @@ class OverlayCaptureActivity : AppCompatActivity() {
                         file = fileName,
                         user = "Intruder",
                         action = actionTag,
-                        details = "BACKGROUND BREACH: '$fileName' $actionTag while app was closed.\n${telemetry.formattedSummary}",
+                        details = "BACKGROUND BREACH: '$fileName' $actionTag while app closed.\n${telemetry.formattedSummary}",
                         timestamp = timestamp
                     )
                 )
@@ -260,7 +247,7 @@ class OverlayCaptureActivity : AppCompatActivity() {
                 EmailAlertManager().sendAlert(
                     context = this@OverlayCaptureActivity,
                     subject = "🚨 Background Intruder: $fileName",
-                    body = "Unauthorized file modification at $timestamp.\n\nFile: $fileName\nAction: $actionTag",
+                    body = "Unauthorized file access at $timestamp.\n\nFile: $fileName\nAction: $actionTag",
                     imageFile = photoFile,
                     telemetry = telemetry
                 )
@@ -269,7 +256,7 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     fileName = fileName,
                     actionType = actionTag,
                     timestamp = timestamp,
-                    details = "BACKGROUND BREACH: '$fileName' $actionTag while app was closed.",
+                    details = "BACKGROUND BREACH: '$fileName' $actionTag while app closed.",
                     imageFile = photoFile,
                     telemetry = telemetry
                 )

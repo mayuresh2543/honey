@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
-import android.view.Window
 import android.view.WindowManager
 import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
@@ -35,7 +34,8 @@ import java.util.concurrent.Executors
  * Android revokes camera access from any process that has no visible Activity or active PiP window.
  * This is a kernel-level privacy policy (enforced since Android 9, stricter in Android 11+/14+).
  * The ONLY way to access the camera when the app is "closed" is to briefly make an Activity visible.
- * This Activity is fully transparent — the user sees no UI change — and it finishes in ~2-3 seconds.
+ * This Activity is fully transparent (uses Theme.HoneyfileSecurity.Transparent — an AppCompat-
+ * compatible theme) — the user sees no UI change — and it finishes in ~2-3 seconds.
  *
  * FLOW:
  * 1. Breach detected by HoneyMonitoringService → starts this activity with breach metadata.
@@ -51,29 +51,21 @@ class OverlayCaptureActivity : AppCompatActivity() {
     private lateinit var intruderCaptureManager: IntruderCaptureManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        // Make the window fully transparent — no title bar, no background, no visible UI
-        requestWindowFeature(Window.FEATURE_NO_TITLE)
         super.onCreate(savedInstanceState)
-        window.apply {
-            setFlags(
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                        WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED,
-                WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
-                        WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
-                        WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                        WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
-            )
-            // Make it a 1x1 pixel window so it's technically visible but invisible to the user
-            setLayout(1, 1)
-            setBackgroundDrawableResource(android.R.color.transparent)
-        }
 
-        // Empty content view — no layout inflation needed
-        setContentView(android.R.layout.simple_list_item_1) // smallest possible layout
+        // Make the window fully invisible:
+        // - windowIsTranslucent + windowIsFloating set in theme
+        // - Additional flags to prevent interaction/focus stealing
+        window.addFlags(
+            WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                    WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+        )
+        // 1x1 pixel window — technically visible (grants camera) but invisible to user
+        window.setLayout(1, 1)
+
+        // DO NOT call setContentView — no UI whatsoever
 
         intruderCaptureManager = IntruderCaptureManager(this)
 
@@ -85,8 +77,8 @@ class OverlayCaptureActivity : AppCompatActivity() {
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.e(TAG, "Camera permission not granted — aborting overlay capture")
-            finish()
+            Log.e(TAG, "Camera permission not granted — saving fallback evidence image")
+            performFallbackCapture(fileName, actionType)
             return
         }
 
@@ -103,7 +95,7 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
 
-                // ImageAnalysis is REQUIRED to prime the repeating capture session.
+                // ImageAnalysis primes the repeating capture session.
                 // Without it, takePicture() silently fails because no repeating
                 // capture request has been submitted to the camera HAL.
                 val analysis = ImageAnalysis.Builder()
@@ -119,19 +111,16 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) ->
                         CameraSelector.DEFAULT_BACK_CAMERA
                     else -> {
-                        Log.e(TAG, "No camera available — finishing overlay activity")
-                        finish()
+                        Log.e(TAG, "No camera available — saving fallback evidence image")
+                        performFallbackCapture(fileName, actionType)
                         return@addListener
                     }
                 }
 
-                // Bind to THIS activity's lifecycle — this is the key: the Activity being
-                // visible is what grants camera access to the process.
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(this, cameraSelector, capture, analysis)
-                Log.d(TAG, "CameraX bound successfully in OverlayCaptureActivity")
+                Log.d(TAG, "CameraX bound in OverlayCaptureActivity for: $fileName")
 
-                // Now do the actual capture in a coroutine
                 lifecycleScope.launch {
                     performCapture(fileName, actionType)
                 }
@@ -143,7 +132,7 @@ class OverlayCaptureActivity : AppCompatActivity() {
     }
 
     private suspend fun performCapture(fileName: String, actionType: String) {
-        // Give camera hardware time to warm up (open, AE/AF settle)
+        // Give camera hardware ~1.5s to warm up (open sensor, AE/AF settle)
         delay(1500L)
 
         val capture = imageCapture
@@ -152,7 +141,7 @@ class OverlayCaptureActivity : AppCompatActivity() {
         } else null
 
         val photoFile = intruderCaptureManager.captureIntruderImage(bitmap)
-        Log.d(TAG, "Overlay capture complete. Real bitmap: ${bitmap != null}, file: ${photoFile?.name}")
+        Log.d(TAG, "Overlay capture done. Real photo: ${bitmap != null}, saved: ${photoFile?.name}")
 
         persistAndAlert(fileName, actionType, photoFile)
     }
@@ -184,7 +173,6 @@ class OverlayCaptureActivity : AppCompatActivity() {
                 val telemetryManager = TelemetryManager(this@OverlayCaptureActivity)
                 val telemetry = telemetryManager.getDeviceTelemetry()
 
-                // 1. Log the breach to local DB
                 AppDatabase.getDatabase(this@OverlayCaptureActivity).logDao().insertLog(
                     AccessLog(
                         file = fileName,
@@ -195,7 +183,6 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     )
                 )
 
-                // 2. Send email alert
                 EmailAlertManager().sendAlert(
                     context = this@OverlayCaptureActivity,
                     subject = "🚨 Background Intruder File Alteration: $fileName",
@@ -204,7 +191,6 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     telemetry = telemetry
                 )
 
-                // 3. Sync to Firebase Cloud Vault
                 FirebaseCloudVaultManager(this@OverlayCaptureActivity).syncBreachIncidentToCloud(
                     fileName = fileName,
                     actionType = actionTag,
@@ -217,7 +203,6 @@ class OverlayCaptureActivity : AppCompatActivity() {
         } catch (e: Exception) {
             Log.e(TAG, "Error during persist & alert in OverlayCaptureActivity", e)
         } finally {
-            // Always finish — do not stay open
             Log.d(TAG, "OverlayCaptureActivity finishing")
             withContext(Dispatchers.Main) {
                 finish()
@@ -235,18 +220,12 @@ class OverlayCaptureActivity : AppCompatActivity() {
         const val EXTRA_FILE_NAME = "extra_file_name"
         const val EXTRA_ACTION_TYPE = "extra_action_type"
 
-        /**
-         * Creates the intent to launch this transparent capture activity from a Service or
-         * BroadcastReceiver context. Uses FLAG_ACTIVITY_NEW_TASK which is required when
-         * starting an Activity from a non-Activity context.
-         */
         fun createLaunchIntent(context: Context, fileName: String, actionType: String): Intent {
             return Intent(context, OverlayCaptureActivity::class.java).apply {
                 putExtra(EXTRA_FILE_NAME, fileName)
                 putExtra(EXTRA_ACTION_TYPE, actionType)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                 addFlags(Intent.FLAG_ACTIVITY_NO_ANIMATION)
-                addFlags(Intent.FLAG_ACTIVITY_NO_USER_ACTION)
             }
         }
     }

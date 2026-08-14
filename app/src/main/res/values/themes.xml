@@ -19,4 +19,20 @@
     <attr name="appCardStrokeColor" format="color" />
     <attr name="appTextColorPrimary" format="color" />
     <attr name="appTextColorSecondary" format="color" />
+
+    <!--
+        Transparent theme for OverlayCaptureActivity.
+        Inherits from the main app theme so AppCompatActivity doesn't crash,
+        then overrides window properties to make it fully invisible.
+    -->
+    <style name="Theme.HoneyfileSecurity.Transparent" parent="Theme.HoneyfileSecurity">
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:backgroundDimEnabled">false</item>
+        <item name="android:windowAnimationStyle">@null</item>
+    </style>
+
 </resources>

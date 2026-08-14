@@ -27,6 +27,11 @@ class HoneyMonitoringService : LifecycleService() {
     private lateinit var folderScannerManager: FolderScannerManager
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+    // Debounce: only launch one OverlayCaptureActivity per 3-second window.
+    // Prevents multiple activities launching when several files change at once (e.g. deploying decoys).
+    @Volatile private var lastBreachTimeMs = 0L
+    private val BREACH_DEBOUNCE_MS = 3000L
+
     override fun onCreate() {
         super.onCreate()
         folderScannerManager = FolderScannerManager(this)
@@ -76,11 +81,16 @@ class HoneyMonitoringService : LifecycleService() {
      * ~2-3 seconds to capture the intruder, then finishes itself automatically.
      */
     private fun handleBackgroundFileBreach(fileName: String, actionType: String) {
-        Log.w(TAG, "Launching OverlayCaptureActivity for: $fileName ($actionType)")
+        val now = System.currentTimeMillis()
+        if (now - lastBreachTimeMs < BREACH_DEBOUNCE_MS) {
+            Log.d(TAG, "Breach debounced ($fileName) — within ${BREACH_DEBOUNCE_MS}ms window")
+            return
+        }
+        lastBreachTimeMs = now
 
+        Log.w(TAG, "Launching OverlayCaptureActivity for: $fileName ($actionType)")
         val captureIntent = OverlayCaptureActivity.createLaunchIntent(this, fileName, actionType)
         startActivity(captureIntent)
-
         sendAlterationNotification(fileName, actionType)
     }
 

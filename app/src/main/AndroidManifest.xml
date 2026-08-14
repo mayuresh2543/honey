@@ -76,7 +76,7 @@
             android:exported="false"
             android:noHistory="true"
             android:excludeFromRecents="true"
-            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:theme="@style/Theme.HoneyfileSecurity.Transparent"
             android:showOnLockScreen="true"
             android:turnScreenOn="true"
             android:launchMode="singleTop" />

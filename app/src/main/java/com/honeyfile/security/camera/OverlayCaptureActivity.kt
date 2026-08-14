@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.ImageCapture
+import androidx.camera.core.ImageCaptureException
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
@@ -28,64 +29,75 @@ import java.util.Locale
 import java.util.concurrent.Executors
 
 /**
- * Transparent, no-UI activity launched by HoneyMonitoringService when a breach is detected.
+ * Transparent, no-UI activity launched by HoneyMonitoringService when a breach is detected
+ * while the app is in the background.
  *
  * WHY THIS EXISTS:
- * Android revokes camera access from any process that has no visible Activity or active PiP window.
- * This is a kernel-level privacy policy (enforced since Android 9, stricter in Android 11+/14+).
- * The ONLY way to access the camera when the app is "closed" is to briefly make an Activity visible.
- * This Activity is fully transparent (uses Theme.HoneyfileSecurity.Transparent — an AppCompat-
- * compatible theme) — the user sees no UI change — and it finishes in ~2-3 seconds.
+ * Android's cameraserver revokes camera access from any process with no visible Activity.
+ * This activity is transparent (invisible to the user) but technically visible to the OS,
+ * which grants the process camera access for ~3-4 seconds to capture the intruder.
  *
- * FLOW:
- * 1. Breach detected by HoneyMonitoringService → starts this activity with breach metadata.
- * 2. Activity opens transparently, binds CameraX to its OWN lifecycle.
- * 3. Waits ~1.5s for camera to warm up, captures front-camera photo silently.
- * 4. Logs breach, uploads to Firebase, sends email alert.
- * 5. Finishes itself. Total lifecycle: ~2-3 seconds.
+ * CAMERA BINDING STRATEGY:
+ * Camera binding happens in onResume() — NOT onCreate() — because CameraX requires the
+ * lifecycle owner to be in at least STARTED state before the camera hardware actually
+ * opens. Binding in onCreate() causes the camera HAL to still be initializing when we
+ * try to capture, resulting in timeouts.
  */
 class OverlayCaptureActivity : AppCompatActivity() {
 
     private var imageCapture: ImageCapture? = null
     private val cameraExecutor = Executors.newSingleThreadExecutor()
     private lateinit var intruderCaptureManager: IntruderCaptureManager
+    private var captureTriggered = false  // Guard: only run capture once per lifecycle
+
+    private var fileName = "unknown_file"
+    private var actionType = "UNKNOWN"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Make the window fully invisible:
-        // - windowIsTranslucent + windowIsFloating set in theme
-        // - Additional flags to prevent interaction/focus stealing
+        // Keep the window fully transparent and non-interactive.
+        // We do NOT call setLayout(1,1) — that can confuse the window manager on some
+        // devices and cause the activity to not be considered "properly visible".
+        // The transparent theme handles invisibility at the rendering level.
         window.addFlags(
             WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
                     WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
                     WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED
+                    WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
+                    WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD
         )
-        // 1x1 pixel window — technically visible (grants camera) but invisible to user
-        window.setLayout(1, 1)
 
-        // DO NOT call setContentView — no UI whatsoever
+        // No setContentView — this activity has zero UI
 
+        fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: "unknown_file"
+        actionType = intent.getStringExtra(EXTRA_ACTION_TYPE) ?: "UNKNOWN"
         intruderCaptureManager = IntruderCaptureManager(this)
 
-        val fileName = intent.getStringExtra(EXTRA_FILE_NAME) ?: "unknown_file"
-        val actionType = intent.getStringExtra(EXTRA_ACTION_TYPE) ?: "UNKNOWN"
+        Log.d(TAG, "OverlayCaptureActivity created for breach: $fileName ($actionType)")
+    }
 
-        Log.d(TAG, "OverlayCaptureActivity started for breach: $fileName ($actionType)")
+    override fun onResume() {
+        super.onResume()
+
+        // Only trigger once per instance
+        if (captureTriggered) return
+        captureTriggered = true
 
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.CAMERA)
             != PackageManager.PERMISSION_GRANTED
         ) {
-            Log.e(TAG, "Camera permission not granted — saving fallback evidence image")
-            performFallbackCapture(fileName, actionType)
+            Log.e(TAG, "Camera permission not granted — saving fallback evidence")
+            performFallbackCapture()
             return
         }
 
-        initCameraAndCapture(fileName, actionType)
+        // Now the Activity is in RESUMED state — the camera lifecycle will be active
+        // and the OS considers this activity "visible" for camera access purposes.
+        bindCameraAndCapture()
     }
 
-    private fun initCameraAndCapture(fileName: String, actionType: String) {
+    private fun bindCameraAndCapture() {
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             try {
@@ -96,8 +108,8 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     .build()
 
                 // ImageAnalysis primes the repeating capture session.
-                // Without it, takePicture() silently fails because no repeating
-                // capture request has been submitted to the camera HAL.
+                // Without an active repeating use case, ImageCapture.takePicture()
+                // silently fails because no repeating capture request exists in the HAL.
                 val analysis = ImageAnalysis.Builder()
                     .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
                     .build()
@@ -111,55 +123,65 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     cameraProvider.hasCamera(CameraSelector.DEFAULT_BACK_CAMERA) ->
                         CameraSelector.DEFAULT_BACK_CAMERA
                     else -> {
-                        Log.e(TAG, "No camera available — saving fallback evidence image")
-                        performFallbackCapture(fileName, actionType)
+                        Log.e(TAG, "No camera found on device")
+                        performFallbackCapture()
                         return@addListener
                     }
                 }
 
+                // Unbind any stale bindings, then bind to THIS activity's lifecycle.
+                // Since we're called from onResume, the lifecycle is at RESUMED — CameraX
+                // will immediately begin opening the camera hardware.
                 cameraProvider.unbindAll()
                 cameraProvider.bindToLifecycle(this, cameraSelector, capture, analysis)
-                Log.d(TAG, "CameraX bound in OverlayCaptureActivity for: $fileName")
+                Log.d(TAG, "CameraX bound to OverlayCaptureActivity in RESUMED state")
 
-                lifecycleScope.launch {
-                    performCapture(fileName, actionType)
-                }
+                lifecycleScope.launch { waitAndCapture() }
+
             } catch (e: Exception) {
-                Log.e(TAG, "Camera binding failed in OverlayCaptureActivity", e)
-                performFallbackCapture(fileName, actionType)
+                Log.e(TAG, "Camera binding failed: ${e.message}", e)
+                performFallbackCapture()
             }
         }, ContextCompat.getMainExecutor(this))
     }
 
-    private suspend fun performCapture(fileName: String, actionType: String) {
-        // Give camera hardware ~1.5s to warm up (open sensor, AE/AF settle)
-        delay(1500L)
+    private suspend fun waitAndCapture() {
+        // Wait for camera hardware to fully initialize and for AE/AF to settle.
+        // 3000ms is conservative but reliable across devices. The camera HAL needs:
+        //   ~500-1000ms to open the sensor
+        //   ~500-1000ms to start the repeating session
+        //   ~500-1000ms for auto-exposure to converge in the first few frames
+        delay(3000L)
 
         val capture = imageCapture
-        val bitmap = if (capture != null) {
-            intruderCaptureManager.takeSilentPhoto(capture, cameraExecutor)
-        } else null
+        if (capture == null) {
+            Log.e(TAG, "ImageCapture is null after binding — saving fallback")
+            persistAndAlert(photoFile = intruderCaptureManager.captureIntruderImage(null))
+            return
+        }
+
+        Log.d(TAG, "Attempting camera capture for: $fileName")
+        val bitmap = intruderCaptureManager.takeSilentPhoto(capture, cameraExecutor)
+
+        if (bitmap != null) {
+            Log.d(TAG, "Real intruder photo captured successfully (${bitmap.width}x${bitmap.height})")
+        } else {
+            Log.w(TAG, "Camera capture returned null — saving fallback evidence image")
+        }
 
         val photoFile = intruderCaptureManager.captureIntruderImage(bitmap)
-        Log.d(TAG, "Overlay capture done. Real photo: ${bitmap != null}, saved: ${photoFile?.name}")
-
-        persistAndAlert(fileName, actionType, photoFile)
+        persistAndAlert(photoFile)
     }
 
-    private fun performFallbackCapture(fileName: String, actionType: String) {
+    private fun performFallbackCapture() {
         lifecycleScope.launch {
             val photoFile = intruderCaptureManager.captureIntruderImage(null)
-            persistAndAlert(fileName, actionType, photoFile)
+            persistAndAlert(photoFile)
         }
     }
 
-    private suspend fun persistAndAlert(
-        fileName: String,
-        actionType: String,
-        photoFile: java.io.File?
-    ) {
+    private suspend fun persistAndAlert(photoFile: java.io.File?) {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-
         val actionTag = when (actionType.uppercase()) {
             "DELETED", "DELETE", "DELETE_SELF" -> "DELETED"
             "MODIFIED", "EDITED", "MODIFY" -> "EDITED"
@@ -170,23 +192,22 @@ class OverlayCaptureActivity : AppCompatActivity() {
 
         try {
             withContext(Dispatchers.IO) {
-                val telemetryManager = TelemetryManager(this@OverlayCaptureActivity)
-                val telemetry = telemetryManager.getDeviceTelemetry()
+                val telemetry = TelemetryManager(this@OverlayCaptureActivity).getDeviceTelemetry()
 
                 AppDatabase.getDatabase(this@OverlayCaptureActivity).logDao().insertLog(
                     AccessLog(
                         file = fileName,
                         user = "Intruder",
                         action = actionTag,
-                        details = "BACKGROUND BREACH: File '$fileName' was $actionTag while app was closed.\n${telemetry.formattedSummary}",
+                        details = "BACKGROUND BREACH: '$fileName' $actionTag while app was closed.\n${telemetry.formattedSummary}",
                         timestamp = timestamp
                     )
                 )
 
                 EmailAlertManager().sendAlert(
                     context = this@OverlayCaptureActivity,
-                    subject = "🚨 Background Intruder File Alteration: $fileName",
-                    body = "Unauthorized background file modification detected at $timestamp.\n\nFile: $fileName\nAction: $actionTag",
+                    subject = "🚨 Background Intruder: $fileName",
+                    body = "Unauthorized file modification at $timestamp.\n\nFile: $fileName\nAction: $actionTag",
                     imageFile = photoFile,
                     telemetry = telemetry
                 )
@@ -195,16 +216,16 @@ class OverlayCaptureActivity : AppCompatActivity() {
                     fileName = fileName,
                     actionType = actionTag,
                     timestamp = timestamp,
-                    details = "BACKGROUND BREACH: File '$fileName' $actionTag while app was closed.",
+                    details = "BACKGROUND BREACH: '$fileName' $actionTag while app was closed.",
                     imageFile = photoFile,
                     telemetry = telemetry
                 )
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error during persist & alert in OverlayCaptureActivity", e)
+            Log.e(TAG, "Error in persistAndAlert", e)
         } finally {
-            Log.d(TAG, "OverlayCaptureActivity finishing")
             withContext(Dispatchers.Main) {
+                Log.d(TAG, "OverlayCaptureActivity finishing")
                 finish()
             }
         }

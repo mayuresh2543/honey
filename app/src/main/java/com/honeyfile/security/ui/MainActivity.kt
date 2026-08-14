@@ -252,6 +252,11 @@ class MainActivity : AppCompatActivity() {
 
     fun checkMandatoryAdminEnrollment(): Boolean {
         if (!faceAuthManager.hasAtLeastOneAdmin()) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+                checkAndRequestPermissions()
+                return false
+            }
+
             val existing = supportFragmentManager.findFragmentByTag(AdminEnrollScanDialogFragment.TAG)
             if (existing == null || !existing.isAdded) {
                 val scanDialog = AdminEnrollScanDialogFragment.newInstance(1, isMandatory = true)
@@ -563,12 +568,18 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isInForeground = true
-        val hasAdmin = faceAuthManager.hasAtLeastOneAdmin()
         updateAdminUIStatus()
+
+        val isCameraGranted = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED
+        if (!isCameraGranted) {
+            // Permission request launched in onCreate is in-flight.
+            // requestPermissionLauncher will trigger enrollment or camera init when granted.
+            return
+        }
+
+        val hasAdmin = faceAuthManager.hasAtLeastOneAdmin()
         if (hasAdmin) {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-                initializeBackgroundCamera()
-            }
+            initializeBackgroundCamera()
         } else {
             checkMandatoryAdminEnrollment()
         }

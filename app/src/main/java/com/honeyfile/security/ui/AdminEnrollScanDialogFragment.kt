@@ -122,6 +122,15 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
         }
     }
 
+    override fun onResume() {
+        super.onResume()
+        if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            if (binding.layoutScanStep.visibility == View.VISIBLE && imageCapture == null) {
+                startCameraPreview()
+            }
+        }
+    }
+
     private fun showExitConfirmationDialog() {
         AlertDialog.Builder(requireContext())
             .setTitle("Exit Honeyfile Security?")
@@ -135,6 +144,10 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
 
     private fun startCameraPreview() {
         if (_binding == null || !isAdded) return
+        if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+            return
+        }
 
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({

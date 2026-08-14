@@ -212,32 +212,6 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnManageAdmins.setOnClickListener {
             val dialog = AdminManagementDialogFragment.newInstance()
-            dialog.onEnrollAdmin1Clicked = {
-                lifecycleScope.launch {
-                    Toast.makeText(this@MainActivity, "Capturing camera scan for Admin 1...", Toast.LENGTH_SHORT).show()
-                    val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
-                    if (frame != null) {
-                        val result = faceAuthManager.enrollAdmin1FromBitmap(frame)
-                        Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
-                        dialog.updateAdminStatusUI()
-                    } else {
-                        Toast.makeText(this@MainActivity, "Camera unavailable. Position face towards camera.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
-            dialog.onEnrollAdmin2Clicked = {
-                lifecycleScope.launch {
-                    Toast.makeText(this@MainActivity, "Capturing camera scan for Admin 2...", Toast.LENGTH_SHORT).show()
-                    val frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
-                    if (frame != null) {
-                        val result = faceAuthManager.enrollAdmin2FromBitmap(frame)
-                        Toast.makeText(this@MainActivity, result.message, Toast.LENGTH_LONG).show()
-                        dialog.updateAdminStatusUI()
-                    } else {
-                        Toast.makeText(this@MainActivity, "Camera unavailable. Position face towards camera.", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            }
             dialog.show(supportFragmentManager, AdminManagementDialogFragment.TAG)
         }
 
@@ -252,6 +226,7 @@ class MainActivity : AppCompatActivity() {
         binding.tvSlot5.setOnClickListener { showThreatDetailDialog(5) }
 
         binding.btnDeployDecoys.setOnClickListener {
+            if (!checkMandatoryAdminEnrollment()) return@setOnClickListener
             deployDecoyFilesToMonitoredFolder()
         }
 
@@ -266,6 +241,42 @@ class MainActivity : AppCompatActivity() {
                 refreshGallery()
             }
             true
+        }
+
+        updateAdminUIStatus()
+    }
+
+    fun checkMandatoryAdminEnrollment(): Boolean {
+        if (!faceAuthManager.hasAtLeastOneAdmin()) {
+            val existing = supportFragmentManager.findFragmentByTag(AdminEnrollScanDialogFragment.TAG)
+            if (existing == null || !existing.isAdded) {
+                val scanDialog = AdminEnrollScanDialogFragment.newInstance(1, isMandatory = true)
+                scanDialog.onEnrollmentCompleted = { success ->
+                    updateAdminUIStatus()
+                    if (success) {
+                        Toast.makeText(this, "Administrator profile enrolled! Honeyfile Security armed 🛡️", Toast.LENGTH_LONG).show()
+                        rebindBackgroundCamera()
+                    } else {
+                        checkMandatoryAdminEnrollment()
+                    }
+                }
+                scanDialog.show(supportFragmentManager, AdminEnrollScanDialogFragment.TAG)
+            }
+            return false
+        }
+        updateAdminUIStatus()
+        return true
+    }
+
+    fun updateAdminUIStatus() {
+        val count = faceAuthManager.getEnrolledAdminCount()
+        if (count > 0) {
+            val names = mutableListOf<String>()
+            if (faceAuthManager.isAdmin1Enrolled) names.add(faceAuthManager.admin1Name)
+            if (faceAuthManager.isAdmin2Enrolled) names.add(faceAuthManager.admin2Name)
+            binding.btnManageAdmins.text = "👥 Admin Profiles: ${names.joinToString(", ")} ($count/2)"
+        } else {
+            binding.btnManageAdmins.text = "⚠️ 0 Admins Enrolled (Tap to Setup)"
         }
     }
 
@@ -282,6 +293,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         binding.switchAutoScan.setOnCheckedChangeListener { _, isChecked ->
+            if (isChecked && !checkMandatoryAdminEnrollment()) {
+                binding.switchAutoScan.isChecked = false
+                return@setOnCheckedChangeListener
+            }
             val uri = selectedFolderUri
             if (isChecked) {
                 if (uri != null) {
@@ -298,11 +313,13 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        // Auto-start scanning if folder was previously saved
-        selectedFolderUri?.let { uri ->
-            binding.switchAutoScan.isChecked = true
-            folderScannerManager.startContinuousScanning(uri)
-            com.honeyfile.security.service.HoneyMonitoringService.startService(this, uri)
+        // Auto-start scanning if folder was previously saved and admin is enrolled
+        if (faceAuthManager.hasAtLeastOneAdmin()) {
+            selectedFolderUri?.let { uri ->
+                binding.switchAutoScan.isChecked = true
+                folderScannerManager.startContinuousScanning(uri)
+                com.honeyfile.security.service.HoneyMonitoringService.startService(this, uri)
+            }
         }
     }
 
@@ -534,6 +551,8 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isInForeground = true
+        checkMandatoryAdminEnrollment()
+        updateAdminUIStatus()
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             initializeBackgroundCamera()
         }

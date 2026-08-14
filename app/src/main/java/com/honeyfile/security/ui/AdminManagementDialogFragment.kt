@@ -61,6 +61,22 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
 
         binding.btnClearAdmin1.setOnClickListener {
+            if (faceAuthManager.getEnrolledAdminCount() <= 1) {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("⚠️ Sole Administrator Profile")
+                    .setMessage("Honeyfile Security requires at least one registered administrator to operate. To replace ${faceAuthManager.admin1Name}, please enroll Administrator 2 first, or re-enroll Administrator 1 directly.")
+                    .setPositiveButton("Re-enroll Admin 1") { _, _ ->
+                        val scanDialog = AdminEnrollScanDialogFragment.newInstance(1, isMandatory = true)
+                        scanDialog.onEnrollmentCompleted = {
+                            updateAdminStatusUI()
+                        }
+                        scanDialog.show(parentFragmentManager, AdminEnrollScanDialogFragment.TAG)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+                return@setOnClickListener
+            }
+
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("⚠️ Reset ${faceAuthManager.admin1Name} Profile?")
                 .setMessage("Are you sure you want to delete ${faceAuthManager.admin1Name}'s facial biometric profile and registered email notification address? This action cannot be undone.")
@@ -86,6 +102,22 @@ class AdminManagementDialogFragment : DialogFragment() {
         }
 
         binding.btnClearAdmin2.setOnClickListener {
+            if (faceAuthManager.getEnrolledAdminCount() <= 1) {
+                com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
+                    .setTitle("⚠️ Sole Administrator Profile")
+                    .setMessage("Honeyfile Security requires at least one registered administrator to operate. To replace ${faceAuthManager.admin2Name}, please enroll Administrator 1 first, or re-enroll Administrator 2 directly.")
+                    .setPositiveButton("Re-enroll Admin 2") { _, _ ->
+                        val scanDialog = AdminEnrollScanDialogFragment.newInstance(2, isMandatory = true)
+                        scanDialog.onEnrollmentCompleted = {
+                            updateAdminStatusUI()
+                        }
+                        scanDialog.show(parentFragmentManager, AdminEnrollScanDialogFragment.TAG)
+                    }
+                    .setNegativeButton("Cancel", null)
+                    .show()
+                return@setOnClickListener
+            }
+
             com.google.android.material.dialog.MaterialAlertDialogBuilder(requireContext())
                 .setTitle("⚠️ Reset ${faceAuthManager.admin2Name} Profile?")
                 .setMessage("Are you sure you want to delete ${faceAuthManager.admin2Name}'s facial biometric profile and registered email notification address? This action cannot be undone.")

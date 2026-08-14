@@ -82,6 +82,19 @@ class FaceAuthManager(private val context: Context) {
         }
     }
 
+    fun hasAtLeastOneAdmin(): Boolean {
+        val admin1Valid = isAdmin1Enrolled && getAdminFile("admin1_face.jpg").exists()
+        val admin2Valid = isAdmin2Enrolled && getAdminFile("admin2_face.jpg").exists()
+        return admin1Valid || admin2Valid
+    }
+
+    fun getEnrolledAdminCount(): Int {
+        var count = 0
+        if (isAdmin1Enrolled && getAdminFile("admin1_face.jpg").exists()) count++
+        if (isAdmin2Enrolled && getAdminFile("admin2_face.jpg").exists()) count++
+        return count
+    }
+
     private fun getAdminFile(filename: String): File {
         val dir = File(context.filesDir, "admin_faces")
         if (!dir.exists()) dir.mkdirs()

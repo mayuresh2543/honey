@@ -8,6 +8,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -36,6 +37,7 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
     private lateinit var cameraExecutor: ExecutorService
 
     private var adminTarget: Int = 1 // 1 for Admin 1, 2 for Admin 2
+    private var isMandatory: Boolean = false
     private var tempCapturedBitmap: Bitmap? = null
     private var isEnrollmentSavedSuccessfully: Boolean = false
     var onEnrollmentCompleted: ((Boolean) -> Unit)? = null
@@ -46,6 +48,8 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
         faceAuthManager = FaceAuthManager(requireContext())
         cameraExecutor = Executors.newSingleThreadExecutor()
         adminTarget = arguments?.getInt(ARG_ADMIN_TARGET, 1) ?: 1
+        isMandatory = arguments?.getBoolean(ARG_IS_MANDATORY, false) ?: false
+        isCancelable = !isMandatory
     }
 
     override fun onCreateView(
@@ -61,22 +65,43 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
         super.onViewCreated(view, savedInstanceState)
 
         dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog?.setCanceledOnTouchOutside(!isMandatory)
 
         val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
         themeManager.applyInstant(binding.root, dialog?.window, themeManager.isDarkMode)
 
-        binding.tvEnrollTitle.text = "📸 Admin $adminTarget Facial Enrollment"
-        binding.tvEnrollSubtitle.text = "Align Admin $adminTarget's face in the camera preview below"
+        if (isMandatory) {
+            binding.tvEnrollTitle.text = "🛡️ Admin 1 Setup (Mandatory)"
+            binding.tvEnrollSubtitle.text = "Honeyfile Security requires at least 1 Administrator. Align your face in the preview below."
+            binding.btnCancelEnroll.text = "Exit App"
+            binding.btnCancelEnroll.setOnClickListener {
+                showExitConfirmationDialog()
+            }
+        } else {
+            binding.tvEnrollTitle.text = "📸 Admin $adminTarget Facial Enrollment"
+            binding.tvEnrollSubtitle.text = "Align Admin $adminTarget's face in the camera preview below"
+            binding.btnCancelEnroll.text = "Cancel"
+            binding.btnCancelEnroll.setOnClickListener {
+                dismiss()
+            }
+        }
 
         startCameraPreview()
 
         binding.btnCaptureEnroll.setOnClickListener {
             captureAndEnrollFace()
         }
+    }
 
-        binding.btnCancelEnroll.setOnClickListener {
-            dismiss()
-        }
+    private fun showExitConfirmationDialog() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Exit Honeyfile Security?")
+            .setMessage("Honeyfile deception and intrusion monitoring cannot operate without an enrolled Administrator biometric profile. Exit app now?")
+            .setPositiveButton("Exit") { _, _ ->
+                activity?.finishAffinity()
+            }
+            .setNegativeButton("Continue Setup", null)
+            .show()
     }
 
     private fun startCameraPreview() {
@@ -203,6 +228,7 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
 
             val faceBitmap = tempCapturedBitmap ?: run {
                 Toast.makeText(context, "Face scan missing. Please re-scan face.", Toast.LENGTH_SHORT).show()
+                resetToScanStep()
                 return@setOnClickListener
             }
 
@@ -236,11 +262,26 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
             }
         }
 
+        binding.btnSkipEmail.text = "🔄 Retake Scan"
         binding.btnSkipEmail.setOnClickListener {
-            Toast.makeText(context, "Enrollment cancelled. Profile details were not saved.", Toast.LENGTH_SHORT).show()
-            onEnrollmentCompleted?.invoke(false)
-            dismiss()
+            resetToScanStep()
         }
+    }
+
+    private fun resetToScanStep() {
+        tempCapturedBitmap = null
+        binding.layoutEmailStep.visibility = View.GONE
+        binding.layoutScanStep.visibility = View.VISIBLE
+        binding.btnCaptureEnroll.isEnabled = true
+
+        if (isMandatory) {
+            binding.tvEnrollTitle.text = "🛡️ Admin 1 Setup (Mandatory)"
+            binding.tvEnrollSubtitle.text = "Honeyfile Security requires at least 1 Administrator. Align your face in the preview below."
+        } else {
+            binding.tvEnrollTitle.text = "📸 Admin $adminTarget Facial Enrollment"
+            binding.tvEnrollSubtitle.text = "Align Admin $adminTarget's face in the camera preview below"
+        }
+        startCameraPreview()
     }
 
     private fun imageProxyToBitmap(imageProxy: ImageProxy): Bitmap? {
@@ -269,11 +310,13 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
     companion object {
         const val TAG = "AdminEnrollScanDialogFragment"
         private const val ARG_ADMIN_TARGET = "arg_admin_target"
+        private const val ARG_IS_MANDATORY = "arg_is_mandatory"
 
-        fun newInstance(adminTarget: Int): AdminEnrollScanDialogFragment {
+        fun newInstance(adminTarget: Int, isMandatory: Boolean = false): AdminEnrollScanDialogFragment {
             return AdminEnrollScanDialogFragment().apply {
                 arguments = Bundle().apply {
                     putInt(ARG_ADMIN_TARGET, adminTarget)
+                    putBoolean(ARG_IS_MANDATORY, isMandatory)
                 }
             }
         }

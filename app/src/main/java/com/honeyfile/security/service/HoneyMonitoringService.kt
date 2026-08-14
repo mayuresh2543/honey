@@ -54,6 +54,15 @@ class HoneyMonitoringService : LifecycleService() {
         }
 
         val folderUriStr = intent?.getStringExtra(EXTRA_FOLDER_URI) ?: return START_STICKY
+
+        // Guard: At least 1 administrator must be enrolled before monitoring can run
+        val faceAuthManager = com.honeyfile.security.auth.FaceAuthManager(this)
+        if (!faceAuthManager.hasAtLeastOneAdmin()) {
+            Log.w(TAG, "Cannot start HoneyMonitoringService: No enrolled administrator found.")
+            stopForegroundService()
+            return START_NOT_STICKY
+        }
+
         val uri = Uri.parse(folderUriStr)
         startForeground(NOTIFICATION_ID, buildNotification(uri.lastPathSegment ?: "Monitored Folder"))
 

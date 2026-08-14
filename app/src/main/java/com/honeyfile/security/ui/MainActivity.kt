@@ -73,7 +73,11 @@ class MainActivity : AppCompatActivity() {
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
         if (permissions[Manifest.permission.CAMERA] == true) {
-            initializeBackgroundCamera()
+            if (faceAuthManager.hasAtLeastOneAdmin()) {
+                initializeBackgroundCamera()
+            } else {
+                checkMandatoryAdminEnrollment()
+            }
         } else {
             Toast.makeText(this, "Camera permission is required for security checks", Toast.LENGTH_LONG).show()
         }
@@ -361,6 +365,7 @@ class MainActivity : AppCompatActivity() {
     private val lastSecurityAlertTimeMs = java.util.concurrent.atomic.AtomicLong(0L)
 
     fun rebindBackgroundCamera() {
+        if (!faceAuthManager.hasAtLeastOneAdmin()) return
         lifecycleScope.launch(Dispatchers.Main) {
             if (ContextCompat.checkSelfPermission(this@MainActivity, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
                 initializeBackgroundCamera()
@@ -476,7 +481,9 @@ class MainActivity : AppCompatActivity() {
         if (missing.isNotEmpty()) {
             requestPermissionLauncher.launch(missing.toTypedArray())
         } else {
-            initializeBackgroundCamera()
+            if (faceAuthManager.hasAtLeastOneAdmin()) {
+                initializeBackgroundCamera()
+            }
         }
 
         // Request "Display over other apps" permission — required so that OverlayCaptureActivity
@@ -509,6 +516,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun initializeBackgroundCamera() {
+        if (!faceAuthManager.hasAtLeastOneAdmin()) {
+            Log.d(TAG, "Skipping background camera init: No enrolled admin yet.")
+            return
+        }
+
         val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
         cameraProviderFuture.addListener({
             try {
@@ -551,10 +563,14 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         isInForeground = true
-        checkMandatoryAdminEnrollment()
+        val hasAdmin = faceAuthManager.hasAtLeastOneAdmin()
         updateAdminUIStatus()
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
-            initializeBackgroundCamera()
+        if (hasAdmin) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+                initializeBackgroundCamera()
+            }
+        } else {
+            checkMandatoryAdminEnrollment()
         }
         refreshGallery()
     }

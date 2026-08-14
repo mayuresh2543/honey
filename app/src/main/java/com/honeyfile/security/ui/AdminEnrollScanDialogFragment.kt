@@ -1,13 +1,17 @@
 package com.honeyfile.security.ui
 
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
@@ -42,6 +46,16 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
     private var isEnrollmentSavedSuccessfully: Boolean = false
     var onEnrollmentCompleted: ((Boolean) -> Unit)? = null
 
+    private val cameraPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            startCameraPreview()
+        } else {
+            Toast.makeText(context, "Camera permission is required to scan administrator face profile.", Toast.LENGTH_LONG).show()
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setStyle(STYLE_NO_TITLE, 0)
@@ -61,10 +75,21 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
         return binding.root
     }
 
+    override fun onStart() {
+        super.onStart()
+        dialog?.window?.apply {
+            setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+            setLayout(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT
+            )
+        }
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
-        dialog?.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog?.window?.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
         dialog?.setCanceledOnTouchOutside(!isMandatory)
 
         val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
@@ -86,7 +111,11 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
             }
         }
 
-        startCameraPreview()
+        if (ContextCompat.checkSelfPermission(requireContext(), android.Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            startCameraPreview()
+        } else {
+            cameraPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+        }
 
         binding.btnCaptureEnroll.setOnClickListener {
             captureAndEnrollFace()
@@ -105,9 +134,13 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
     }
 
     private fun startCameraPreview() {
+        if (_binding == null || !isAdded) return
+
         val cameraProviderFuture = ProcessCameraProvider.getInstance(requireContext())
         cameraProviderFuture.addListener({
             try {
+                if (_binding == null || !isAdded) return@addListener
+
                 val cameraProvider = cameraProviderFuture.get()
                 val preview = Preview.Builder().build().also {
                     it.setSurfaceProvider(binding.enrollPreviewView.surfaceProvider)
@@ -137,7 +170,8 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
 
     private fun captureAndEnrollFace() {
         val capture = imageCapture ?: run {
-            Toast.makeText(context, "Camera not ready", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, "Camera initializing... Please wait a moment.", Toast.LENGTH_SHORT).show()
+            startCameraPreview()
             return
         }
 
@@ -178,9 +212,11 @@ class AdminEnrollScanDialogFragment : DialogFragment() {
                 }
 
                 override fun onError(exception: ImageCaptureException) {
-                    Log.e(TAG, "Camera capture failed", exception)
+                    Log.e(TAG, "Camera capture failed [code=${exception.imageCaptureError}]", exception)
                     binding.btnCaptureEnroll.isEnabled = true
                     Toast.makeText(context, "Capture error: ${exception.message}", Toast.LENGTH_SHORT).show()
+                    // Rebind camera if needed
+                    startCameraPreview()
                 }
             }
         )

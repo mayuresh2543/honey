@@ -163,6 +163,9 @@ class MainActivity : AppCompatActivity() {
         binding.tabScanner.visibility = if (tabId == R.id.nav_scanner) View.VISIBLE else View.GONE
         binding.tabVault.visibility = if (tabId == R.id.nav_vault) View.VISIBLE else View.GONE
         binding.tabLogs.visibility = if (tabId == R.id.nav_logs) View.VISIBLE else View.GONE
+        if (tabId == R.id.nav_vault) {
+            refreshGallery()
+        }
     }
 
     private fun setupUI(savedInstanceState: Bundle?) {
@@ -670,6 +673,10 @@ class MainActivity : AppCompatActivity() {
 
             val summary = threatAnalyticsManager.analyzeThreats(logs)
             updateThreatAnalyticsUI(summary)
+
+            // Real-time Vault sync: whenever a new breach log is inserted (from background
+            // service or foreground verification), immediately refresh the vault grid.
+            refreshGallery()
         }
 
         database.logDao().getAdminCount().observe(this) { count ->
@@ -743,7 +750,7 @@ class MainActivity : AppCompatActivity() {
                 ?: emptyList()
 
             withContext(Dispatchers.Main) {
-                galleryAdapter.submitList(files)
+                galleryAdapter.submitList(files.toList())
             }
         }
     }

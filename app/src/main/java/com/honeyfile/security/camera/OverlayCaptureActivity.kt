@@ -227,6 +227,7 @@ class OverlayCaptureActivity : AppCompatActivity() {
             "MODIFIED", "EDITED", "MODIFY" -> "EDITED"
             "CREATED", "CREATE", "COPIED_PASTED", "NEW" -> "CREATED"
             "RENAMED", "MOVED_FROM", "MOVED_TO" -> "RENAMED"
+            "ACCESSED" -> "ACCESSED"
             else -> actionType
         }
 

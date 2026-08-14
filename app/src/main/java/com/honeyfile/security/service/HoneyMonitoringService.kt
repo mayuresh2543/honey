@@ -11,9 +11,10 @@ import android.os.Build
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
-import androidx.lifecycle.lifecycleScope
 import com.honeyfile.security.R
 import com.honeyfile.security.camera.OverlayCaptureActivity
+import com.honeyfile.security.integrity.HoneyFileObserver
+import com.honeyfile.security.integrity.UriPathResolver
 import com.honeyfile.security.scanner.FolderScannerManager
 import com.honeyfile.security.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
@@ -28,10 +29,12 @@ class HoneyMonitoringService : LifecycleService() {
     private lateinit var folderScannerManager: FolderScannerManager
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // Atomic debounce: only one OverlayCaptureActivity per 5-second window.
-    // AtomicLong.compareAndSet makes the read-check-write atomic, preventing the race
-    // condition where two coroutine threads both see the old timestamp and both launch
-    // a capture activity when multiple files change simultaneously.
+    // inotify-based file observer — watches for CLOSE_NOWRITE (file read/accessed)
+    // and write events (CREATE/MODIFY/DELETE/MOVE) in real-time via Linux kernel events.
+    // Runs alongside FolderScannerManager which handles SAF polling for write events.
+    private var fileObserver: HoneyFileObserver? = null
+
+    // Atomic debounce — only one OverlayCaptureActivity per 5-second window.
     private val lastBreachTimeMs = AtomicLong(0L)
     private val BREACH_DEBOUNCE_MS = 5000L
 
@@ -50,71 +53,97 @@ class HoneyMonitoringService : LifecycleService() {
             return START_NOT_STICKY
         }
 
-        val folderUriStr = intent?.getStringExtra(EXTRA_FOLDER_URI)
-        if (folderUriStr != null) {
-            val uri = Uri.parse(folderUriStr)
-            startForeground(NOTIFICATION_ID, buildNotification(uri.lastPathSegment ?: "Monitored Folder"))
+        val folderUriStr = intent?.getStringExtra(EXTRA_FOLDER_URI) ?: return START_STICKY
+        val uri = Uri.parse(folderUriStr)
+        startForeground(NOTIFICATION_ID, buildNotification(uri.lastPathSegment ?: "Monitored Folder"))
 
-            // Start SAF-based polling scanner (works with content:// URIs picked via folder picker)
-            folderScannerManager.startContinuousScanning(uri)
-
-            // Subscribe to file change events emitted by the scanner
-            // This is the CORRECT way: FolderScannerManager uses DocumentFile (SAF) to poll
-            // the folder every 500ms and emits events via SharedFlow when changes are detected.
-            serviceScope.launch {
-                folderScannerManager.fileChangeEvents.collect { event ->
-                    Log.w(TAG, "Breach detected in background: ${event.fileName} (${event.eventType})")
-                    handleBackgroundFileBreach(event.fileName, event.eventType)
-                }
+        // 1. SAF polling — detects write events (create/modify/delete) via DocumentFile.
+        //    Works with any content:// URI. Polls every 500ms.
+        folderScannerManager.startContinuousScanning(uri)
+        serviceScope.launch {
+            folderScannerManager.fileChangeEvents.collect { event ->
+                Log.w(TAG, "SAF breach [${event.eventType}]: ${event.fileName}")
+                handleBackgroundFileBreach(event.fileName, event.eventType)
             }
-
-            Log.d(TAG, "Started background SAF folder monitoring for: $folderUriStr")
         }
 
+        // 2. inotify observer — detects file READ events (CLOSE_NOWRITE) in real-time.
+        //    Requires a real filesystem path (not SAF URI). Try to resolve the path.
+        //    If resolution fails (custom ROM etc.), falls back gracefully — write detection
+        //    via SAF polling still works, only read detection is unavailable.
+        val realPath = UriPathResolver.toRealPath(this, uri)
+        if (realPath != null) {
+            startFileObserver(realPath)
+            Log.d(TAG, "inotify read detection active for: $realPath")
+        } else {
+            Log.w(TAG, "Could not resolve real path from URI — read detection unavailable for: $uri")
+        }
+
+        Log.d(TAG, "HoneyMonitoringService started monitoring: $folderUriStr")
         return START_STICKY
     }
 
+    private fun startFileObserver(path: String) {
+        fileObserver?.stopWatching()
+        fileObserver = HoneyFileObserver(path) { event ->
+            Log.w(TAG, "inotify event [${event.eventType}]: ${event.fileName}")
+            // Only handle ACCESSED here — write events are handled by SAF scanner above.
+            // Handling both would cause double captures for write events.
+            if (event.eventType == com.honeyfile.security.integrity.FileAlterationType.ACCESSED) {
+                handleBackgroundFileBreach(event.fileName, event.eventType)
+            }
+        }.also { it.startWatching() }
+    }
+
     /**
-     * Called when FolderScannerManager detects a file change while the app is in background.
+     * Handles a breach event detected by either the SAF scanner (writes) or the
+     * inotify observer (reads/accesses).
      *
-     * CAMERA STRATEGY:
-     * Android's cameraserver revokes camera access from any process that has no visible UI.
-     * We launch OverlayCaptureActivity — a fully transparent 1x1 pixel Activity — which
-     * briefly becomes the "visible" foreground element that lets us access the camera for
-     * ~2-3 seconds to capture the intruder, then finishes itself automatically.
+     * CAMERA STRATEGY: When app is closed, launches OverlayCaptureActivity — a fully
+     * transparent Activity — to briefly gain camera access (Android denies camera to
+     * background processes with no visible window).
      */
-    private fun handleBackgroundFileBreach(fileName: String, actionType: String) {
-        // GUARD 1: If the app is in the foreground, MainActivity already has the camera
-        // bound and its own observeFolderScanner() will handle breach capture.
-        // Launching OverlayCaptureActivity on top would call unbindAll() and kill
-        // MainActivity's camera session, causing the fallback image to be saved instead.
+    private fun handleBackgroundFileBreach(
+        fileName: String,
+        actionType: Any  // String from SAF scanner or FileAlterationType from observer
+    ) {
+        val actionStr = when (actionType) {
+            is com.honeyfile.security.integrity.FileAlterationType -> actionType.name
+            is String -> actionType
+            else -> actionType.toString()
+        }
+
         if (MainActivity.isInForeground) {
-            Log.d(TAG, "App is in foreground — MainActivity handles breach for $fileName, skipping overlay")
-            sendAlterationNotification(fileName, actionType)
+            Log.d(TAG, "App foreground — MainActivity handles $fileName ($actionStr)")
+            sendAlterationNotification(fileName, actionStr)
             return
         }
 
-        // GUARD 2: Atomic debounce — only one capture per BREACH_DEBOUNCE_MS window.
-        // compareAndSet makes the "check last time, update if old enough" operation atomic,
-        // preventing two coroutine threads from both getting through when files change rapidly.
         val now = System.currentTimeMillis()
         val last = lastBreachTimeMs.get()
         if (now - last < BREACH_DEBOUNCE_MS || !lastBreachTimeMs.compareAndSet(last, now)) {
-            Log.d(TAG, "Breach debounced ($fileName) — within ${BREACH_DEBOUNCE_MS}ms window")
+            Log.d(TAG, "Breach debounced ($fileName) within ${BREACH_DEBOUNCE_MS}ms window")
             return
         }
 
-        Log.w(TAG, "App in background — launching OverlayCaptureActivity for: $fileName ($actionType)")
-        val captureIntent = OverlayCaptureActivity.createLaunchIntent(this, fileName, actionType)
-        startActivity(captureIntent)
-        sendAlterationNotification(fileName, actionType)
+        Log.w(TAG, "Launching OverlayCaptureActivity: $fileName ($actionStr)")
+        startActivity(OverlayCaptureActivity.createLaunchIntent(this, fileName, actionStr))
+        sendAlterationNotification(fileName, actionStr)
     }
 
     private fun sendAlterationNotification(fileName: String, actionType: String) {
+        val title = when (actionType.uppercase()) {
+            "ACCESSED" -> "👁️ Honeyfile Accessed!"
+            else -> "🚨 Honeyfile Tampered!"
+        }
+        val body = when (actionType.uppercase()) {
+            "ACCESSED" -> "File '$fileName' was opened and read in monitored folder."
+            else -> "File '$fileName' was $actionType in monitored folder."
+        }
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         val notification = NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle("🚨 Honeyfile Alteration Detected!")
-            .setContentText("File '$fileName' was $actionType in monitored folder.")
+            .setContentTitle(title)
+            .setContentText(body)
             .setSmallIcon(R.mipmap.ic_launcher)
             .setPriority(NotificationCompat.PRIORITY_HIGH)
             .setAutoCancel(true)
@@ -130,7 +159,6 @@ class HoneyMonitoringService : LifecycleService() {
             this, 0, intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         val stopIntent = Intent(this, HoneyMonitoringService::class.java).apply {
             action = ACTION_STOP
         }
@@ -138,10 +166,9 @@ class HoneyMonitoringService : LifecycleService() {
             this, 1, stopIntent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle("🛡️ Honeyfile Deception Engine Active")
-            .setContentText("Monitoring '$folderName' for unauthorized access")
+            .setContentText("Monitoring '$folderName' for access & tampering")
             .setSmallIcon(R.mipmap.ic_launcher)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .setOngoing(true)
@@ -157,15 +184,17 @@ class HoneyMonitoringService : LifecycleService() {
                 "Honeyfile Security Monitoring",
                 NotificationManager.IMPORTANCE_LOW
             ).apply {
-                description = "Continuous background file modification & decoy security monitoring"
+                description = "Monitors for unauthorized file access and tampering"
             }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.createNotificationChannel(channel)
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            nm.createNotificationChannel(channel)
         }
     }
 
     private fun stopForegroundService() {
         folderScannerManager.stopScanning()
+        fileObserver?.stopWatching()
+        fileObserver = null
         serviceScope.cancel()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -179,6 +208,7 @@ class HoneyMonitoringService : LifecycleService() {
     override fun onDestroy() {
         super.onDestroy()
         folderScannerManager.stopScanning()
+        fileObserver?.stopWatching()
         serviceScope.cancel()
         Log.d(TAG, "HoneyMonitoringService destroyed")
     }

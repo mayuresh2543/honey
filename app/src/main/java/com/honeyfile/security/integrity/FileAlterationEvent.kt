@@ -4,7 +4,8 @@ enum class FileAlterationType {
     EDITED,
     COPIED_PASTED,
     DELETED,
-    RENAMED
+    RENAMED,
+    ACCESSED   // File was opened/read without being modified
 }
 
 data class FileAlterationEvent(

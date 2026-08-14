@@ -5,13 +5,10 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
-import android.app.PictureInPictureParams
-import android.content.res.Configuration
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.util.Rational
 import java.io.File
 import android.view.View
 import android.widget.Toast
@@ -534,34 +531,6 @@ class MainActivity : AppCompatActivity() {
         refreshGallery()
     }
 
-    override fun onUserLeaveHint() {
-        super.onUserLeaveHint()
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                val params = PictureInPictureParams.Builder()
-                    .setAspectRatio(Rational(1, 1))
-                    .build()
-                enterPictureInPictureMode(params)
-                Log.d(TAG, "Entered Picture-in-Picture mode on user minimize")
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to enter Picture-in-Picture mode", e)
-            }
-        }
-    }
-
-    override fun onPictureInPictureModeChanged(
-        isInPictureInPictureMode: Boolean,
-        newConfig: Configuration
-    ) {
-        super.onPictureInPictureModeChanged(isInPictureInPictureMode, newConfig)
-        if (isInPictureInPictureMode) {
-            binding.bottomNavigation.visibility = View.GONE
-            binding.topBar.visibility = View.GONE
-        } else {
-            binding.bottomNavigation.visibility = View.VISIBLE
-            binding.topBar.visibility = View.VISIBLE
-        }
-    }
 
     private suspend fun getOrAwaitImageCapture(): ImageCapture? {
         if (imageCapture != null) return imageCapture

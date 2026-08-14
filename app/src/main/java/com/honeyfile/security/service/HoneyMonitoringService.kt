@@ -21,16 +21,19 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicLong
 
 class HoneyMonitoringService : LifecycleService() {
 
     private lateinit var folderScannerManager: FolderScannerManager
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // Debounce: only launch one OverlayCaptureActivity per 3-second window.
-    // Prevents multiple activities launching when several files change at once (e.g. deploying decoys).
-    @Volatile private var lastBreachTimeMs = 0L
-    private val BREACH_DEBOUNCE_MS = 3000L
+    // Atomic debounce: only one OverlayCaptureActivity per 5-second window.
+    // AtomicLong.compareAndSet makes the read-check-write atomic, preventing the race
+    // condition where two coroutine threads both see the old timestamp and both launch
+    // a capture activity when multiple files change simultaneously.
+    private val lastBreachTimeMs = AtomicLong(0L)
+    private val BREACH_DEBOUNCE_MS = 5000L
 
     override fun onCreate() {
         super.onCreate()
@@ -81,14 +84,27 @@ class HoneyMonitoringService : LifecycleService() {
      * ~2-3 seconds to capture the intruder, then finishes itself automatically.
      */
     private fun handleBackgroundFileBreach(fileName: String, actionType: String) {
+        // GUARD 1: If the app is in the foreground, MainActivity already has the camera
+        // bound and its own observeFolderScanner() will handle breach capture.
+        // Launching OverlayCaptureActivity on top would call unbindAll() and kill
+        // MainActivity's camera session, causing the fallback image to be saved instead.
+        if (MainActivity.isInForeground) {
+            Log.d(TAG, "App is in foreground — MainActivity handles breach for $fileName, skipping overlay")
+            sendAlterationNotification(fileName, actionType)
+            return
+        }
+
+        // GUARD 2: Atomic debounce — only one capture per BREACH_DEBOUNCE_MS window.
+        // compareAndSet makes the "check last time, update if old enough" operation atomic,
+        // preventing two coroutine threads from both getting through when files change rapidly.
         val now = System.currentTimeMillis()
-        if (now - lastBreachTimeMs < BREACH_DEBOUNCE_MS) {
+        val last = lastBreachTimeMs.get()
+        if (now - last < BREACH_DEBOUNCE_MS || !lastBreachTimeMs.compareAndSet(last, now)) {
             Log.d(TAG, "Breach debounced ($fileName) — within ${BREACH_DEBOUNCE_MS}ms window")
             return
         }
-        lastBreachTimeMs = now
 
-        Log.w(TAG, "Launching OverlayCaptureActivity for: $fileName ($actionType)")
+        Log.w(TAG, "App in background — launching OverlayCaptureActivity for: $fileName ($actionType)")
         val captureIntent = OverlayCaptureActivity.createLaunchIntent(this, fileName, actionType)
         startActivity(captureIntent)
         sendAlterationNotification(fileName, actionType)

@@ -521,14 +521,19 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        // Re-bind camera to MainActivity lifecycle when it's visible.
-        // This is safe: we ONLY bind when the activity is actually foregrounded.
-        // When the user closes the app, the service does NOT hold an idle camera —
-        // instead OverlayCaptureActivity is launched on-demand at breach time.
+        isInForeground = true
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             initializeBackgroundCamera()
         }
         refreshGallery()
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Signal to HoneyMonitoringService that the app is no longer visible.
+        // The service will now launch OverlayCaptureActivity on breach instead of
+        // relying on the main activity's already-bound camera.
+        isInForeground = false
     }
 
 
@@ -831,6 +836,15 @@ class MainActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "MainActivity"
+
+        /**
+         * True when MainActivity is in the foreground (between onResume and onStop).
+         * Read by HoneyMonitoringService to decide whether to launch OverlayCaptureActivity:
+         * - App in foreground → MainActivity's own camera handles breach capture
+         * - App in background → OverlayCaptureActivity must open to get camera access
+         */
+        @Volatile
+        var isInForeground = false
     }
 }
 

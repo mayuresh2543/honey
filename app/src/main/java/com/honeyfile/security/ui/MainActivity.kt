@@ -44,6 +44,7 @@ import com.honeyfile.security.cloud.FirebaseCloudVaultManager
 import com.honeyfile.security.data.AccessLog
 import com.honeyfile.security.data.AppDatabase
 import com.honeyfile.security.databinding.ActivityMainBinding
+import android.provider.Settings
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -451,6 +452,34 @@ class MainActivity : AppCompatActivity() {
         } else {
             initializeBackgroundCamera()
         }
+
+        // Request "Display over other apps" permission — required so that OverlayCaptureActivity
+        // can appear on top of other apps when a breach is detected while app is in background.
+        // This is a special permission that must be granted via Settings.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
+            val prefs = getSharedPreferences("honey_prefs", MODE_PRIVATE)
+            val alreadyAsked = prefs.getBoolean("overlay_permission_asked", false)
+            if (!alreadyAsked) {
+                prefs.edit().putBoolean("overlay_permission_asked", true).apply()
+                androidx.appcompat.app.AlertDialog.Builder(this)
+                    .setTitle("⚠️ Background Camera Permission Required")
+                    .setMessage(
+                        "Honeyfile needs \"Display over other apps\" permission to silently photograph " +
+                        "intruders in the background when your monitored folder is tampered with.\n\n" +
+                        "This is the ONLY way Android allows camera access when the app is not open. " +
+                        "No visible UI will ever appear to the intruder."
+                    )
+                    .setPositiveButton("Grant Permission") { _, _ ->
+                        val intent = Intent(
+                            Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                            Uri.parse("package:$packageName")
+                        )
+                        startActivity(intent)
+                    }
+                    .setNegativeButton("Later", null)
+                    .show()
+            }
+        }
     }
 
     private fun initializeBackgroundCamera() {
@@ -495,6 +524,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        // Re-bind camera to MainActivity lifecycle when it's visible.
+        // This is safe: we ONLY bind when the activity is actually foregrounded.
+        // When the user closes the app, the service does NOT hold an idle camera —
+        // instead OverlayCaptureActivity is launched on-demand at breach time.
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
             initializeBackgroundCamera()
         }

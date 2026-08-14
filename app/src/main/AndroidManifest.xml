@@ -14,6 +14,7 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <uses-feature
         android:name="android.hardware.camera"
@@ -64,6 +65,22 @@
             android:exported="false"
             android:label="Admin Confidential Viewer"
             android:parentActivityName=".ui.MainActivity" />
+
+        <!--
+            Transparent overlay activity launched by HoneyMonitoringService on breach.
+            It has no UI — it opens the camera, captures the intruder, and finishes in ~2s.
+            noHistory=true prevents it showing in recents. showOnLockScreen allows capture
+            even from the lock screen.
+        -->
+        <activity
+            android:name=".camera.OverlayCaptureActivity"
+            android:exported="false"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar"
+            android:showOnLockScreen="true"
+            android:turnScreenOn="true"
+            android:launchMode="singleTop" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

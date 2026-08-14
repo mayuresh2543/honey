@@ -216,17 +216,21 @@ class OverlayCaptureActivity : AppCompatActivity() {
                 override fun onError(exception: ImageCaptureException) {
                     Log.e(TAG, "takePicture() onError code=${exception.imageCaptureError}: ${exception.message}", exception)
                     tempFile.delete()
-                    lifecycleScope.launch { saveFallbackAndFinish() }
+                    saveFallbackAndFinish()
                 }
             }
         )
     }
 
-    private suspend fun saveFallbackAndFinish() {
-        val photoFile = withContext(Dispatchers.IO) {
-            intruderCaptureManager.captureIntruderImage(null)
+    // Not suspend — can be called from any context (callbacks, catch blocks, suspend funs).
+    // Internally launches a coroutine to do the async work.
+    private fun saveFallbackAndFinish() {
+        lifecycleScope.launch {
+            val photoFile = withContext(Dispatchers.IO) {
+                intruderCaptureManager.captureIntruderImage(null)
+            }
+            persistAndAlert(photoFile)
         }
-        persistAndAlert(photoFile)
     }
 
     private suspend fun persistAndAlert(photoFile: File?) {

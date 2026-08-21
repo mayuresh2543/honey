@@ -42,7 +42,7 @@ class DecoyGeneratorEngine(private val context: Context) {
         DecoyTemplate("Payroll_Q3_2026_Confidential.xlsx",     "application/octet-stream", DecoyCategory.OFFICE, "Executive Payroll",    "💰"),
         DecoyTemplate("gcp_service_account_prod.json",         "application/json",  DecoyCategory.DATABASE, "GCP Service Account Keys",  "☁️"),
         DecoyTemplate("app_secrets.env",                       "text/plain",        DecoyCategory.DATABASE, "App Environment Secrets",   "🔐"),
-        DecoyTemplate("internal_credentials.db",               "application/octet-stream", DecoyCategory.DATABASE, "SQLite Credentials Vault", "🗄️")
+        DecoyTemplate("database_backup.sql",                   "text/plain",        DecoyCategory.DATABASE, "SQL Database Backup",       "🗄️")
     )
 
     /**
@@ -65,7 +65,7 @@ class DecoyGeneratorEngine(private val context: Context) {
             template.fileName.endsWith(".xlsx") -> generateXlsx(template)
             template.fileName.endsWith(".json") -> generateJson(template)
             template.fileName.endsWith(".env")  -> generateEnv(template)
-            template.fileName.endsWith(".db")   -> generateSqliteDb(template)
+            template.fileName.endsWith(".sql")  -> generateSqlDump(template)
             else -> template.fileName.toByteArray()
         }
 
@@ -446,52 +446,41 @@ SMTP_PASS=Hf!Smtp2026${'$'}Pass
 """.trimIndent().toByteArray()
 
     // ──────────────────────────────────────────────────────────────────────────
-    // SQLite DB — Credentials Vault
+    // SQL Dump — Database Backup
     // ──────────────────────────────────────────────────────────────────────────
 
-    private fun generateSqliteDb(template: DecoyTemplate): ByteArray {
-        val dbFile = java.io.File(context.cacheDir, "decoy_gen_${System.currentTimeMillis()}.db")
-        if (dbFile.exists()) dbFile.delete()
+    private fun generateSqlDump(template: DecoyTemplate): ByteArray {
+        val content = """
+            -- ==========================================================
+            -- Honeyfile Enterprise Security - Database Dump
+            -- Export Date: 2026-08-15 03:00:00 UTC
+            -- Database: internal_production_vault
+            -- ==========================================================
 
-        val db = SQLiteDatabase.openOrCreateDatabase(dbFile, null)
-        db.execSQL("""
-            CREATE TABLE IF NOT EXISTS credentials (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                service TEXT NOT NULL,
-                username TEXT NOT NULL,
-                password TEXT NOT NULL,
-                notes TEXT,
-                created_at TEXT DEFAULT CURRENT_TIMESTAMP
-            )
-        """.trimIndent())
+            SET FOREIGN_KEY_CHECKS = 0;
+            DROP TABLE IF EXISTS `system_credentials`;
 
-        val entries = listOf(
-            listOf("Gmail Admin", "admin@honeyfile.systems", "Hf@Gm@1l2026!", "2FA enabled"),
-            listOf("AWS Console", "honeyfile-root", "Aws!R00t2026#Secure", "Root account — use MFA"),
-            listOf("Firebase Console", "mayuresh@honeyfile.systems", "Fb!C0ns0le2026\$", "Service account preferred"),
-            listOf("GitHub Admin", "honeyfile-bot", "GhB0t!2026#Token", "Personal access token"),
-            listOf("Cloudflare DNS", "admin@honeyfile.systems", "Cf!Dns2026#Zone", "DNS management"),
-            listOf("Stripe Dashboard", "billing@honeyfile.systems", "Str1pe!2026\$Prod", "Live keys in .env"),
-            listOf("PostgreSQL Master", "hf_admin", "Hf@Pr0d!2026#Secure", "Prod DB — handle with care"),
-            listOf("Server SSH Key", "root@10.0.1.100", "id_rsa passphrase: Hf!SSH2026#Server", "Key stored in /keys/")
-        )
-        db.beginTransaction()
-        try {
-            entries.forEach { (service, user, pass, notes) ->
-                db.execSQL(
-                    "INSERT INTO credentials (service, username, password, notes) VALUES (?,?,?,?)",
-                    arrayOf(service, user, pass, notes)
-                )
-            }
-            db.setTransactionSuccessful()
-        } finally {
-            db.endTransaction()
-        }
-        db.close()
+            CREATE TABLE `system_credentials` (
+                `id` INT AUTO_INCREMENT PRIMARY KEY,
+                `service` VARCHAR(100) NOT NULL,
+                `username` VARCHAR(150) NOT NULL,
+                `password_hash` VARCHAR(255) NOT NULL,
+                `api_secret` VARCHAR(255) DEFAULT NULL,
+                `environment` VARCHAR(50) NOT NULL,
+                `notes` TEXT
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-        val bytes = dbFile.readBytes()
-        dbFile.delete()
-        return bytes
+            INSERT INTO `system_credentials` (`service`, `username`, `password_hash`, `api_secret`, `environment`, `notes`) VALUES
+            ('AWS Root Management', 'honeyfile-admin', 'Aws!R00t2026#Secure', 'AKIAIOSFODNN7EXAMPLE', 'production', 'MFA Hardware Token Bound'),
+            ('Production PostgreSQL Master', 'hf_admin', 'Hf@Pr0d!2026#Secure', 'pg_live_key_99812401', 'production', 'Primary Cluster IP: 10.0.1.100'),
+            ('Stripe Payment Gateway', 'billing@honeyfile.systems', 'Str1pe!2026${'$'}Prod', 'sk_live_51Mz9901849182347182934', 'production', 'Live charge webhook active'),
+            ('Cloudflare Edge Security', 'admin@honeyfile.systems', 'Cf!Dns2026#Zone', 'cf_api_991827461928401928374619', 'production', 'Full SSL Strict & WAF'),
+            ('Firebase Admin Console', 'mayuresh@honeyfile.systems', 'Fb!C0ns0le2026${'$'}', 'sec_sa_99812401827361928374', 'production', 'Cloud Firestore Vault Sync'),
+            ('GitHub Enterprise Bot', 'honeyfile-ci-bot', 'GhB0t!2026#Token', 'ghp_9918237461928374619283746192', 'production', 'CI/CD Deployment Token');
+
+            -- Dump completed on 2026-08-15 03:00:01 UTC
+        """.trimIndent()
+        return content.toByteArray(Charsets.UTF_8)
     }
 
     private fun escapeXml(s: String): String = s
@@ -512,6 +501,7 @@ SMTP_PASS=Hf!Smtp2026${'$'}Pass
             "Payroll_Q3_2026_Confidential.xlsx",
             "gcp_service_account_prod.json",
             "app_secrets.env",
+            "database_backup.sql",
             "internal_credentials.db"
         )
 

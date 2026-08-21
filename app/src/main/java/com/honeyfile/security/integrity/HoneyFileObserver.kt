@@ -55,8 +55,13 @@ class HoneyFileObserver(
             return
         }
 
-        // Ignore temporary SQLite journal and lock files
-        if (path.endsWith("-journal") || path.endsWith("-wal") || path.endsWith("-shm") || path.startsWith(".")) {
+        // Ignore SQLite database files, lock files, journals, and hidden dot-files (.db, .sqlite, .db-wal, etc.)
+        if (path.endsWith(".db", ignoreCase = true) ||
+            path.endsWith(".sqlite", ignoreCase = true) ||
+            path.endsWith("-journal") ||
+            path.endsWith("-wal") ||
+            path.endsWith("-shm") ||
+            path.startsWith(".")) {
             return
         }
 

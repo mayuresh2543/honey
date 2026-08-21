@@ -13,8 +13,8 @@ android {
         applicationId = "com.honeyfile.security"
         minSdk = 24
         targetSdk = 30
-        versionCode = 3
-        versionName = "1.0.2-beta"
+        versionCode = 4
+        versionName = "1.0.3-beta"
 
         // Restrict resource configurations to English to strip unused translations (~2 MB saved)
         resourceConfigurations += listOf("en")

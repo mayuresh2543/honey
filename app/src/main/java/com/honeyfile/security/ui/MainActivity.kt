@@ -848,7 +848,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAboutCreditsDialog() {
         androidx.appcompat.app.AlertDialog.Builder(this)
-            .setTitle("🛡️ Honeyfile Security v1.0.1-beta")
+            .setTitle("🛡️ Honeyfile Security v1.0.2-beta")
             .setMessage(
                 "Deception & Endpoint Intrusion Detection Platform\n\n" +
                 "👨‍💻 Project Developers:\n" +

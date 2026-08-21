@@ -34,51 +34,73 @@ import java.util.Locale
  */
 @Suppress("DEPRECATION")
 class HoneyFileObserver(
-    folderPath: String,
+    private val folderPath: String,
     private val onAlterationDetected: (FileAlterationEvent) -> Unit
 ) : FileObserver(
     folderPath,
     // Write events
     CREATE or MODIFY or DELETE or MOVED_FROM or MOVED_TO or
-    // Read/access events — OPEN, ACCESS, CLOSE_NOWRITE
-    OPEN or ACCESS or CLOSE_NOWRITE
+    // Read/access event — CLOSE_NOWRITE is the sole reliable indicator of a finished file read
+    CLOSE_NOWRITE
 ) {
     private val recentAccessTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     override fun onEvent(event: Int, path: String?) {
-        if (path == null) return
+        if (path.isNullOrBlank()) return
+
+        // 1. Ignore inotify events on directories themselves (0x40000000 = IN_ISDIR)
+        if ((event and 0x40000000) != 0) {
+            return
+        }
 
         if (isDeploymentInProgress || com.honeyfile.security.scanner.FolderScannerManager.isDeploymentInProgress) {
             Log.d(TAG, "Decoy deployment in progress — suppressing inotify event for: $path")
             return
         }
 
-        // Suppress known decoy creations
         val masked = event and ALL_EVENTS
+
+        // 2. Suppress known decoy creations and initial writes
         if ((masked == CREATE || masked == MODIFY) && com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(path)) {
             Log.d(TAG, "Known decoy file creation/write inotify event ignored: $path")
             return
         }
 
-        // For read/open events, filter to honey-keywords to suppress system noise
-        if (masked == OPEN || masked == ACCESS || masked == CLOSE_NOWRITE) {
+        // 3. For read/access events (CLOSE_NOWRITE):
+        if (masked == CLOSE_NOWRITE) {
+            // Must match honey keywords
             if (!isHoneyFile(path)) return
 
+            val targetFile = java.io.File(folderPath, path)
+            // Ensure target is an actual existing regular file, not a directory or deleted entry
+            if (!targetFile.exists() || targetFile.isDirectory) {
+                return
+            }
+
             val now = System.currentTimeMillis()
-            val last = recentAccessTimestamps[path] ?: 0L
-            if (now - last < 4000L) {
+            val lastModified = targetFile.lastModified()
+
+            // Grace period: ignore reads within 15s of file creation/modification (OS thumbnailer/media indexer probe)
+            if (now - lastModified < 15_000L) {
+                Log.d(TAG, "Ignored initial OS indexer read for: $path (age: ${now - lastModified}ms)")
+                return
+            }
+
+            // Debounce rapid successive read/close events for the same file
+            val lastAccess = recentAccessTimestamps[path] ?: 0L
+            if (now - lastAccess < 8000L) {
                 return
             }
             recentAccessTimestamps[path] = now
         }
 
         val eventType = when (masked) {
-            CREATE                              -> FileAlterationType.COPIED_PASTED
-            MODIFY                              -> FileAlterationType.EDITED
-            DELETE, DELETE_SELF                 -> FileAlterationType.DELETED
-            MOVED_FROM, MOVED_TO                -> FileAlterationType.RENAMED
-            OPEN, ACCESS, CLOSE_NOWRITE         -> FileAlterationType.ACCESSED
-            else                                -> return
+            CREATE                  -> FileAlterationType.COPIED_PASTED
+            MODIFY                  -> FileAlterationType.EDITED
+            DELETE, DELETE_SELF     -> FileAlterationType.DELETED
+            MOVED_FROM, MOVED_TO    -> FileAlterationType.RENAMED
+            CLOSE_NOWRITE           -> FileAlterationType.ACCESSED
+            else                    -> return
         }
 
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())

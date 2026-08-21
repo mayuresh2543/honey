@@ -468,10 +468,10 @@ SMTP_PASS=Hf!Smtp2026${'$'}Pass
         val entries = listOf(
             listOf("Gmail Admin", "admin@honeyfile.systems", "Hf@Gm@1l2026!", "2FA enabled"),
             listOf("AWS Console", "honeyfile-root", "Aws!R00t2026#Secure", "Root account — use MFA"),
-            listOf("Firebase Console", "mayuresh@honeyfile.systems", "Fb!C0ns0le2026$", "Service account preferred"),
+            listOf("Firebase Console", "mayuresh@honeyfile.systems", "Fb!C0ns0le2026\$", "Service account preferred"),
             listOf("GitHub Admin", "honeyfile-bot", "GhB0t!2026#Token", "Personal access token"),
             listOf("Cloudflare DNS", "admin@honeyfile.systems", "Cf!Dns2026#Zone", "DNS management"),
-            listOf("Stripe Dashboard", "billing@honeyfile.systems", "Str1pe!2026$Prod", "Live keys in .env"),
+            listOf("Stripe Dashboard", "billing@honeyfile.systems", "Str1pe!2026\$Prod", "Live keys in .env"),
             listOf("PostgreSQL Master", "hf_admin", "Hf@Pr0d!2026#Secure", "Prod DB — handle with care"),
             listOf("Server SSH Key", "root@10.0.1.100", "id_rsa passphrase: Hf!SSH2026#Server", "Key stored in /keys/")
         )

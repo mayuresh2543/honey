@@ -241,6 +241,10 @@ class MainActivity : AppCompatActivity() {
             exportAuditLogsToCsv()
         }
 
+        binding.cardCredits.setOnClickListener {
+            showAboutCreditsDialog()
+        }
+
         // Bottom Navigation Tab Listener
         binding.bottomNavigation.setOnItemSelectedListener { item ->
             selectTab(item.itemId)
@@ -892,6 +896,20 @@ class MainActivity : AppCompatActivity() {
     private fun showThreatDetailDialog(slotIndex: Int) {
         ThreatAnalyticsDetailDialogFragment.newInstance(slotIndex)
             .show(supportFragmentManager, ThreatAnalyticsDetailDialogFragment.TAG)
+    }
+
+    private fun showAboutCreditsDialog() {
+        androidx.appcompat.app.AlertDialog.Builder(this)
+            .setTitle("🛡️ Honeyfile Security v1.0.0-beta")
+            .setMessage(
+                "Deception & Endpoint Intrusion Detection Platform\n\n" +
+                "👨‍💻 Project Developers:\n" +
+                "• Mayuresh Nanal\n" +
+                "• Anirudh Kewat\n\n" +
+                "Honeyfile Security deploys realistic honeypot canary files to proactively detect unauthorized file access, capture silent biometric snapshots, and instantly alert administrators."
+            )
+            .setPositiveButton("OK", null)
+            .show()
     }
 
     override fun onDestroy() {

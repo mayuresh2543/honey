@@ -468,6 +468,126 @@
 
                     </LinearLayout>
 
+                    <!-- Project Credits Card -->
+                    <com.google.android.material.card.MaterialCardView
+                        android:id="@+id/cardCredits"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="8dp"
+                        android:layout_marginBottom="16dp"
+                        app:cardBackgroundColor="?attr/appCardColor"
+                        app:cardCornerRadius="16dp"
+                        app:cardElevation="1dp"
+                        app:strokeColor="?attr/appCardStrokeColor"
+                        app:strokeWidth="1dp">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical"
+                            android:padding="16dp">
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:gravity="center_vertical">
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="👨‍💻"
+                                    android:textSize="18sp"
+                                    android:layout_marginEnd="8dp" />
+
+                                <TextView
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:text="Project Developers"
+                                    android:textColor="?attr/appTextColorPrimary"
+                                    android:textSize="13sp"
+                                    android:textStyle="bold" />
+
+                                <TextView
+                                    android:layout_width="wrap_content"
+                                    android:layout_height="wrap_content"
+                                    android:text="v1.0.0-beta"
+                                    android:textColor="@color/primary_accent"
+                                    android:textSize="11sp"
+                                    android:textStyle="bold" />
+
+                            </LinearLayout>
+
+                            <LinearLayout
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:orientation="horizontal"
+                                android:layout_marginTop="12dp"
+                                android:gravity="center_vertical">
+
+                                <!-- Developer 1: Mayuresh Nanal -->
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical"
+                                    android:padding="12dp"
+                                    android:background="@drawable/card_live_feed_bg"
+                                    android:layout_marginEnd="6dp">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Mayuresh Nanal"
+                                        android:textColor="?attr/appTextColorPrimary"
+                                        android:textSize="13sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Developer"
+                                        android:textColor="?attr/appTextColorSecondary"
+                                        android:textSize="11sp"
+                                        android:layout_marginTop="2dp" />
+
+                                </LinearLayout>
+
+                                <!-- Developer 2: Anirudh Kewat -->
+                                <LinearLayout
+                                    android:layout_width="0dp"
+                                    android:layout_height="wrap_content"
+                                    android:layout_weight="1"
+                                    android:orientation="vertical"
+                                    android:padding="12dp"
+                                    android:background="@drawable/card_live_feed_bg"
+                                    android:layout_marginStart="6dp">
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Anirudh Kewat"
+                                        android:textColor="?attr/appTextColorPrimary"
+                                        android:textSize="13sp"
+                                        android:textStyle="bold" />
+
+                                    <TextView
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="Developer"
+                                        android:textColor="?attr/appTextColorSecondary"
+                                        android:textSize="11sp"
+                                        android:layout_marginTop="2dp" />
+
+                                </LinearLayout>
+
+                            </LinearLayout>
+
+                        </LinearLayout>
+
+                    </com.google.android.material.card.MaterialCardView>
+
                 </LinearLayout>
 
                 <!-- TAB 2: FOLDER SCANNER & MONITOR -->

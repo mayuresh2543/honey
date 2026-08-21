@@ -36,10 +36,26 @@ class LogAdapter : RecyclerView.Adapter<LogAdapter.LogViewHolder>() {
             binding.tvTime.text = log.timestamp
             binding.tvUserBadge.text = log.user
 
-            if (log.user.startsWith("Admin", ignoreCase = true)) {
-                binding.tvUserBadge.setBackgroundResource(R.drawable.badge_admin_bg)
-            } else {
-                binding.tvUserBadge.setBackgroundResource(R.drawable.badge_intruder_bg)
+            val isIntruder = log.user.contains("Intruder", ignoreCase = true) ||
+                             log.action.equals("BREACH", ignoreCase = true)
+
+            val isDeployed = log.action.equals("DEPLOYED", ignoreCase = true) ||
+                             log.user.contains("DEPLOYED", ignoreCase = true)
+
+            when {
+                isDeployed -> {
+                    binding.tvUserBadge.setBackgroundResource(R.drawable.badge_rounded_cyan)
+                    binding.tvUserBadge.setTextColor(ContextCompat.getColor(binding.root.context, R.color.primary_accent))
+                }
+                isIntruder -> {
+                    binding.tvUserBadge.setBackgroundResource(R.drawable.badge_intruder_bg)
+                    binding.tvUserBadge.setTextColor(ContextCompat.getColor(binding.root.context, R.color.white))
+                }
+                else -> {
+                    // All enrolled admins (individual names like Mayuresh, Anirudh, Admin, etc.) get green badge
+                    binding.tvUserBadge.setBackgroundResource(R.drawable.badge_admin_bg)
+                    binding.tvUserBadge.setTextColor(ContextCompat.getColor(binding.root.context, R.color.white))
+                }
             }
         }
     }

@@ -55,6 +55,10 @@ class DecoyStudioDialogFragment : BottomSheetDialogFragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
 
+        // Apply dark/light theme matching the rest of the app
+        val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
+        themeManager.applyInstant(view, dialog?.window, themeManager.isDarkMode)
+
         progressBar       = view.findViewById(R.id.pbDecoyDeploy)
         tvStatus          = view.findViewById(R.id.tvDecoyStatus)
         btnDeploy         = view.findViewById(R.id.btnDeploySelected)
@@ -102,6 +106,7 @@ class DecoyStudioDialogFragment : BottomSheetDialogFragment() {
     private fun rebuildCheckboxes() {
         checkboxContainer.removeAllViews()
         val inflater = LayoutInflater.from(requireContext())
+        val themeManager = com.honeyfile.security.auth.ThemeManager(requireContext())
         visibleTemplates().forEach { template ->
             val row = inflater.inflate(R.layout.item_decoy_template, checkboxContainer, false)
 
@@ -123,6 +128,8 @@ class DecoyStudioDialogFragment : BottomSheetDialogFragment() {
             }
 
             checkboxContainer.addView(row)
+            // Re-apply theme colors to this freshly inflated row
+            themeManager.applyInstant(row, null, themeManager.isDarkMode)
         }
     }
 

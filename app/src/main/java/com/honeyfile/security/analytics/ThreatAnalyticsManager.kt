@@ -13,7 +13,8 @@ class ThreatAnalyticsManager {
     fun analyzeThreats(logs: List<AccessLog>): ThreatSummary {
         val intruderLogs = logs.filter { log ->
             val user = log.user.lowercase()
-            user == "intruder" || (!user.contains("admin") && !user.contains("user"))
+            val action = log.action.uppercase()
+            action != "DEPLOYED" && (user == "intruder" || action == "BREACH" || (!user.contains("admin") && !user.contains("user")))
         }
 
         val now = System.currentTimeMillis()

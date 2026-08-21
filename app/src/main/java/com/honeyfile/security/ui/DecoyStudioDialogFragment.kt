@@ -153,6 +153,10 @@ class DecoyStudioDialogFragment : BottomSheetDialogFragment() {
         tvStatus.visibility = View.VISIBLE
         tvStatus.text = "Generating decoy files…"
 
+        // Suppress continuous scanner and inotify events during decoy generation
+        com.honeyfile.security.scanner.FolderScannerManager.isDeploymentInProgress = true
+        com.honeyfile.security.integrity.HoneyFileObserver.isDeploymentInProgress = true
+
         CoroutineScope(Dispatchers.IO).launch {
             var deployed = 0
             var skipped = 0
@@ -160,31 +164,38 @@ class DecoyStudioDialogFragment : BottomSheetDialogFragment() {
             val db = AppDatabase.getDatabase(requireContext())
             val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
-            selectedTemplates.forEachIndexed { index, template ->
-                withContext(Dispatchers.Main) {
-                    tvStatus.text = "Generating ${template.displayName}…"
-                    progressBar.progress = index
-                }
-
-                try {
-                    val created = engine.deploy(template, uri)
-                    if (created) {
-                        deployed++
-                        db.logDao().insertLog(
-                            AccessLog(
-                                file = template.fileName,
-                                user = "Admin",
-                                action = "DEPLOYED",
-                                details = "Decoy honeyfile deployed: ${template.displayName} (${template.fileName})",
-                                timestamp = timestamp
-                            )
-                        )
-                    } else {
-                        skipped++
+            try {
+                selectedTemplates.forEachIndexed { index, template ->
+                    withContext(Dispatchers.Main) {
+                        tvStatus.text = "Generating ${template.displayName}…"
+                        progressBar.progress = index
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to deploy ${template.fileName}", e)
+
+                    try {
+                        val created = engine.deploy(template, uri)
+                        if (created) {
+                            deployed++
+                            db.logDao().insertLog(
+                                AccessLog(
+                                    file = template.fileName,
+                                    user = "Admin",
+                                    action = "DEPLOYED",
+                                    details = "Decoy honeyfile deployed: ${template.displayName} (${template.fileName})",
+                                    timestamp = timestamp
+                                )
+                            )
+                        } else {
+                            skipped++
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Failed to deploy ${template.fileName}", e)
+                    }
                 }
+            } finally {
+                // Keep suppression active for 1500ms so file writes and filesystem events settle completely
+                kotlinx.coroutines.delay(1500L)
+                com.honeyfile.security.scanner.FolderScannerManager.isDeploymentInProgress = false
+                com.honeyfile.security.integrity.HoneyFileObserver.isDeploymentInProgress = false
             }
 
             withContext(Dispatchers.Main) {

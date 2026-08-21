@@ -388,6 +388,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun processBackgroundSecurityVerification(event: com.honeyfile.security.scanner.FileChangeEvent) {
+        // Suppress decoy creations during or after deployment to prevent false breach events
+        if (com.honeyfile.security.scanner.FolderScannerManager.isDeploymentInProgress ||
+            com.honeyfile.security.integrity.HoneyFileObserver.isDeploymentInProgress ||
+            (event.eventType.uppercase() == "CREATED" && com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(event.fileName))
+        ) {
+            Log.d(TAG, "Decoy deployment/file ignored for breach processing: ${event.fileName}")
+            return
+        }
+
         val now = System.currentTimeMillis()
         val last = lastSecurityAlertTimeMs.get()
         if (now - last < 6000L || !lastSecurityAlertTimeMs.compareAndSet(last, now)) {

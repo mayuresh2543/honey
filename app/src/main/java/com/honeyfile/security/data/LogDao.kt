@@ -20,7 +20,7 @@ interface LogDao {
     @Query("SELECT COUNT(*) FROM access_logs WHERE LOWER(user) LIKE 'admin%' AND action != 'DEPLOYED'")
     fun getAdminCount(): LiveData<Int>
 
-    @Query("SELECT COUNT(*) FROM access_logs WHERE LOWER(user) LIKE 'intruder%' OR action = 'BREACH'")
+    @Query("SELECT COUNT(*) FROM access_logs WHERE (LOWER(user) LIKE 'intruder%' OR action = 'BREACH') AND action != 'DEPLOYED'")
     fun getIntruderCount(): LiveData<Int>
 
     @Query("DELETE FROM access_logs")

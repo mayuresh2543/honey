@@ -48,7 +48,17 @@ class HoneyFileObserver(
     override fun onEvent(event: Int, path: String?) {
         if (path == null) return
 
+        if (isDeploymentInProgress || com.honeyfile.security.scanner.FolderScannerManager.isDeploymentInProgress) {
+            Log.d(TAG, "Decoy deployment in progress — suppressing inotify event for: $path")
+            return
+        }
+
+        // Suppress known decoy creations
         val masked = event and ALL_EVENTS
+        if ((masked == CREATE || masked == MODIFY) && com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(path)) {
+            Log.d(TAG, "Known decoy file creation/write inotify event ignored: $path")
+            return
+        }
 
         // For read/open events, filter to honey-keywords to suppress system noise
         if (masked == OPEN || masked == ACCESS || masked == CLOSE_NOWRITE) {
@@ -83,6 +93,9 @@ class HoneyFileObserver(
 
     companion object {
         private const val TAG = "HoneyFileObserver"
+
+        @Volatile
+        var isDeploymentInProgress: Boolean = false
         private val HONEY_KEYWORDS = listOf(
             // Core trap terms
             "honey", "decoy", "trap", "bait",

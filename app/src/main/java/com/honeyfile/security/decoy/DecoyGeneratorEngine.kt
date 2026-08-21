@@ -503,5 +503,20 @@ SMTP_PASS=Hf!Smtp2026${'$'}Pass
 
     companion object {
         private const val TAG = "DecoyGeneratorEngine"
+
+        val KNOWN_DECOY_FILENAMES = setOf(
+            "Chase_Premier_Statement_Q3_2026.pdf",
+            "NDA_Confidential_Agreement_2026.pdf",
+            "ITR_2025_Tax_Assessment.pdf",
+            "Crypto_Seed_Backup_Ledger.docx",
+            "Payroll_Q3_2026_Confidential.xlsx",
+            "gcp_service_account_prod.json",
+            "app_secrets.env",
+            "internal_credentials.db"
+        )
+
+        fun isDecoyFileName(fileName: String): Boolean {
+            return KNOWN_DECOY_FILENAMES.any { it.equals(fileName, ignoreCase = true) }
+        }
     }
 }

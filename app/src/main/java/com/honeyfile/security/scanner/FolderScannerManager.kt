@@ -200,56 +200,66 @@ class FolderScannerManager(private val context: Context) {
 
             // Check for file modifications/additions if not first scan
             if (!isFirstScan) {
-                for ((fileName, snapshot) in currentSnapshots) {
-                    val prev = previousSnapshots[fileName]
-                    if (prev == null) {
-                        // New file created
-                        val detail = "New file '$fileName' created (${formatFileSize(snapshot.size)})"
-                        latestChangeText = "$fileName created at $timestamp"
-                        Log.i(TAG, "File Creation Detected: $detail")
+                if (isDeploymentInProgress) {
+                    Log.d(TAG, "Decoy deployment in progress — skipping event emission during deployment")
+                } else {
+                    for ((fileName, snapshot) in currentSnapshots) {
+                        val prev = previousSnapshots[fileName]
+                        if (prev == null) {
+                            // Skip decoy template creations to avoid false breach triggers
+                            if (com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(fileName)) {
+                                Log.d(TAG, "Decoy file '$fileName' indexed — skipping creation event")
+                                continue
+                            }
 
-                        _fileChangeEvents.emit(
-                            FileChangeEvent(
-                                fileName = fileName,
-                                eventType = "CREATED",
-                                timestamp = timestamp,
-                                changeDetails = detail
-                            )
-                        )
-                    } else if (snapshot.lastModified > prev.lastModified || snapshot.size != prev.size) {
-                        // File modified
-                        val sizeDiff = snapshot.size - prev.size
-                        val diffStr = if (sizeDiff >= 0) "+${formatFileSize(sizeDiff)}" else "-${formatFileSize(-sizeDiff)}"
-                        val detail = "File '$fileName' modified at $timestamp (Size change: $diffStr, Total: ${formatFileSize(snapshot.size)})"
-                        latestChangeText = "$fileName modified at $timestamp ($diffStr)"
-                        Log.i(TAG, "File Modification Detected: $detail")
+                            // New file created
+                            val detail = "New file '$fileName' created (${formatFileSize(snapshot.size)})"
+                            latestChangeText = "$fileName created at $timestamp"
+                            Log.i(TAG, "File Creation Detected: $detail")
 
-                        _fileChangeEvents.emit(
-                            FileChangeEvent(
-                                fileName = fileName,
-                                eventType = "MODIFIED",
-                                timestamp = timestamp,
-                                changeDetails = detail
+                            _fileChangeEvents.emit(
+                                FileChangeEvent(
+                                    fileName = fileName,
+                                    eventType = "CREATED",
+                                    timestamp = timestamp,
+                                    changeDetails = detail
+                                )
                             )
-                        )
+                        } else if (snapshot.lastModified > prev.lastModified || snapshot.size != prev.size) {
+                            // File modified
+                            val sizeDiff = snapshot.size - prev.size
+                            val diffStr = if (sizeDiff >= 0) "+${formatFileSize(sizeDiff)}" else "-${formatFileSize(-sizeDiff)}"
+                            val detail = "File '$fileName' modified at $timestamp (Size change: $diffStr, Total: ${formatFileSize(snapshot.size)})"
+                            latestChangeText = "$fileName modified at $timestamp ($diffStr)"
+                            Log.i(TAG, "File Modification Detected: $detail")
+
+                            _fileChangeEvents.emit(
+                                FileChangeEvent(
+                                    fileName = fileName,
+                                    eventType = "MODIFIED",
+                                    timestamp = timestamp,
+                                    changeDetails = detail
+                                )
+                            )
+                        }
                     }
-                }
 
-                // Check for deleted files
-                for ((prevFileName, prevSnapshot) in previousSnapshots) {
-                    if (!currentSnapshots.containsKey(prevFileName)) {
-                        val detail = "File '$prevFileName' deleted at $timestamp"
-                        latestChangeText = "$prevFileName deleted at $timestamp"
-                        Log.i(TAG, "File Deletion Detected: $detail")
+                    // Check for deleted files
+                    for ((prevFileName, prevSnapshot) in previousSnapshots) {
+                        if (!currentSnapshots.containsKey(prevFileName)) {
+                            val detail = "File '$prevFileName' deleted at $timestamp"
+                            latestChangeText = "$prevFileName deleted at $timestamp"
+                            Log.i(TAG, "File Deletion Detected: $detail")
 
-                        _fileChangeEvents.emit(
-                            FileChangeEvent(
-                                fileName = prevFileName,
-                                eventType = "DELETED",
-                                timestamp = timestamp,
-                                changeDetails = detail
+                            _fileChangeEvents.emit(
+                                FileChangeEvent(
+                                    fileName = prevFileName,
+                                    eventType = "DELETED",
+                                    timestamp = timestamp,
+                                    changeDetails = detail
+                                )
                             )
-                        )
+                        }
                     }
                 }
             } else {
@@ -290,5 +300,8 @@ class FolderScannerManager(private val context: Context) {
 
     companion object {
         private const val TAG = "FolderScannerManager"
+
+        @Volatile
+        var isDeploymentInProgress: Boolean = false
     }
 }

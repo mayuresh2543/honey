@@ -90,6 +90,14 @@ class HoneyMonitoringService : LifecycleService() {
             else -> actionType.toString()
         }
 
+        if (com.honeyfile.security.scanner.FolderScannerManager.isDeploymentInProgress ||
+            com.honeyfile.security.integrity.HoneyFileObserver.isDeploymentInProgress ||
+            (actionStr.uppercase() == "CREATED" && com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(fileName))
+        ) {
+            Log.d(TAG, "Decoy deployment/file creation ignored for background breach: $fileName ($actionStr)")
+            return
+        }
+
         if (MainActivity.isInForeground) {
             Log.d(TAG, "App foreground — MainActivity handles $fileName ($actionStr)")
             sendAlterationNotification(fileName, actionStr)

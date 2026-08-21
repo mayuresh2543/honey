@@ -13,8 +13,6 @@ import androidx.core.app.NotificationCompat
 import androidx.lifecycle.LifecycleService
 import com.honeyfile.security.R
 import com.honeyfile.security.camera.OverlayCaptureActivity
-import com.honeyfile.security.integrity.HoneyFileObserver
-import com.honeyfile.security.integrity.UriPathResolver
 import com.honeyfile.security.scanner.FolderScannerManager
 import com.honeyfile.security.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
@@ -28,11 +26,6 @@ class HoneyMonitoringService : LifecycleService() {
 
     private lateinit var folderScannerManager: FolderScannerManager
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
-
-    // inotify-based file observer — watches for CLOSE_NOWRITE (file read/accessed)
-    // and write events (CREATE/MODIFY/DELETE/MOVE) in real-time via Linux kernel events.
-    // Runs alongside FolderScannerManager which handles SAF polling for write events.
-    private var fileObserver: HoneyFileObserver? = null
 
     // Atomic debounce — only one OverlayCaptureActivity per 5-second window.
     private val lastBreachTimeMs = AtomicLong(0L)
@@ -66,42 +59,17 @@ class HoneyMonitoringService : LifecycleService() {
         val uri = Uri.parse(folderUriStr)
         startForeground(NOTIFICATION_ID, buildNotification(uri.lastPathSegment ?: "Monitored Folder"))
 
-        // 1. SAF polling — detects write events (create/modify/delete) via DocumentFile.
-        //    Works with any content:// URI. Polls every 500ms.
+        // Unified folder monitor: SAF polling (writes) + Linux inotify (reads/opens)
         folderScannerManager.startContinuousScanning(uri)
         serviceScope.launch {
             folderScannerManager.fileChangeEvents.collect { event ->
-                Log.w(TAG, "SAF breach [${event.eventType}]: ${event.fileName}")
+                Log.w(TAG, "Honeyfile event [${event.eventType}]: ${event.fileName}")
                 handleBackgroundFileBreach(event.fileName, event.eventType)
             }
-        }
-
-        // 2. inotify observer — detects file READ events (CLOSE_NOWRITE) in real-time.
-        //    Requires a real filesystem path (not SAF URI). Try to resolve the path.
-        //    If resolution fails (custom ROM etc.), falls back gracefully — write detection
-        //    via SAF polling still works, only read detection is unavailable.
-        val realPath = UriPathResolver.toRealPath(this, uri)
-        if (realPath != null) {
-            startFileObserver(realPath)
-            Log.d(TAG, "inotify read detection active for: $realPath")
-        } else {
-            Log.w(TAG, "Could not resolve real path from URI — read detection unavailable for: $uri")
         }
 
         Log.d(TAG, "HoneyMonitoringService started monitoring: $folderUriStr")
         return START_STICKY
-    }
-
-    private fun startFileObserver(path: String) {
-        fileObserver?.stopWatching()
-        fileObserver = HoneyFileObserver(path) { event ->
-            Log.w(TAG, "inotify event [${event.eventType}]: ${event.fileName}")
-            // Only handle ACCESSED here — write events are handled by SAF scanner above.
-            // Handling both would cause double captures for write events.
-            if (event.eventType == com.honeyfile.security.integrity.FileAlterationType.ACCESSED) {
-                handleBackgroundFileBreach(event.fileName, event.eventType)
-            }
-        }.also { it.startWatching() }
     }
 
     /**
@@ -202,8 +170,6 @@ class HoneyMonitoringService : LifecycleService() {
 
     private fun stopForegroundService() {
         folderScannerManager.stopScanning()
-        fileObserver?.stopWatching()
-        fileObserver = null
         serviceScope.cancel()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
@@ -217,7 +183,6 @@ class HoneyMonitoringService : LifecycleService() {
     override fun onDestroy() {
         super.onDestroy()
         folderScannerManager.stopScanning()
-        fileObserver?.stopWatching()
         serviceScope.cancel()
         Log.d(TAG, "HoneyMonitoringService destroyed")
     }

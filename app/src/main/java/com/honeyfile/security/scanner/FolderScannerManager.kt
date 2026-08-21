@@ -19,6 +19,10 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+import com.honeyfile.security.integrity.FileAlterationType
+import com.honeyfile.security.integrity.HoneyFileObserver
+import com.honeyfile.security.integrity.UriPathResolver
+
 data class FileSnapshot(
     val name: String,
     val lastModified: Long,
@@ -28,7 +32,7 @@ data class FileSnapshot(
 
 data class FileChangeEvent(
     val fileName: String,
-    val eventType: String, // "CREATED" or "MODIFIED"
+    val eventType: String, // "CREATED", "MODIFIED", "DELETED", "ACCESSED"
     val timestamp: String,
     val changeDetails: String
 )
@@ -53,6 +57,7 @@ class FolderScannerManager(private val context: Context) {
     val fileChangeEvents: SharedFlow<FileChangeEvent> = _fileChangeEvents
 
     private var scanJob: Job? = null
+    private var fileObserver: HoneyFileObserver? = null
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     // Snapshot cache of files in monitored folder
@@ -96,6 +101,36 @@ class FolderScannerManager(private val context: Context) {
             isScanningActive = true
         )
 
+        // Real-time Linux inotify observer to detect instant OPEN/ACCESS/WRITE events
+        val realPath = UriPathResolver.toRealPath(context, folderUri)
+        if (realPath != null) {
+            try {
+                fileObserver = HoneyFileObserver(realPath) { alterationEvent ->
+                    if (alterationEvent.eventType == FileAlterationType.ACCESSED) {
+                        val timeFormatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                        val timestamp = timeFormatter.format(Date())
+                        val detail = "File '${alterationEvent.fileName}' was opened/accessed at $timestamp"
+                        _scanResult.value = _scanResult.value.copy(
+                            latestChangeSummary = "👁️ ${alterationEvent.fileName} opened at $timestamp"
+                        )
+                        coroutineScope.launch {
+                            _fileChangeEvents.emit(
+                                FileChangeEvent(
+                                    fileName = alterationEvent.fileName,
+                                    eventType = "ACCESSED",
+                                    timestamp = timestamp,
+                                    changeDetails = detail
+                                )
+                            )
+                        }
+                    }
+                }.also { it.startWatching() }
+                Log.d(TAG, "Started HoneyFileObserver on real path: $realPath")
+            } catch (e: Exception) {
+                Log.e(TAG, "Error starting HoneyFileObserver on $realPath", e)
+            }
+        }
+
         scanJob = coroutineScope.launch {
             Log.d(TAG, "Starting continuous file modification scanner for: $folderName")
             while (isActive) {
@@ -108,6 +143,8 @@ class FolderScannerManager(private val context: Context) {
     fun stopScanning() {
         scanJob?.cancel()
         scanJob = null
+        fileObserver?.stopWatching()
+        fileObserver = null
         previousSnapshots.clear()
         isFirstScan = true
         _scanResult.value = _scanResult.value.copy(isScanningActive = false)

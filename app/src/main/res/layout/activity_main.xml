@@ -824,6 +824,13 @@
                                         android:text="DELETED 🗑️" />
 
                                     <com.google.android.material.chip.Chip
+                                        android:id="@+id/chipFilterOpened"
+                                        style="@style/Widget.Material3.Chip.Filter"
+                                        android:layout_width="wrap_content"
+                                        android:layout_height="wrap_content"
+                                        android:text="OPENED 👁️" />
+
+                                    <com.google.android.material.chip.Chip
                                         android:id="@+id/chipFilterBreaches"
                                         style="@style/Widget.Material3.Chip.Filter"
                                         android:layout_width="wrap_content"

@@ -194,6 +194,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.chipFilterEdited -> "EDITED"
                 R.id.chipFilterCopied -> "COPIED"
                 R.id.chipFilterDeleted -> "DELETED"
+                R.id.chipFilterOpened -> "OPENED"
                 R.id.chipFilterBreaches -> "BREACHES"
                 else -> "ALL"
             }
@@ -423,22 +424,32 @@ class MainActivity : AppCompatActivity() {
             "MODIFIED", "EDITED" -> "EDITED"
             "CREATED", "NEW", "COPIED" -> "CREATED"
             "RENAMED" -> "RENAMED"
+            "ACCESSED", "OPENED" -> "ACCESSED"
             else -> event.eventType
         }
 
+        val actionVerb = when (actionTag) {
+            "ACCESSED" -> "opened/accessed"
+            "DELETED" -> "deleted"
+            "EDITED" -> "edited"
+            "CREATED" -> "created"
+            "RENAMED" -> "renamed"
+            else -> actionTag.lowercase()
+        }
+
         if (isAuthenticated) {
-            Log.d(TAG, "File change verified by $adminName ✅")
+            Log.d(TAG, "File access/change verified by $adminName ✅")
             database.logDao().insertLog(
                 AccessLog(
                     file = event.fileName,
                     user = adminName,
                     action = actionTag,
-                    details = "Authorized modification: File '${event.fileName}' $actionTag by $adminName.",
+                    details = "Authorized access: File '${event.fileName}' $actionVerb by $adminName at $timestamp.",
                     timestamp = timestamp
                 )
             )
         } else {
-            Log.w(TAG, "Unauthorized file alteration ($actionTag) by Intruder 🚨")
+            Log.w(TAG, "Unauthorized file action ($actionTag) by Intruder 🚨")
             val telemetry = telemetryManager.getDeviceTelemetry()
 
             database.logDao().insertLog(
@@ -446,15 +457,18 @@ class MainActivity : AppCompatActivity() {
                     file = event.fileName,
                     user = "Intruder",
                     action = actionTag,
-                    details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionTag by Intruder at $timestamp.\n${telemetry.formattedSummary}",
+                    details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionVerb by Intruder at $timestamp.\n${telemetry.formattedSummary}",
                     timestamp = timestamp
                 )
             )
 
+            val alertSubject = if (actionTag == "ACCESSED") "🚨 Intruder opened monitored file: ${event.fileName}" else "🚨 Intruder modified monitored file: ${event.fileName}"
+            val alertBody = "Unauthorized file access detected at ${event.timestamp}.\n\nAction: $actionTag ($actionVerb)\nFile: ${event.fileName}\nDetails:\n${event.changeDetails}"
+
             emailAlertManager.sendAlert(
                 context = this@MainActivity,
-                subject = "Intruder modified monitored file: ${event.fileName}",
-                body = "Unauthorized file modification detected at ${event.timestamp}.\n\nDetails:\n${event.changeDetails}",
+                subject = alertSubject,
+                body = alertBody,
                 imageFile = photoFile,
                 telemetry = telemetry
             )
@@ -464,7 +478,7 @@ class MainActivity : AppCompatActivity() {
                 fileName = event.fileName,
                 actionType = actionTag,
                 timestamp = timestamp,
-                details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionTag by Intruder at $timestamp.",
+                details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionVerb by Intruder at $timestamp.",
                 imageFile = photoFile,
                 telemetry = telemetry
             )

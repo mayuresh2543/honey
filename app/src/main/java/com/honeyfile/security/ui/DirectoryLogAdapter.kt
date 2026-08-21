@@ -33,6 +33,7 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
             "EDITED" -> allLogsList.filter { it.action.equals("EDITED", true) || it.action.equals("MODIFIED", true) || it.user.contains("EDITED", true) }
             "COPIED" -> allLogsList.filter { it.action.equals("COPIED", true) || it.user.contains("COPIED", true) }
             "DELETED" -> allLogsList.filter { it.action.equals("DELETED", true) || it.user.contains("DELETED", true) }
+            "OPENED", "ACCESSED" -> allLogsList.filter { it.action.equals("ACCESSED", true) || it.action.equals("OPENED", true) || it.user.contains("ACCESSED", true) || it.user.contains("OPENED", true) }
             "BREACHES" -> allLogsList.filter { it.action.equals("BREACH", true) || it.user.contains("Intruder", true) }
             else -> allLogsList
         }
@@ -121,6 +122,24 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
                         ContextCompat.getColor(ctx, R.color.primary_accent),
                         R.drawable.badge_rounded_green,
                         "File '${log.file}' renamed or moved at ${log.timestamp}."
+                    )
+                }
+                actionUpper == "ACCESSED" || actionUpper == "OPENED" || userStr.contains("ACCESSED", ignoreCase = true) || userStr.contains("OPENED", ignoreCase = true) -> {
+                    Tuple(
+                        "👁️",
+                        "OPENED",
+                        if (isIntruder) ContextCompat.getColor(ctx, R.color.alert_red) else ContextCompat.getColor(ctx, R.color.primary_accent),
+                        if (isIntruder) R.drawable.badge_rounded_red else R.drawable.badge_rounded_green,
+                        if (isIntruder) "UNAUTHORIZED ACCESS: Honeyfile '${log.file}' OPENED by an Intruder at ${log.timestamp}!" else "Honeyfile '${log.file}' was opened/accessed at ${log.timestamp}."
+                    )
+                }
+                actionUpper == "DEPLOYED" -> {
+                    Tuple(
+                        "🍯",
+                        "DEPLOYED",
+                        ContextCompat.getColor(ctx, R.color.primary_accent),
+                        R.drawable.badge_rounded_green,
+                        "Decoy honeyfile '${log.file}' deployed to directory at ${log.timestamp}."
                     )
                 }
                 isIntruder -> {

@@ -40,30 +40,39 @@ class HoneyFileObserver(
     folderPath,
     // Write events
     CREATE or MODIFY or DELETE or MOVED_FROM or MOVED_TO or
-    // Read/access events — CLOSE_NOWRITE is the cleanest read signal
-    CLOSE_NOWRITE
+    // Read/access events — OPEN, ACCESS, CLOSE_NOWRITE
+    OPEN or ACCESS or CLOSE_NOWRITE
 ) {
+    private val recentAccessTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
+
     override fun onEvent(event: Int, path: String?) {
         if (path == null) return
 
         val masked = event and ALL_EVENTS
 
-        // For read events, only fire for honey-keyword filenames to suppress system noise
-        if (masked == CLOSE_NOWRITE) {
+        // For read/open events, filter to honey-keywords to suppress system noise
+        if (masked == OPEN || masked == ACCESS || masked == CLOSE_NOWRITE) {
             if (!isHoneyFile(path)) return
+
+            val now = System.currentTimeMillis()
+            val last = recentAccessTimestamps[path] ?: 0L
+            if (now - last < 4000L) {
+                return
+            }
+            recentAccessTimestamps[path] = now
         }
 
         val eventType = when (masked) {
-            CREATE                  -> FileAlterationType.COPIED_PASTED
-            MODIFY                  -> FileAlterationType.EDITED
-            DELETE, DELETE_SELF     -> FileAlterationType.DELETED
-            MOVED_FROM, MOVED_TO    -> FileAlterationType.RENAMED
-            CLOSE_NOWRITE           -> FileAlterationType.ACCESSED
-            else                    -> return
+            CREATE                              -> FileAlterationType.COPIED_PASTED
+            MODIFY                              -> FileAlterationType.EDITED
+            DELETE, DELETE_SELF                 -> FileAlterationType.DELETED
+            MOVED_FROM, MOVED_TO                -> FileAlterationType.RENAMED
+            OPEN, ACCESS, CLOSE_NOWRITE         -> FileAlterationType.ACCESSED
+            else                                -> return
         }
 
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        Log.d(TAG, "inotify event: $path → $eventType at $timestamp")
+        Log.d(TAG, "inotify event: $path → $eventType (mask=$masked) at $timestamp")
         onAlterationDetected(FileAlterationEvent(fileName = path, eventType = eventType, timestamp = timestamp))
     }
 
@@ -75,9 +84,25 @@ class HoneyFileObserver(
     companion object {
         private const val TAG = "HoneyFileObserver"
         private val HONEY_KEYWORDS = listOf(
-            "honey", "secret", "password", "confidential", "salary",
-            "admin", "credential", "private", "decoy", "backup",
-            "api_key", "token", "apikey", "passwd"
+            // Core trap terms
+            "honey", "decoy", "trap", "bait",
+            // Credential files
+            "secret", "password", "credential", "private", "backup",
+            "api_key", "token", "apikey", "passwd",
+            // Financial
+            "salary", "payroll", "statement", "bank",
+            // Legal
+            "nda", "confidential", "agreement",
+            // Tax
+            "itr", "tax", "assessment",
+            // Crypto
+            "seed", "ledger", "crypto",
+            // Cloud / dev
+            "gcp", "aws", "env", "service_account",
+            // Database vault
+            "vault", "internal", "credentials",
+            // Admin
+            "admin"
         )
     }
 }

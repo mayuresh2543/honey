@@ -1,40 +1,63 @@
 package com.honeyfile.security.service
 
+import android.Manifest
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import androidx.camera.core.CameraSelector
+import androidx.camera.core.ImageAnalysis
+import androidx.camera.core.ImageCapture
+import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.core.app.NotificationCompat
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleService
 import com.honeyfile.security.R
-import com.honeyfile.security.camera.OverlayCaptureActivity
+import com.honeyfile.security.alert.EmailAlertManager
+import com.honeyfile.security.alert.TelemetryManager
+import com.honeyfile.security.camera.IntruderCaptureManager
+import com.honeyfile.security.cloud.FirebaseCloudVaultManager
+import com.honeyfile.security.data.AccessLog
+import com.honeyfile.security.data.AppDatabase
 import com.honeyfile.security.scanner.FolderScannerManager
 import com.honeyfile.security.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicLong
 
 class HoneyMonitoringService : LifecycleService() {
 
     private lateinit var folderScannerManager: FolderScannerManager
+    private lateinit var intruderCaptureManager: IntruderCaptureManager
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
-    // Atomic debounce — only one OverlayCaptureActivity per 5-second window.
+    private var imageCapture: ImageCapture? = null
+    private val cameraExecutor = Executors.newSingleThreadExecutor()
+
+    // Atomic debounce — only one background capture per 5-second window.
     private val lastBreachTimeMs = AtomicLong(0L)
     private val BREACH_DEBOUNCE_MS = 5000L
 
     override fun onCreate() {
         super.onCreate()
         folderScannerManager = FolderScannerManager(this)
+        intruderCaptureManager = IntruderCaptureManager(this)
         createNotificationChannel()
+        initializeServiceCamera()
         Log.d(TAG, "HoneyMonitoringService created")
     }
 
@@ -59,6 +82,9 @@ class HoneyMonitoringService : LifecycleService() {
         val uri = Uri.parse(folderUriStr)
         startForeground(NOTIFICATION_ID, buildNotification(uri.lastPathSegment ?: "Monitored Folder"))
 
+        // Initialize background camera if not yet primed
+        initializeServiceCamera()
+
         // Unified folder monitor: SAF polling (writes) + Linux inotify (reads/opens)
         folderScannerManager.startContinuousScanning(uri)
         serviceScope.launch {
@@ -72,17 +98,49 @@ class HoneyMonitoringService : LifecycleService() {
         return START_STICKY
     }
 
+    private fun initializeServiceCamera() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "Camera permission not granted for HoneyMonitoringService")
+            return
+        }
+
+        val cameraProviderFuture = ProcessCameraProvider.getInstance(this)
+        cameraProviderFuture.addListener({
+            try {
+                val cameraProvider = cameraProviderFuture.get()
+                val capture = ImageCapture.Builder()
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .build()
+
+                val analysis = ImageAnalysis.Builder()
+                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
+                    .build()
+                    .also { it.setAnalyzer(cameraExecutor) { proxy -> proxy.close() } }
+
+                this.imageCapture = capture
+
+                val cameraSelector = when {
+                    cameraProvider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA) ->
+                        CameraSelector.DEFAULT_FRONT_CAMERA
+                    else -> CameraSelector.DEFAULT_BACK_CAMERA
+                }
+
+                cameraProvider.unbindAll()
+                cameraProvider.bindToLifecycle(this@HoneyMonitoringService, cameraSelector, capture, analysis)
+                Log.d(TAG, "CameraX bound to HoneyMonitoringService in background (0 UI, completely silent)")
+            } catch (e: Exception) {
+                Log.e(TAG, "HoneyMonitoringService camera binding error", e)
+            }
+        }, ContextCompat.getMainExecutor(this))
+    }
+
     /**
-     * Handles a breach event detected by either the SAF scanner (writes) or the
-     * inotify observer (reads/accesses).
-     *
-     * CAMERA STRATEGY: When app is closed, launches OverlayCaptureActivity — a fully
-     * transparent Activity — to briefly gain camera access (Android denies camera to
-     * background processes with no visible window).
+     * Handles background file breaches:
+     * Completely silent execution in background service — ZERO UI, NO ACTIVITY LAUNCH, NO APP POPUP.
      */
     private fun handleBackgroundFileBreach(
         fileName: String,
-        actionType: Any  // String from SAF scanner or FileAlterationType from observer
+        actionType: Any
     ) {
         val actionStr = when (actionType) {
             is com.honeyfile.security.integrity.FileAlterationType -> actionType.name
@@ -90,7 +148,7 @@ class HoneyMonitoringService : LifecycleService() {
             else -> actionType.toString()
         }
 
-        if (com.honeyfile.security.scanner.FolderScannerManager.isDeploymentInProgress ||
+        if (FolderScannerManager.isDeploymentInProgress ||
             com.honeyfile.security.integrity.HoneyFileObserver.isDeploymentInProgress ||
             (actionStr.uppercase() == "CREATED" && com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(fileName))
         ) {
@@ -111,9 +169,97 @@ class HoneyMonitoringService : LifecycleService() {
             return
         }
 
-        Log.w(TAG, "Launching OverlayCaptureActivity: $fileName ($actionStr)")
-        startActivity(OverlayCaptureActivity.createLaunchIntent(this, fileName, actionStr))
+        Log.w(TAG, "Silent background breach detected: $fileName ($actionStr) — ZERO UI, NO APP LAUNCH")
         sendAlterationNotification(fileName, actionStr)
+
+        serviceScope.launch {
+            processSilentBackgroundBreach(fileName, actionStr)
+        }
+    }
+
+    private suspend fun processSilentBackgroundBreach(fileName: String, actionType: String) {
+        val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+        val actionTag = when (actionType.uppercase()) {
+            "DELETED", "DELETE" -> "DELETED"
+            "MODIFIED", "EDITED", "MODIFY" -> "EDITED"
+            "CREATED", "CREATE", "COPIED_PASTED", "NEW" -> "CREATED"
+            "RENAMED", "MOVED_FROM", "MOVED_TO" -> "RENAMED"
+            "ACCESSED", "OPENED" -> "ACCESSED"
+            else -> actionType
+        }
+
+        val actionVerb = when (actionTag) {
+            "ACCESSED" -> "opened/accessed"
+            "DELETED" -> "deleted"
+            "EDITED" -> "edited"
+            "CREATED" -> "created"
+            "RENAMED" -> "renamed"
+            else -> actionTag.lowercase()
+        }
+
+        // Silent camera capture in background — no activity, no window, zero popup
+        if (imageCapture == null) {
+            initializeServiceCamera()
+            delay(500L)
+        }
+
+        var frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
+        if (frame == null && ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) {
+            initializeServiceCamera()
+            delay(600L)
+            frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
+        }
+
+        val photoFile = intruderCaptureManager.captureIntruderImage(frame)
+
+        // Check if admin face matches
+        val faceAuthManager = com.honeyfile.security.auth.FaceAuthManager(this)
+        val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
+        val isAuthenticated = authResult?.isAuthenticated ?: false
+        val adminName = authResult?.adminName ?: "Admin"
+
+        val telemetry = TelemetryManager(this).getDeviceTelemetry()
+
+        if (isAuthenticated) {
+            Log.d(TAG, "Background file access verified by $adminName ✅")
+            AppDatabase.getDatabase(this).logDao().insertLog(
+                AccessLog(
+                    file = fileName,
+                    user = adminName,
+                    action = actionTag,
+                    details = "Authorized background access: File '$fileName' $actionVerb by $adminName at $timestamp.",
+                    timestamp = timestamp
+                )
+            )
+        } else {
+            Log.w(TAG, "Unauthorized background breach by Intruder: $fileName ($actionTag) 🚨")
+            AppDatabase.getDatabase(this).logDao().insertLog(
+                AccessLog(
+                    file = fileName,
+                    user = "Intruder",
+                    action = actionTag,
+                    details = "BACKGROUND INTRUSION: File '$fileName' $actionVerb while app was closed at $timestamp.\n${telemetry.formattedSummary}",
+                    timestamp = timestamp
+                )
+            )
+
+            EmailAlertManager().sendAlert(
+                context = this,
+                subject = "🚨 Background Intruder Alert: $fileName",
+                body = "Unauthorized file activity detected at $timestamp.\n\nFile: $fileName\nAction: $actionTag ($actionVerb)\n\n${telemetry.formattedSummary}",
+                imageFile = photoFile,
+                telemetry = telemetry
+            )
+
+            FirebaseCloudVaultManager(this).syncBreachIncidentToCloud(
+                fileName = fileName,
+                actionType = actionTag,
+                timestamp = timestamp,
+                details = "BACKGROUND INTRUSION: File '$fileName' $actionVerb by Intruder at $timestamp.",
+                imageFile = photoFile,
+                telemetry = telemetry
+            )
+        }
     }
 
     private fun sendAlterationNotification(fileName: String, actionType: String) {
@@ -179,6 +325,7 @@ class HoneyMonitoringService : LifecycleService() {
     private fun stopForegroundService() {
         folderScannerManager.stopScanning()
         serviceScope.cancel()
+        cameraExecutor.shutdown()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
             stopForeground(STOP_FOREGROUND_REMOVE)
         } else {
@@ -192,6 +339,7 @@ class HoneyMonitoringService : LifecycleService() {
         super.onDestroy()
         folderScannerManager.stopScanning()
         serviceScope.cancel()
+        cameraExecutor.shutdown()
         Log.d(TAG, "HoneyMonitoringService destroyed")
     }
 

@@ -422,8 +422,6 @@ class MainActivity : AppCompatActivity() {
             frame = intruderCaptureManager.takeSilentPhoto(captureInstance, cameraExecutor)
         }
 
-        val photoFile = intruderCaptureManager.captureIntruderImage(frame)
-
         val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
         val isAuthenticated = authResult?.isAuthenticated ?: false
         val adminName = authResult?.adminName ?: "Admin"
@@ -460,6 +458,7 @@ class MainActivity : AppCompatActivity() {
             )
         } else {
             Log.w(TAG, "Unauthorized file action ($actionTag) by Intruder 🚨")
+            val photoFile = intruderCaptureManager.captureIntruderImage(frame)
             val telemetry = telemetryManager.getDeviceTelemetry()
 
             database.logDao().insertLog(

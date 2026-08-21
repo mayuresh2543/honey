@@ -210,8 +210,6 @@ class HoneyMonitoringService : LifecycleService() {
             frame = intruderCaptureManager.takeSilentPhoto(imageCapture, cameraExecutor)
         }
 
-        val photoFile = intruderCaptureManager.captureIntruderImage(frame)
-
         // Check if admin face matches
         val faceAuthManager = com.honeyfile.security.auth.FaceAuthManager(this)
         val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
@@ -233,6 +231,7 @@ class HoneyMonitoringService : LifecycleService() {
             )
         } else {
             Log.w(TAG, "Unauthorized background breach by Intruder: $fileName ($actionTag) 🚨")
+            val photoFile = intruderCaptureManager.captureIntruderImage(frame)
             AppDatabase.getDatabase(this).logDao().insertLog(
                 AccessLog(
                     file = fileName,

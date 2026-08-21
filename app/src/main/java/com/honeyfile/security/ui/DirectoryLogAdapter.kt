@@ -15,7 +15,7 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
 
     private var allLogsList: List<AccessLog> = emptyList()
     private var currentFilterCategory: String = "ALL"
-    private val expandedPositions = mutableSetOf<Int>()
+    private val expandedLogIds = mutableSetOf<Long>()
 
     fun updateLogs(newLogs: List<AccessLog>) {
         allLogsList = newLogs
@@ -29,12 +29,13 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
 
     private fun applyCurrentFilter() {
         val filtered = when (currentFilterCategory.uppercase()) {
-            "NEW", "CREATED" -> allLogsList.filter { it.action.equals("CREATED", true) || it.action.equals("COPIED", true) || it.user.contains("CREATED", true) }
+            "NEW", "CREATED" -> allLogsList.filter { (it.action.equals("CREATED", true) || it.action.equals("COPIED", true) || it.user.contains("CREATED", true)) && !it.action.equals("DEPLOYED", true) }
             "EDITED" -> allLogsList.filter { it.action.equals("EDITED", true) || it.action.equals("MODIFIED", true) || it.user.contains("EDITED", true) }
             "COPIED" -> allLogsList.filter { it.action.equals("COPIED", true) || it.user.contains("COPIED", true) }
             "DELETED" -> allLogsList.filter { it.action.equals("DELETED", true) || it.user.contains("DELETED", true) }
             "OPENED", "ACCESSED" -> allLogsList.filter { it.action.equals("ACCESSED", true) || it.action.equals("OPENED", true) || it.user.contains("ACCESSED", true) || it.user.contains("OPENED", true) }
-            "BREACHES" -> allLogsList.filter { it.action.equals("BREACH", true) || it.user.contains("Intruder", true) }
+            "DEPLOYED" -> allLogsList.filter { it.action.equals("DEPLOYED", true) || it.details.contains("deployed", ignoreCase = true) }
+            "BREACHES" -> allLogsList.filter { (it.action.equals("BREACH", true) || it.user.contains("Intruder", true)) && !it.action.equals("DEPLOYED", true) }
             else -> allLogsList
         }
         submitList(filtered)
@@ -51,18 +52,21 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
 
     override fun onBindViewHolder(holder: DirectoryLogViewHolder, position: Int) {
         val log = getItem(position)
-        val isExpanded = expandedPositions.contains(position)
+        val isExpanded = expandedLogIds.contains(log.id)
 
         val themeManager = com.honeyfile.security.auth.ThemeManager(holder.itemView.context)
         themeManager.applyInstant(holder.itemView, toDark = themeManager.isDarkMode)
 
         holder.bind(log, isExpanded) {
-            if (isExpanded) {
-                expandedPositions.remove(position)
-            } else {
-                expandedPositions.add(position)
+            val currentPos = holder.bindingAdapterPosition
+            if (currentPos != RecyclerView.NO_POSITION) {
+                if (isExpanded) {
+                    expandedLogIds.remove(log.id)
+                } else {
+                    expandedLogIds.add(log.id)
+                }
+                notifyItemChanged(currentPos)
             }
-            notifyItemChanged(position)
         }
     }
 
@@ -95,6 +99,15 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
                         ContextCompat.getColor(ctx, R.color.warning_yellow),
                         R.drawable.badge_rounded_yellow,
                         if (isIntruder) "UNAUTHORIZED INTRUSION: File '${log.file}' EDITED by an Intruder at ${log.timestamp}!" else "File '${log.file}' modified at ${log.timestamp}."
+                    )
+                }
+                actionUpper == "DEPLOYED" -> {
+                    Tuple(
+                        "🍯",
+                        "DEPLOYED",
+                        ContextCompat.getColor(ctx, R.color.primary_accent),
+                        R.drawable.badge_rounded_cyan,
+                        "Decoy honeyfile '${log.file}' deployed to directory at ${log.timestamp}."
                     )
                 }
                 actionUpper == "CREATED" || userStr.contains("CREATED", ignoreCase = true) -> {
@@ -131,15 +144,6 @@ class DirectoryLogAdapter : ListAdapter<AccessLog, DirectoryLogAdapter.Directory
                         if (isIntruder) ContextCompat.getColor(ctx, R.color.alert_red) else ContextCompat.getColor(ctx, R.color.primary_accent),
                         if (isIntruder) R.drawable.badge_rounded_red else R.drawable.badge_rounded_green,
                         if (isIntruder) "UNAUTHORIZED ACCESS: Honeyfile '${log.file}' OPENED by an Intruder at ${log.timestamp}!" else "Honeyfile '${log.file}' was opened/accessed at ${log.timestamp}."
-                    )
-                }
-                actionUpper == "DEPLOYED" -> {
-                    Tuple(
-                        "🍯",
-                        "DEPLOYED",
-                        ContextCompat.getColor(ctx, R.color.primary_accent),
-                        R.drawable.badge_rounded_green,
-                        "Decoy honeyfile '${log.file}' deployed to directory at ${log.timestamp}."
                     )
                 }
                 isIntruder -> {

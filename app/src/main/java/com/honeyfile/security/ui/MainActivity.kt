@@ -195,6 +195,7 @@ class MainActivity : AppCompatActivity() {
                 R.id.chipFilterCopied -> "COPIED"
                 R.id.chipFilterDeleted -> "DELETED"
                 R.id.chipFilterOpened -> "OPENED"
+                R.id.chipFilterDeployed -> "DEPLOYED"
                 R.id.chipFilterBreaches -> "BREACHES"
                 else -> "ALL"
             }

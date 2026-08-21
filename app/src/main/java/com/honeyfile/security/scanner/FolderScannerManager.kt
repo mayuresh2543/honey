@@ -106,23 +106,37 @@ class FolderScannerManager(private val context: Context) {
         if (realPath != null) {
             try {
                 fileObserver = HoneyFileObserver(realPath) { alterationEvent ->
-                    if (alterationEvent.eventType == FileAlterationType.ACCESSED) {
-                        val timeFormatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-                        val timestamp = timeFormatter.format(Date())
-                        val detail = "File '${alterationEvent.fileName}' was opened/accessed at $timestamp"
-                        _scanResult.value = _scanResult.value.copy(
-                            latestChangeSummary = "👁️ ${alterationEvent.fileName} opened at $timestamp"
-                        )
-                        coroutineScope.launch {
-                            _fileChangeEvents.emit(
-                                FileChangeEvent(
-                                    fileName = alterationEvent.fileName,
-                                    eventType = "ACCESSED",
-                                    timestamp = timestamp,
-                                    changeDetails = detail
-                                )
+                    val timeFormatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+                    val timestamp = timeFormatter.format(Date())
+
+                    val (actionType, verb, icon) = when (alterationEvent.eventType) {
+                        FileAlterationType.ACCESSED -> Triple("ACCESSED", "opened/accessed", "👁️")
+                        FileAlterationType.EDITED -> Triple("MODIFIED", "modified", "✏️")
+                        FileAlterationType.COPIED_PASTED -> Triple("CREATED", "created", "➕")
+                        FileAlterationType.DELETED -> Triple("DELETED", "deleted", "🗑️")
+                        FileAlterationType.RENAMED -> Triple("RENAMED", "renamed", "🔄")
+                    }
+
+                    // Skip decoy template creations to prevent false breach triggers
+                    if (actionType == "CREATED" && com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(alterationEvent.fileName)) {
+                        Log.d(TAG, "Decoy creation event skipped: ${alterationEvent.fileName}")
+                        return@HoneyFileObserver
+                    }
+
+                    val detail = "File '${alterationEvent.fileName}' was $verb at $timestamp"
+                    _scanResult.value = _scanResult.value.copy(
+                        latestChangeSummary = "$icon ${alterationEvent.fileName} $verb at $timestamp"
+                    )
+
+                    coroutineScope.launch {
+                        _fileChangeEvents.emit(
+                            FileChangeEvent(
+                                fileName = alterationEvent.fileName,
+                                eventType = actionType,
+                                timestamp = timestamp,
+                                changeDetails = detail
                             )
-                        }
+                        )
                     }
                 }.also { it.startWatching() }
                 Log.d(TAG, "Started HoneyFileObserver on real path: $realPath")
@@ -132,10 +146,13 @@ class FolderScannerManager(private val context: Context) {
         }
 
         scanJob = coroutineScope.launch {
-            Log.d(TAG, "Starting continuous file modification scanner for: $folderName")
+            // Initial scan to populate file counts & list for UI stats
+            performScan(folderUri, folderName)
+
+            // Relaxed periodic refresh (5000ms) to keep UI file counts updated without hammering the storage provider
             while (isActive) {
+                delay(5000L)
                 performScan(folderUri, folderName)
-                delay(intervalMs)
             }
         }
     }
@@ -198,8 +215,9 @@ class FolderScannerManager(private val context: Context) {
 
             var latestChangeText = _scanResult.value.latestChangeSummary
 
-            // Check for file modifications/additions if not first scan
-            if (!isFirstScan) {
+            // Check for file modifications/additions only when in fallback mode (when inotify is not active).
+            // When inotify (fileObserver) is running, inotify handles all event emissions in real-time.
+            if (!isFirstScan && fileObserver == null) {
                 if (isDeploymentInProgress) {
                     Log.d(TAG, "Decoy deployment in progress — skipping event emission during deployment")
                 } else {
@@ -212,10 +230,9 @@ class FolderScannerManager(private val context: Context) {
                                 continue
                             }
 
-                            // New file created
                             val detail = "New file '$fileName' created (${formatFileSize(snapshot.size)})"
                             latestChangeText = "$fileName created at $timestamp"
-                            Log.i(TAG, "File Creation Detected: $detail")
+                            Log.i(TAG, "File Creation Detected (fallback): $detail")
 
                             _fileChangeEvents.emit(
                                 FileChangeEvent(
@@ -226,12 +243,11 @@ class FolderScannerManager(private val context: Context) {
                                 )
                             )
                         } else if (snapshot.lastModified > prev.lastModified || snapshot.size != prev.size) {
-                            // File modified
                             val sizeDiff = snapshot.size - prev.size
                             val diffStr = if (sizeDiff >= 0) "+${formatFileSize(sizeDiff)}" else "-${formatFileSize(-sizeDiff)}"
                             val detail = "File '$fileName' modified at $timestamp (Size change: $diffStr, Total: ${formatFileSize(snapshot.size)})"
                             latestChangeText = "$fileName modified at $timestamp ($diffStr)"
-                            Log.i(TAG, "File Modification Detected: $detail")
+                            Log.i(TAG, "File Modification Detected (fallback): $detail")
 
                             _fileChangeEvents.emit(
                                 FileChangeEvent(
@@ -244,12 +260,11 @@ class FolderScannerManager(private val context: Context) {
                         }
                     }
 
-                    // Check for deleted files
-                    for ((prevFileName, prevSnapshot) in previousSnapshots) {
+                    for ((prevFileName, _) in previousSnapshots) {
                         if (!currentSnapshots.containsKey(prevFileName)) {
                             val detail = "File '$prevFileName' deleted at $timestamp"
                             latestChangeText = "$prevFileName deleted at $timestamp"
-                            Log.i(TAG, "File Deletion Detected: $detail")
+                            Log.i(TAG, "File Deletion Detected (fallback): $detail")
 
                             _fileChangeEvents.emit(
                                 FileChangeEvent(

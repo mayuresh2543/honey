@@ -44,6 +44,8 @@ class HoneyFileObserver(
     CLOSE_NOWRITE
 ) {
     private val recentAccessTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    @Volatile
+    private var lastFolderMutationTimeMs = 0L
 
     override fun onEvent(event: Int, path: String?) {
         if (path.isNullOrBlank()) return
@@ -53,12 +55,22 @@ class HoneyFileObserver(
             return
         }
 
+        // Ignore temporary SQLite journal and lock files
+        if (path.endsWith("-journal") || path.endsWith("-wal") || path.endsWith("-shm") || path.startsWith(".")) {
+            return
+        }
+
         if (isDeploymentInProgress || com.honeyfile.security.scanner.FolderScannerManager.isDeploymentInProgress) {
             Log.d(TAG, "Decoy deployment in progress — suppressing inotify event for: $path")
             return
         }
 
         val masked = event and ALL_EVENTS
+
+        // Track folder mutation timestamps (deletion, creation, modify, rename)
+        if (masked == DELETE || masked == DELETE_SELF || masked == CREATE || masked == MOVED_FROM || masked == MOVED_TO || masked == MODIFY) {
+            lastFolderMutationTimeMs = System.currentTimeMillis()
+        }
 
         // 2. Suppress known decoy creations and initial writes
         if ((masked == CREATE || masked == MODIFY) && com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(path)) {
@@ -71,13 +83,21 @@ class HoneyFileObserver(
             // Must match honey keywords
             if (!isHoneyFile(path)) return
 
+            val now = System.currentTimeMillis()
+
+            // Mutation cooldown: If a file deletion, creation, or rename occurred in this directory
+            // within the last 3.5 seconds, ignore CLOSE_NOWRITE (OS media/sqlite cleanup probe on existing files)
+            if (now - lastFolderMutationTimeMs < 3500L) {
+                Log.d(TAG, "Suppressed read event for '$path' during post-deletion/mutation settling window (${now - lastFolderMutationTimeMs}ms)")
+                return
+            }
+
             val targetFile = java.io.File(folderPath, path)
             // Ensure target is an actual existing regular file, not a directory or deleted entry
             if (!targetFile.exists() || targetFile.isDirectory) {
                 return
             }
 
-            val now = System.currentTimeMillis()
             val lastModified = targetFile.lastModified()
 
             // Grace period: ignore reads within 15s of file creation/modification (OS thumbnailer/media indexer probe)

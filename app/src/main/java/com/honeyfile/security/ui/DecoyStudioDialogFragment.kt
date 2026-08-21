@@ -6,12 +6,10 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.CheckBox
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
-import androidx.core.content.ContextCompat
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.chip.Chip
@@ -103,29 +101,27 @@ class DecoyStudioDialogFragment : BottomSheetDialogFragment() {
 
     private fun rebuildCheckboxes() {
         checkboxContainer.removeAllViews()
+        val inflater = LayoutInflater.from(requireContext())
         visibleTemplates().forEach { template ->
-            val row = LinearLayout(requireContext()).apply {
-                orientation = LinearLayout.HORIZONTAL
-                setPadding(0, 8, 0, 8)
+            val row = inflater.inflate(R.layout.item_decoy_template, checkboxContainer, false)
+
+            val cb = row.findViewById<com.google.android.material.checkbox.MaterialCheckBox>(R.id.cbDecoyItem)
+            val tvName = row.findViewById<TextView>(R.id.tvDecoyName)
+            val tvFile = row.findViewById<TextView>(R.id.tvDecoyFileName)
+
+            cb.isChecked = checkedTemplates.contains(template.fileName)
+            tvName.text = "${template.emoji}  ${template.displayName}"
+            tvFile.text = template.fileName
+
+            // Tap anywhere on the row to toggle
+            row.setOnClickListener {
+                cb.isChecked = !cb.isChecked
+            }
+            cb.setOnCheckedChangeListener { _, isChecked ->
+                if (isChecked) checkedTemplates.add(template.fileName)
+                else checkedTemplates.remove(template.fileName)
             }
 
-            val cb = CheckBox(requireContext()).apply {
-                isChecked = checkedTemplates.contains(template.fileName)
-                setOnCheckedChangeListener { _, isChecked ->
-                    if (isChecked) checkedTemplates.add(template.fileName)
-                    else checkedTemplates.remove(template.fileName)
-                }
-            }
-
-            val label = TextView(requireContext()).apply {
-                text = "${template.emoji}  ${template.displayName}\n${template.fileName}"
-                textSize = 13f
-                setTextColor(ContextCompat.getColor(requireContext(), R.color.light_text_primary))
-                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-            }
-
-            row.addView(cb)
-            row.addView(label)
             checkboxContainer.addView(row)
         }
     }

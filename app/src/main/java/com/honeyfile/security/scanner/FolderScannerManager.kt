@@ -59,10 +59,26 @@ class FolderScannerManager(private val context: Context) {
     private val previousSnapshots = mutableMapOf<String, FileSnapshot>()
     private var isFirstScan = true
 
-    // Honeyfile matching keywords (case-insensitive)
+    // Honeyfile matching keywords (case-insensitive) — covers all Decoy Studio templates
     private val honeyfileKeywords = listOf(
-        "honey", "secret", "password", "confidential", "salary",
-        "admin", "credential", "private", "decoy", "backup"
+        // Core honeypot terms
+        "honey", "decoy", "trap", "bait",
+        // Credential & secret files
+        "secret", "password", "credential", "private", "backup",
+        // Financial
+        "salary", "payroll", "statement", "bank",
+        // Legal
+        "nda", "confidential", "agreement",
+        // Tax
+        "itr", "tax", "assessment",
+        // Crypto
+        "seed", "ledger", "crypto", "wallet",
+        // Cloud / Dev
+        "gcp", "aws", "env", "api_key", "service_account",
+        // Database
+        "vault", "internal", "credentials",
+        // Admin
+        "admin"
     )
 
     fun startContinuousScanning(folderUri: Uri, intervalMs: Long = 500L) {

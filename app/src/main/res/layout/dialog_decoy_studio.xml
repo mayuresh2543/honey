@@ -1,0 +1,149 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:background="?attr/appCardColor"
+    android:paddingHorizontal="20dp"
+    android:paddingTop="20dp"
+    android:paddingBottom="32dp">
+
+    <!-- Handle bar -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@color/light_card_stroke"
+        android:alpha="0.5" />
+
+    <!-- Title row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginBottom="4dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🍯 Decoy Studio"
+            android:textColor="?attr/appTextColorPrimary"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="v1.0.0-beta"
+            android:textColor="@color/primary_accent"
+            android:textSize="11sp"
+            android:textStyle="bold" />
+
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Select realistic bait files to deploy into your monitored directory"
+        android:textColor="?attr/appTextColorSecondary"
+        android:textSize="12sp"
+        android:layout_marginBottom="16dp" />
+
+    <!-- Category filter chips -->
+    <HorizontalScrollView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:scrollbars="none"
+        android:layout_marginBottom="12dp">
+
+        <com.google.android.material.chip.ChipGroup
+            android:id="@+id/chipGroupCategory"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:singleSelection="true"
+            app:selectionRequired="true" />
+
+    </HorizontalScrollView>
+
+    <!-- Select All / Deselect All row -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="end"
+        android:layout_marginBottom="8dp">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnSelectAll"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="Select All"
+            android:textSize="12sp"
+            android:layout_marginEnd="4dp" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btnDeselectAll"
+            style="@style/Widget.Material3.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:text="Deselect All"
+            android:textSize="12sp" />
+
+    </LinearLayout>
+
+    <!-- Scrollable checkbox list -->
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="300dp"
+        android:scrollbars="vertical">
+
+        <LinearLayout
+            android:id="@+id/llDecoyCheckboxes"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingBottom="8dp" />
+
+    </ScrollView>
+
+    <!-- Deploy progress bar (hidden until deploy starts) -->
+    <ProgressBar
+        android:id="@+id/pbDecoyDeploy"
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="match_parent"
+        android:layout_height="6dp"
+        android:layout_marginTop="16dp"
+        android:visibility="gone"
+        android:progressTint="@color/primary_accent" />
+
+    <!-- Status text -->
+    <TextView
+        android:id="@+id/tvDecoyStatus"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="@color/primary_accent"
+        android:textSize="12sp"
+        android:layout_marginTop="6dp"
+        android:gravity="center"
+        android:visibility="gone" />
+
+    <!-- Deploy button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnDeploySelected"
+        android:layout_width="match_parent"
+        android:layout_height="52dp"
+        android:text="🚀 Deploy Selected Decoys"
+        android:textColor="@color/black"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginTop="16dp"
+        app:backgroundTint="@color/primary_accent"
+        app:cornerRadius="14dp" />
+
+</LinearLayout>

@@ -234,7 +234,8 @@ class MainActivity : AppCompatActivity() {
 
         binding.btnDeployDecoys.setOnClickListener {
             if (!checkMandatoryAdminEnrollment()) return@setOnClickListener
-            deployDecoyFilesToMonitoredFolder()
+            val dialog = DecoyStudioDialogFragment.newInstance(selectedFolderUri)
+            dialog.show(supportFragmentManager, DecoyStudioDialogFragment.TAG)
         }
 
         binding.btnExportCsv.setOnClickListener {
@@ -798,55 +799,6 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    private fun deployDecoyFilesToMonitoredFolder() {
-        val uri = selectedFolderUri
-        if (uri == null) {
-            Toast.makeText(this, "Select a monitored directory first!", Toast.LENGTH_SHORT).show()
-            folderPickerLauncher.launch(null)
-            return
-        }
-
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val docDir = androidx.documentfile.provider.DocumentFile.fromTreeUri(this@MainActivity, uri)
-                if (docDir != null && docDir.exists()) {
-                    val decoys = listOf(
-                        "admin_passwords.txt" to "CONFIDENTIAL: ROOT ADMIN PASSWORDS & ACCESS KEYS\nServer Root: Rj39!#x829\nDB Master: H0neyP0t_2026",
-                        "salary_records.xlsx" to "CONFIDENTIAL PAYROLL & SALARY DISBURSEMENTS 2026",
-                        "secret_api_keys.json" to "{\n  \"AWS_SECRET\": \"AKIAIOSFODNN7EXAMPLE\",\n  \"STRIPE_KEY\": \"sk_test_4eC39HqLyjWDarjtT1zdp7dc\"\n}"
-                    )
-
-                    var createdCount = 0
-                    for ((fileName, content) in decoys) {
-                        val existing = docDir.findFile(fileName)
-                        if (existing == null) {
-                            val mime = if (fileName.endsWith(".json")) "application/json" else "text/plain"
-                            val newFile = docDir.createFile(mime, fileName)
-                            newFile?.uri?.let { fileUri ->
-                                contentResolver.openOutputStream(fileUri)?.use { out ->
-                                    out.write(content.toByteArray())
-                                }
-                                createdCount++
-                            }
-                        }
-                    }
-
-                    withContext(Dispatchers.Main) {
-                        if (createdCount > 0) {
-                            Toast.makeText(this@MainActivity, "Deployed $createdCount Decoy Honeyfiles into folder! 🍯", Toast.LENGTH_LONG).show()
-                        } else {
-                            Toast.makeText(this@MainActivity, "Decoy honeyfiles already present in folder!", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-                }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error deploying decoy honeyfiles", e)
-                withContext(Dispatchers.Main) {
-                    Toast.makeText(this@MainActivity, "Failed to deploy decoys: ${e.message}", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
 
     private fun exportAuditLogsToCsv() {
         lifecycleScope.launch(Dispatchers.IO) {

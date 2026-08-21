@@ -14,7 +14,7 @@ android {
         minSdk = 24
         targetSdk = 30
         versionCode = 1
-        versionName = "1.0"
+        versionName = "1.0.0-beta"
 
         // Restrict resource configurations to English to strip unused translations (~2 MB saved)
         resourceConfigurations += listOf("en")

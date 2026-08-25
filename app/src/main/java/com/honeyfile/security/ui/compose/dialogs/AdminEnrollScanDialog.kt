@@ -341,29 +341,6 @@ fun AdminEnrollScanDialog(
                             )
                         }
                     }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Temporary Testing Bypass Button
-                    OutlinedButton(
-                        onClick = {
-                            faceAuthManager.enrollTestAdminBypass(adminTarget)
-                            Toast.makeText(context, "⚡ Testing Bypass Active: Enrolled default 'Test Admin'", Toast.LENGTH_LONG).show()
-                            onEnrollmentCompleted(true)
-                            onDismiss()
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = CyanAccent),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, CyanAccent.copy(alpha = 0.6f)),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = "⚡ Skip / Bypass Registration (Testing)",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = CyanAccent
-                        )
-                    }
                 } else {
                     // PROFILE DETAILS STEP (Name & Email)
                     OutlinedTextField(

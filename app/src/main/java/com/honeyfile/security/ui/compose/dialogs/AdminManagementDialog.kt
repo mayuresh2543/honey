@@ -24,6 +24,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import com.honeyfile.security.auth.FaceAuthManager
 import com.honeyfile.security.ui.theme.AlertRed
 import com.honeyfile.security.ui.theme.CyanAccent
@@ -44,20 +45,23 @@ fun AdminManagementDialog(
     var showSoleAdminWarningForTarget by remember { mutableStateOf<Int?>(null) }
     var showDeleteConfirmForTarget by remember { mutableStateOf<Int?>(null) }
 
-    Dialog(onDismissRequest = onDismiss) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
         Card(
             shape = RoundedCornerShape(24.dp),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(8.dp)
+                .padding(horizontal = 16.dp, vertical = 24.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(20.dp)
+                    .padding(18.dp)
             ) {
                 // Header
                 Row(
@@ -241,7 +245,7 @@ private fun AdminProfileCard(
             Column(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(end = 8.dp)
+                    .padding(end = 10.dp)
             ) {
                 Text(
                     text = "👤 Admin $adminIndex: $adminName",
@@ -254,7 +258,7 @@ private fun AdminProfileCard(
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = if (!adminEmail.isNullOrBlank()) "📧 $adminEmail" else "📧 No email registered",
-                    fontSize = 12.sp,
+                    fontSize = 11.5.sp,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -263,14 +267,14 @@ private fun AdminProfileCard(
 
             Box(
                 modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
+                    .clip(RoundedCornerShape(8.dp))
                     .background(if (isEnrolled) CyberGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface)
                     .border(
                         1.dp,
                         if (isEnrolled) CyberGreen else MaterialTheme.colorScheme.outline,
-                        RoundedCornerShape(10.dp)
+                        RoundedCornerShape(8.dp)
                     )
-                    .padding(horizontal = 10.dp, vertical = 4.dp)
+                    .padding(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
                     text = if (isEnrolled) "Enrolled ✅" else "Empty ⚪",

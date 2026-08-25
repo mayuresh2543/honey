@@ -24,5 +24,5 @@ interface LogDao {
     fun getIntruderCount(): LiveData<Int>
 
     @Query("DELETE FROM access_logs")
-    suspend fun clearAll()
+    suspend fun clearAll(): Int
 }

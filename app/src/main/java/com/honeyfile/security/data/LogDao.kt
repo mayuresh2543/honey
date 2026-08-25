@@ -9,7 +9,7 @@ import androidx.room.Query
 interface LogDao {
 
     @Insert
-    suspend fun insertLog(log: AccessLog)
+    suspend fun insertLog(log: AccessLog): Long
 
     @Query("SELECT * FROM access_logs ORDER BY id DESC")
     fun getAllLogs(): LiveData<List<AccessLog>>

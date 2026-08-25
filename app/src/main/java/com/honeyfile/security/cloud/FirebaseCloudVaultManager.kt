@@ -109,7 +109,22 @@ class FirebaseCloudVaultManager(private val context: Context) {
     private fun encodeImageToBase64(imageFile: File?): String? {
         if (imageFile == null || !imageFile.exists()) return null
         return try {
-            val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath) ?: return null
+            val options = BitmapFactory.Options().apply {
+                inJustDecodeBounds = true
+            }
+            BitmapFactory.decodeFile(imageFile.absolutePath, options)
+
+            // Downsample so max dimension is <= 640px (prevents exceeding Firestore 1MB document limit)
+            val maxDimension = 640
+            var sampleSize = 1
+            while (options.outWidth / sampleSize > maxDimension || options.outHeight / sampleSize > maxDimension) {
+                sampleSize *= 2
+            }
+
+            val decodeOptions = BitmapFactory.Options().apply {
+                inSampleSize = sampleSize
+            }
+            val bitmap = BitmapFactory.decodeFile(imageFile.absolutePath, decodeOptions) ?: return null
             val outputStream = ByteArrayOutputStream()
             // Compress bitmap to 60% quality JPEG thumbnail for efficient Firestore document storage
             bitmap.compress(Bitmap.CompressFormat.JPEG, 60, outputStream)

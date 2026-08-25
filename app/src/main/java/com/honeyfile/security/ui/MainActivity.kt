@@ -494,12 +494,23 @@ class MainActivity : ComponentActivity() {
                 )
 
                 val photoFile = intruderCaptureManager.captureIntruderImage(frame)
+                val telemetry = telemetryManager.getDeviceTelemetry()
 
                 emailAlertManager.sendAlert(
                     context = this@MainActivity,
                     subject = "Intruder tried opening honeyfile!",
                     body = "Unauthorized access attempt detected at $timestamp on file: $filename.",
-                    imageFile = photoFile
+                    imageFile = photoFile,
+                    telemetry = telemetry
+                )
+
+                FirebaseCloudVaultManager(this@MainActivity).syncBreachIncidentToCloud(
+                    fileName = filename,
+                    actionType = "BREACH",
+                    timestamp = timestamp,
+                    details = "UNAUTHORIZED INTRUDER BREACH on honeyfile '$filename'! Facial auth failed.",
+                    imageFile = photoFile,
+                    telemetry = telemetry
                 )
 
                 refreshGallery()

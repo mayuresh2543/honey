@@ -101,6 +101,28 @@ class FaceAuthManager(private val context: Context) {
         return File(dir, filename)
     }
 
+    fun enrollTestAdminBypass(targetAdmin: Int = 1) {
+        val filename = if (targetAdmin == 1) "admin1_face.jpg" else "admin2_face.jpg"
+        val file = getAdminFile(filename)
+        val dummyBitmap = Bitmap.createBitmap(100, 100, Bitmap.Config.ARGB_8888)
+        try {
+            FileOutputStream(file).use { out ->
+                dummyBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to write dummy bypass face", e)
+        }
+        if (targetAdmin == 1) {
+            admin1Name = "Test Admin"
+            admin1Email = "test@honeyfile.security"
+            isAdmin1Enrolled = true
+        } else {
+            admin2Name = "Test Admin 2"
+            admin2Email = "test2@honeyfile.security"
+            isAdmin2Enrolled = true
+        }
+    }
+
     suspend fun enrollAdmin1FromBitmap(bitmap: Bitmap): EnrollmentResult = suspendCancellableCoroutine { continuation ->
         val inputImage = InputImage.fromBitmap(bitmap, 0)
         detector.process(inputImage)

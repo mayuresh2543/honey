@@ -27,7 +27,7 @@ import java.io.File
 enum class HoneyNavTab(val label: String, val icon: ImageVector) {
     OVERVIEW("Overview", Icons.Default.Security),
     SCANNER("Scanner", Icons.Default.Search),
-    LOGS("Logs", Icons.Default.Article),
+    LOGS("Logs", Icons.AutoMirrored.Filled.Article),
     VAULT("Vault", Icons.Default.PhotoLibrary)
 }
 

@@ -9,13 +9,13 @@ import androidx.room.Query
 interface LogDao {
 
     @Insert
-    suspend fun insertLog(log: AccessLog): Long
+    fun insertLog(log: AccessLog): Long
 
     @Query("SELECT * FROM access_logs ORDER BY id DESC")
     fun getAllLogs(): LiveData<List<AccessLog>>
 
     @Query("SELECT * FROM access_logs ORDER BY id DESC")
-    suspend fun getAllLogsList(): List<AccessLog>
+    fun getAllLogsList(): List<AccessLog>
 
     @Query("SELECT COUNT(*) FROM access_logs WHERE LOWER(user) NOT LIKE 'intruder%' AND action != 'BREACH' AND action != 'DEPLOYED'")
     fun getAdminCount(): LiveData<Int>
@@ -24,5 +24,5 @@ interface LogDao {
     fun getIntruderCount(): LiveData<Int>
 
     @Query("DELETE FROM access_logs")
-    suspend fun clearAll(): Int
+    fun clearAll(): Int
 }

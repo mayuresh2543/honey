@@ -190,7 +190,7 @@ class MainActivity : ComponentActivity() {
                     capturedPhotos = capturedPhotosState,
                     onRefreshGallery = { refreshGallery() },
                     onTriggerAccess = { onTriggerAccessClicked() },
-                    versionName = "v1.0.3-beta",
+                    versionName = "v2.0.0-beta",
                     mandatoryEnrollmentRequested = isMandatoryEnroll,
                     onMandatoryEnrollmentHandled = {
                         mandatoryEnrollmentState.value = false

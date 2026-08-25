@@ -165,7 +165,7 @@ fun OverviewScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Analytics,
+                        imageVector = HoneyIcons.Analytics,
                         contentDescription = null,
                         tint = CyanAccent,
                         modifier = Modifier.size(16.dp)
@@ -196,7 +196,7 @@ fun OverviewScreen(
                 modifier = Modifier.weight(1f),
                 title = "Trigger Access",
                 subtitle = "Simulate File Access",
-                icon = Icons.Default.FlashOn,
+                icon = HoneyIcons.FlashOn,
                 accentColor = CyberGreen,
                 onClick = onTriggerAccess
             )
@@ -205,7 +205,7 @@ fun OverviewScreen(
                 modifier = Modifier.weight(1f),
                 title = "Manage Admins",
                 subtitle = "Biometric Profiles",
-                icon = Icons.Default.People,
+                icon = HoneyIcons.People,
                 accentColor = CyanAccent,
                 onClick = onOpenAdminManagement
             )
@@ -219,7 +219,7 @@ fun OverviewScreen(
                 modifier = Modifier.weight(1f),
                 title = "Deploy Decoy",
                 subtitle = "Multi-Format Traps",
-                icon = Icons.Default.FolderSpecial,
+                icon = HoneyIcons.FolderSpecial,
                 accentColor = WarningYellow,
                 onClick = onOpenDecoyStudio
             )

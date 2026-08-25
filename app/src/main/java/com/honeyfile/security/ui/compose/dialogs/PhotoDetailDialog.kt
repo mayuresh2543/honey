@@ -15,7 +15,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -156,7 +155,7 @@ fun PhotoDetailDialog(
                         modifier = Modifier.weight(1f)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.FileDownload,
+                            imageVector = com.honeyfile.security.ui.theme.HoneyIcons.FileDownload,
                             contentDescription = null,
                             tint = CyanAccent,
                             modifier = Modifier.size(18.dp)

@@ -15,11 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Folder
-import androidx.compose.material.icons.filled.FolderOpen
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
+import com.honeyfile.security.ui.theme.HoneyIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -107,7 +103,7 @@ fun ScannerScreen(
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Icon(
-                                imageVector = Icons.Default.Folder,
+                                imageVector = HoneyIcons.Folder,
                                 contentDescription = null,
                                 tint = CyanAccent,
                                 modifier = Modifier.size(20.dp)
@@ -167,7 +163,7 @@ fun ScannerScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.FolderOpen,
+                                imageVector = HoneyIcons.FolderOpen,
                                 contentDescription = null,
                                 tint = CyanAccent,
                                 modifier = Modifier.size(16.dp)
@@ -454,7 +450,7 @@ private fun DirectoryLogCard(
                 Spacer(modifier = Modifier.width(6.dp))
 
                 Icon(
-                    imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                    imageVector = if (isExpanded) HoneyIcons.KeyboardArrowUp else HoneyIcons.KeyboardArrowDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.size(20.dp)

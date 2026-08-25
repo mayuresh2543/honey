@@ -12,7 +12,6 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Face
-import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -330,7 +329,7 @@ private fun AdminProfileCard(
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.PersonAdd,
+                        imageVector = com.honeyfile.security.ui.theme.HoneyIcons.PersonAdd,
                         contentDescription = null,
                         tint = Color.Black,
                         modifier = Modifier.size(16.dp)

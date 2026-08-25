@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -333,7 +332,7 @@ fun DecoyStudioSheet(
                     .height(48.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.ElectricBolt,
+                    imageVector = com.honeyfile.security.ui.theme.HoneyIcons.ElectricBolt,
                     contentDescription = null,
                     tint = Color.Black,
                     modifier = Modifier.size(18.dp)

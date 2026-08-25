@@ -23,13 +23,14 @@ import com.honeyfile.security.data.AccessLog
 import com.honeyfile.security.ui.compose.dialogs.*
 import com.honeyfile.security.ui.theme.CyanAccent
 import com.honeyfile.security.ui.theme.CyberGreen
+import com.honeyfile.security.ui.theme.HoneyIcons
 import java.io.File
 
 enum class HoneyNavTab(val label: String, val icon: ImageVector) {
-    OVERVIEW("Overview", Icons.Default.Security),
+    OVERVIEW("Overview", HoneyIcons.Security),
     SCANNER("Scanner", Icons.Default.Search),
-    LOGS("Logs", Icons.AutoMirrored.Filled.Article),
-    VAULT("Vault", Icons.Default.PhotoLibrary)
+    LOGS("Logs", HoneyIcons.Article),
+    VAULT("Vault", HoneyIcons.PhotoLibrary)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

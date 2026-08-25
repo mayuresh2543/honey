@@ -26,7 +26,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -329,7 +328,7 @@ fun AdminEnrollScanDialog(
                             modifier = Modifier.weight(1.4f)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.CameraAlt,
+                                imageVector = com.honeyfile.security.ui.theme.HoneyIcons.CameraAlt,
                                 contentDescription = null,
                                 tint = Color.Black,
                                 modifier = Modifier.size(18.dp)

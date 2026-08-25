@@ -133,11 +133,12 @@ fun HoneyfileApp(
             )
         },
         bottomBar = {
+            val navTabs = remember { HoneyNavTab.entries }
             NavigationBar(
                 containerColor = MaterialTheme.colorScheme.surface,
                 tonalElevation = 8.dp
             ) {
-                HoneyNavTab.values().forEach { tab ->
+                navTabs.forEach { tab ->
                     val isSelected = currentTab == tab
                     NavigationBarItem(
                         selected = isSelected,

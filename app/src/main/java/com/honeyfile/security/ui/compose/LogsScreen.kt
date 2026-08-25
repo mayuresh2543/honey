@@ -88,7 +88,11 @@ fun LogsScreen(
                 }
             }
         } else {
-            items(logs, key = { it.id }) { log ->
+            items(
+                items = logs,
+                key = { it.id },
+                contentType = { "access_log" }
+            ) { log ->
                 AccessLogCard(log = log)
             }
         }

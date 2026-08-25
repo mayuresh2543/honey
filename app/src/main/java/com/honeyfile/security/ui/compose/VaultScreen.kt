@@ -132,7 +132,11 @@ fun VaultScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                items(capturedPhotos, key = { it.absolutePath }) { file ->
+                items(
+                    items = capturedPhotos,
+                    key = { it.absolutePath },
+                    contentType = { "evidence_photo" }
+                ) { file ->
                     EvidencePhotoCard(
                         photoFile = file,
                         onClick = { onPhotoClicked(file) }

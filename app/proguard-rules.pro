@@ -26,3 +26,9 @@
 # Keep Compose
 -keep class androidx.compose.** { *; }
 -dontwarn androidx.compose.**
+
+# Strip Compose debug tracing & source location overhead
+-assumenosideeffects class androidx.compose.runtime.ComposerKt {
+    void traceEventStart(int, int, int, java.lang.String);
+    void traceEventEnd();
+}

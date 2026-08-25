@@ -321,7 +321,11 @@ fun ScannerScreen(
                 }
             }
         } else {
-            items(filteredLogs, key = { it.id }) { log ->
+            items(
+                items = filteredLogs,
+                key = { it.id },
+                contentType = { "directory_log" }
+            ) { log ->
                 val isExpanded = expandedLogIds.contains(log.id)
                 DirectoryLogCard(
                     log = log,

@@ -17,14 +17,15 @@ android {
         versionCode = 4
         versionName = "1.0.3-beta"
 
-        // Restrict resource configurations to English to strip unused translations (~2 MB saved)
-        resourceConfigurations += listOf("en")
-
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         
         ksp {
             arg("room.schemaLocation", "$projectDir/schemas")
         }
+    }
+
+    androidResources {
+        localeFilters += listOf("en")
     }
 
     buildTypes {
@@ -46,10 +47,6 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    kotlinOptions {
-        jvmTarget = "17"
-    }
-
     buildFeatures {
         compose = true
     }
@@ -61,6 +58,10 @@ android {
             excludes += "META-INF/LICENSE.md"
         }
     }
+}
+
+kotlin {
+    jvmToolchain(17)
 }
 
 dependencies {

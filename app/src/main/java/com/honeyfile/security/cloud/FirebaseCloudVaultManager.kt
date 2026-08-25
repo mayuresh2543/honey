@@ -15,6 +15,9 @@ import kotlinx.coroutines.tasks.await
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 data class CloudVaultSyncResult(
     val isSuccess: Boolean,
@@ -88,7 +91,12 @@ class FirebaseCloudVaultManager(private val context: Context) {
                 )
             )
 
-            val docRef = firestore.collection("breach_incidents").add(incidentData).await()
+            val cleanFileName = fileName.replace(Regex("[^a-zA-Z0-9._-]"), "_").take(40)
+            val timeStampFormatted = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss", Locale.getDefault()).format(Date())
+            val customDocId = "${timeStampFormatted}_${actionType.uppercase()}_$cleanFileName"
+
+            val docRef = firestore.collection("breach_incidents").document(customDocId)
+            docRef.set(incidentData).await()
             val docId = docRef.id
             val successMsg = "Synced breach incident & photo directly to free Firestore Vault ✅ Document ID: $docId"
             Log.d(TAG, successMsg)

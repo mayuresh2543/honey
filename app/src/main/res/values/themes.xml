@@ -5,33 +5,5 @@
         <item name="colorSecondary">@color/teal_700</item>
         <item name="android:statusBarColor">@color/light_bg</item>
         <item name="android:windowBackground">@color/light_bg</item>
-
-        <!-- Dynamic Theme Color References -->
-        <item name="appBackgroundColor">@color/light_bg</item>
-        <item name="appCardColor">@color/light_card_bg</item>
-        <item name="appCardStrokeColor">@color/light_card_stroke</item>
-        <item name="appTextColorPrimary">@color/light_text_primary</item>
-        <item name="appTextColorSecondary">@color/light_text_secondary</item>
     </style>
-
-    <attr name="appBackgroundColor" format="color" />
-    <attr name="appCardColor" format="color" />
-    <attr name="appCardStrokeColor" format="color" />
-    <attr name="appTextColorPrimary" format="color" />
-    <attr name="appTextColorSecondary" format="color" />
-
-    <!--
-        Transparent theme for OverlayCaptureActivity.
-        Inherits from the main app theme so AppCompatActivity doesn't crash,
-        then overrides window properties to make it fully invisible.
-    -->
-    <style name="Theme.HoneyfileSecurity.Transparent" parent="Theme.HoneyfileSecurity">
-        <item name="android:windowIsTranslucent">true</item>
-        <item name="android:windowBackground">@android:color/transparent</item>
-        <item name="android:windowContentOverlay">@null</item>
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:backgroundDimEnabled">false</item>
-        <item name="android:windowAnimationStyle">@null</item>
-    </style>
-
 </resources>

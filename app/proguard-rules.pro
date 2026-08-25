@@ -5,15 +5,24 @@
 
 # Keep Room Database entities and DAOs
 -keep class com.honeyfile.security.data.** { *; }
+-keep class androidx.room.** { *; }
+-dontwarn androidx.room.**
+
+# Keep ML Kit & Play Services
+-keep class com.google.mlkit.** { *; }
+-keep class com.google.android.gms.** { *; }
 
 # Keep Firebase Models
 -keep class com.google.firebase.** { *; }
 
-# Strip all android.util.Log logging methods completely for maximum performance & minimum APK size
--assumenosideeffects class android.util.Log {
-    public static *** d(...);
-    public static *** v(...);
-    public static *** i(...);
-    public static *** w(...);
-    public static *** e(...);
-}
+# Keep CameraX
+-keep class androidx.camera.** { *; }
+-dontwarn androidx.camera.**
+
+# Keep Coroutines
+-keep class kotlinx.coroutines.** { *; }
+-dontwarn kotlinx.coroutines.**
+
+# Keep Compose
+-keep class androidx.compose.** { *; }
+-dontwarn androidx.compose.**

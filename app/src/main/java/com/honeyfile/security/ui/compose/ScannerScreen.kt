@@ -46,7 +46,7 @@ fun ScannerScreen(
     directoryLogs: List<AccessLog>
 ) {
     var selectedFilterCategory by remember { mutableStateOf("ALL") }
-    val expandedLogIds = remember { mutableStateSetOf<Long>() }
+    val expandedLogIds = remember { mutableStateListOf<Long>() }
 
     val filterChips = listOf(
         "ALL" to "ALL",

@@ -173,7 +173,7 @@ class MainActivity : ComponentActivity() {
                     },
                     onSelectFolderClicked = { folderPickerLauncher.launch(null) },
                     totalFilesScanned = scanResult.totalFilesScanned,
-                    honeypotsFound = scanResult.honeypotsFound,
+                    honeypotsFound = scanResult.honeyFilesFound,
                     latestChangeSummary = scanResult.latestChangeSummary,
                     directoryLogs = allLogs,
                     allAccessLogs = allLogs,

@@ -301,8 +301,7 @@ fun ThreatAnalyticsDetailDialog(
                                 selectedLabelColor = CyanAccent
                             ),
                             shape = RoundedCornerShape(8.dp),
-                            modifier = Modifier.weight(1f),
-                            contentPadding = PaddingValues(0.dp)
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }

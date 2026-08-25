@@ -84,7 +84,12 @@ fun OverviewScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier
+                            .weight(1f, fill = false)
+                            .padding(end = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             text = "🛡️ Endpoint Risk Index",
                             fontSize = 15.sp,
@@ -111,7 +116,9 @@ fun OverviewScreen(
                             text = badgeText,
                             fontSize = 11.sp,
                             fontWeight = FontWeight.Bold,
-                            color = badgeColor
+                            color = badgeColor,
+                            maxLines = 1,
+                            softWrap = false
                         )
                     }
                 }

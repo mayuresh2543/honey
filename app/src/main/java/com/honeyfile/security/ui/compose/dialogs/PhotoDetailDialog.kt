@@ -80,7 +80,11 @@ fun PhotoDetailDialog(
                         text = "🚨 Intrusion Evidence",
                         fontSize = 18.sp,
                         fontWeight = FontWeight.Bold,
-                        color = AlertRed
+                        color = AlertRed,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(end = 8.dp),
+                        maxLines = 1
                     )
                     IconButton(onClick = onDismiss) {
                         Icon(

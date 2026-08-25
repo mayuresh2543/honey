@@ -101,7 +101,12 @@ fun ScannerScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            modifier = Modifier
+                                .weight(1f, fill = false)
+                                .padding(end = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
                             Icon(
                                 imageVector = HoneyIcons.Folder,
                                 contentDescription = null,
@@ -113,7 +118,9 @@ fun ScannerScreen(
                                 text = "Directory Surveillance",
                                 fontSize = 15.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
@@ -134,7 +141,9 @@ fun ScannerScreen(
                                 text = if (isMonitoring) "MONITORING 🟢" else "IDLE ⚪",
                                 fontSize = 10.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isMonitoring) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (isMonitoring) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                softWrap = false
                             )
                         }
                     }
@@ -443,7 +452,9 @@ private fun DirectoryLogCard(
                         text = eventLabel,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
-                        color = badgeColor
+                        color = badgeColor,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
 

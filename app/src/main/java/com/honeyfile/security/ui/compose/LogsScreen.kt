@@ -35,7 +35,11 @@ fun LogsScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .weight(1f)
+                        .padding(end = 12.dp)
+                ) {
                     Text(
                         text = "📜 Access Audit Trail",
                         fontSize = 16.sp,
@@ -59,7 +63,9 @@ fun LogsScreen(
                         text = "${logs.size} Logs",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = CyanAccent
+                        color = CyanAccent,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
             }

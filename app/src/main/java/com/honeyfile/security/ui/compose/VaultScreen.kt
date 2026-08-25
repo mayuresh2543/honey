@@ -46,7 +46,11 @@ fun VaultScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            Column {
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(end = 8.dp)
+            ) {
                 Text(
                     text = "📸 Intruder Photo Vault",
                     fontSize = 16.sp,
@@ -71,7 +75,9 @@ fun VaultScreen(
                         text = "${capturedPhotos.size} Evidences",
                         fontSize = 11.sp,
                         fontWeight = FontWeight.Bold,
-                        color = if (capturedPhotos.isNotEmpty()) AlertRed else MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (capturedPhotos.isNotEmpty()) AlertRed else MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        softWrap = false
                     )
                 }
                 Spacer(modifier = Modifier.width(4.dp))

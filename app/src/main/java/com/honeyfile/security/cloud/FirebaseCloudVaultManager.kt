@@ -27,9 +27,12 @@ class FirebaseCloudVaultManager(private val context: Context) {
 
     private fun isFirebaseAvailable(): Boolean {
         return try {
+            if (FirebaseApp.getApps(context).isEmpty()) {
+                FirebaseApp.initializeApp(context)
+            }
             FirebaseApp.getApps(context).isNotEmpty()
         } catch (e: Exception) {
-            Log.w(TAG, "FirebaseApp is not initialized yet: ${e.message}")
+            Log.w(TAG, "FirebaseApp initialization error: ${e.message}")
             false
         }
     }

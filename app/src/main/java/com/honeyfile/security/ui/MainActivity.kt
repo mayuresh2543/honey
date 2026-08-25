@@ -108,9 +108,15 @@ class MainActivity : ComponentActivity() {
 
             if (isAutoScanEnabledState.value) {
                 folderScannerManager.startContinuousScanning(uri)
+                if (faceAuthManager.hasAtLeastOneAdmin()) {
+                    com.honeyfile.security.service.HoneyMonitoringService.startService(this, uri)
+                }
             } else {
                 isAutoScanEnabledState.value = true
                 folderScannerManager.startContinuousScanning(uri)
+                if (faceAuthManager.hasAtLeastOneAdmin()) {
+                    com.honeyfile.security.service.HoneyMonitoringService.startService(this, uri)
+                }
             }
         }
     }
@@ -167,8 +173,12 @@ class MainActivity : ComponentActivity() {
                         val uri = selectedFolderUriState.value
                         if (enabled && uri != null) {
                             folderScannerManager.startContinuousScanning(uri)
+                            if (faceAuthManager.hasAtLeastOneAdmin()) {
+                                com.honeyfile.security.service.HoneyMonitoringService.startService(this@MainActivity, uri)
+                            }
                         } else {
                             folderScannerManager.stopScanning()
+                            com.honeyfile.security.service.HoneyMonitoringService.stopService(this@MainActivity)
                         }
                     },
                     onSelectFolderClicked = { folderPickerLauncher.launch(null) },
@@ -184,6 +194,14 @@ class MainActivity : ComponentActivity() {
                     mandatoryEnrollmentRequested = isMandatoryEnroll,
                     onMandatoryEnrollmentHandled = {
                         mandatoryEnrollmentState.value = false
+                    },
+                    onAdminEnrolled = {
+                        rebindBackgroundCamera()
+                        val uri = selectedFolderUriState.value
+                        if (uri != null && isAutoScanEnabledState.value) {
+                            folderScannerManager.startContinuousScanning(uri)
+                            com.honeyfile.security.service.HoneyMonitoringService.startService(this@MainActivity, uri)
+                        }
                     }
                 )
             }
@@ -202,6 +220,9 @@ class MainActivity : ComponentActivity() {
                 folderDisplayNameState.value = doc?.name ?: uri.lastPathSegment ?: "Monitored Folder"
                 isAutoScanEnabledState.value = true
                 folderScannerManager.startContinuousScanning(uri)
+                if (faceAuthManager.hasAtLeastOneAdmin()) {
+                    com.honeyfile.security.service.HoneyMonitoringService.startService(this, uri)
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "Error restoring monitored folder uri", e)
             }
@@ -217,6 +238,10 @@ class MainActivity : ComponentActivity() {
     fun rebindBackgroundCamera() {
         if (faceAuthManager.hasAtLeastOneAdmin()) {
             initializeBackgroundCamera()
+            val uri = selectedFolderUriState.value
+            if (uri != null && isAutoScanEnabledState.value) {
+                com.honeyfile.security.service.HoneyMonitoringService.startService(this, uri)
+            }
         }
     }
 
@@ -410,6 +435,10 @@ class MainActivity : ComponentActivity() {
 
         if (faceAuthManager.hasAtLeastOneAdmin()) {
             initializeBackgroundCamera()
+            val uri = selectedFolderUriState.value
+            if (uri != null && isAutoScanEnabledState.value) {
+                com.honeyfile.security.service.HoneyMonitoringService.startService(this, uri)
+            }
         } else {
             checkMandatoryAdminEnrollment()
         }

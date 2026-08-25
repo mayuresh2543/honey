@@ -55,7 +55,8 @@ fun HoneyfileApp(
     onTriggerAccess: () -> Unit,
     versionName: String = "v1.0.3-beta",
     mandatoryEnrollmentRequested: Boolean = false,
-    onMandatoryEnrollmentHandled: () -> Unit = {}
+    onMandatoryEnrollmentHandled: () -> Unit = {},
+    onAdminEnrolled: () -> Unit = {}
 ) {
     var currentTab by remember { mutableStateOf(HoneyNavTab.OVERVIEW) }
 
@@ -244,6 +245,7 @@ fun HoneyfileApp(
             onDismiss = { enrollDialogTarget = null },
             onEnrollmentCompleted = {
                 enrollDialogTarget = null
+                onAdminEnrolled()
             }
         )
     }

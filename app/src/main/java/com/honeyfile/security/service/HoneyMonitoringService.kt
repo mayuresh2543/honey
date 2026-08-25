@@ -123,11 +123,6 @@ class HoneyMonitoringService : LifecycleService() {
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
 
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                    .also { it.setAnalyzer(cameraExecutor) { proxy -> proxy.close() } }
-
                 this.imageCapture = capture
 
                 val cameraSelector = when {
@@ -137,8 +132,8 @@ class HoneyMonitoringService : LifecycleService() {
                 }
 
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this@HoneyMonitoringService, cameraSelector, capture, analysis)
-                Log.d(TAG, "CameraX bound to HoneyMonitoringService in background (0 UI, completely silent)")
+                cameraProvider.bindToLifecycle(this@HoneyMonitoringService, cameraSelector, capture)
+                Log.d(TAG, "CameraX bound to HoneyMonitoringService with ImageCapture (zero CPU drain)")
             } catch (e: Exception) {
                 Log.e(TAG, "HoneyMonitoringService camera binding error", e)
             }

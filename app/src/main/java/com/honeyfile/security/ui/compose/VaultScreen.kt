@@ -17,11 +17,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
 import com.honeyfile.security.ui.theme.AlertRed
 import com.honeyfile.security.ui.theme.CyanAccent
 import java.io.File
@@ -84,9 +86,8 @@ fun VaultScreen(
                 IconButton(onClick = onRefresh) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh",
-                        tint = CyanAccent,
-                        modifier = Modifier.size(20.dp)
+                        contentDescription = "Refresh Gallery",
+                        tint = CyanAccent
                     )
                 }
             }
@@ -147,6 +148,7 @@ private fun EvidencePhotoCard(
     photoFile: File,
     onClick: () -> Unit
 ) {
+    val context = LocalContext.current
     val lastModDate = Date(photoFile.lastModified())
     val formattedTime = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(lastModDate)
 
@@ -167,7 +169,12 @@ private fun EvidencePhotoCard(
                     .background(MaterialTheme.colorScheme.surfaceVariant)
             ) {
                 AsyncImage(
-                    model = photoFile,
+                    model = ImageRequest.Builder(context)
+                        .data(photoFile)
+                        .size(360, 280)
+                        .crossfade(false)
+                        .allowHardware(true)
+                        .build(),
                     contentDescription = "Intruder Evidence Snapshot",
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

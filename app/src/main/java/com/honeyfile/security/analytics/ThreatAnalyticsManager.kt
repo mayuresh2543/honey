@@ -57,16 +57,11 @@ class ThreatAnalyticsManager {
         if (intruderLogs.isEmpty()) return "None Detected"
 
         val hourCounts = IntArray(24) { 0 }
-        val calendar = Calendar.getInstance()
 
         for (log in intruderLogs) {
-            val ms = parseTimestampToMs(log.timestamp)
-            if (ms > 0) {
-                calendar.timeInMillis = ms
-                val hour = calendar.get(Calendar.HOUR_OF_DAY)
-                if (hour in 0..23) {
-                    hourCounts[hour]++
-                }
+            val hour = extractHourFromTimestamp(log.timestamp)
+            if (hour in 0..23) {
+                hourCounts[hour]++
             }
         }
 
@@ -87,13 +82,10 @@ class ThreatAnalyticsManager {
 
     private fun generateHeatmapSlots(intruderLogs: List<AccessLog>): List<HeatmapSlot> {
         val slotCounts = IntArray(6) { 0 }
-        val calendar = Calendar.getInstance()
 
         for (log in intruderLogs) {
-            val ms = parseTimestampToMs(log.timestamp)
-            if (ms > 0) {
-                calendar.timeInMillis = ms
-                val hour = calendar.get(Calendar.HOUR_OF_DAY)
+            val hour = extractHourFromTimestamp(log.timestamp)
+            if (hour in 0..23) {
                 val slotIndex = (hour / 4).coerceIn(0, 5)
                 slotCounts[slotIndex]++
             }
@@ -111,6 +103,18 @@ class ThreatAnalyticsManager {
         }
     }
 
+    private fun extractHourFromTimestamp(timestampStr: String): Int {
+        // Fast extract from "yyyy-MM-dd HH:mm:ss" or "HH:mm:ss" without Calendar allocation
+        return try {
+            val timePart = if (timestampStr.contains(" ")) timestampStr.substringAfter(" ") else timestampStr
+            val hourStr = timePart.substringBefore(":")
+            hourStr.trim().toInt()
+        } catch (e: Exception) {
+            -1
+        }
+    }
+
+    @Synchronized
     private fun parseTimestampToMs(timestampStr: String): Long {
         return try {
             val date = dateFormat.parse(timestampStr)

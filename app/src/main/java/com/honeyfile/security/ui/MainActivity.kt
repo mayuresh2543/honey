@@ -401,11 +401,6 @@ class MainActivity : ComponentActivity() {
                     .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
                     .build()
 
-                val analysis = ImageAnalysis.Builder()
-                    .setBackpressureStrategy(ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST)
-                    .build()
-                    .also { it.setAnalyzer(cameraExecutor) { proxy -> proxy.close() } }
-
                 this.imageCapture = capture
 
                 val cameraSelector = when {
@@ -418,8 +413,8 @@ class MainActivity : ComponentActivity() {
                 }
 
                 cameraProvider.unbindAll()
-                cameraProvider.bindToLifecycle(this, cameraSelector, capture, analysis)
-                Log.d(TAG, "Background CameraX silent capture initialized with ImageCapture + ImageAnalysis")
+                cameraProvider.bindToLifecycle(this, cameraSelector, capture)
+                Log.d(TAG, "Background CameraX silent capture initialized with ImageCapture (zero background frame churn)")
             } catch (e: Exception) {
                 Log.e(TAG, "Background camera initialization failed", e)
             }

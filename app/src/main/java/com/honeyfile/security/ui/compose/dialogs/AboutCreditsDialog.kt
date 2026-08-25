@@ -21,7 +21,7 @@ import com.honeyfile.security.ui.theme.CyberGreen
 
 @Composable
 fun AboutCreditsDialog(
-    versionName: String = "v2.0.0-beta",
+    versionName: String = "v2.0.1-beta",
     onDismiss: () -> Unit
 ) {
     Dialog(

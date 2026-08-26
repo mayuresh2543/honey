@@ -1,13 +1,17 @@
 package com.honeyfile.security.ui.compose
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,11 +27,13 @@ import com.honeyfile.security.ui.theme.*
 fun LogsScreen(
     logs: List<AccessLog>
 ) {
+    val expandedLogIds = remember { mutableStateListOf<Long>() }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
             .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(10.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         item {
             Row(
@@ -42,30 +48,33 @@ fun LogsScreen(
                 ) {
                     Text(
                         text = "📜 Access Audit Trail",
-                        fontSize = 16.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.3.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = "Complete immutable record of all endpoint interactions",
+                        text = "Immutable ledger of endpoint and honeypot interactions",
                         fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 10.dp, vertical = 4.dp)
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, CyanAccent.copy(alpha = 0.3f))
                 ) {
                     Text(
                         text = "${logs.size} Logs",
                         fontSize = 11.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = CyanAccent,
                         maxLines = 1,
-                        softWrap = false
+                        softWrap = false,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                     )
                 }
             }
@@ -74,17 +83,25 @@ fun LogsScreen(
 
         if (logs.isEmpty()) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 36.dp),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "No audit log records found yet 🛡️",
-                        fontSize = 13.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 40.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No audit log records found yet 🛡️",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         } else {
@@ -93,72 +110,125 @@ fun LogsScreen(
                 key = { it.id },
                 contentType = { "access_log" }
             ) { log ->
-                AccessLogCard(log = log)
+                val isExpanded = expandedLogIds.contains(log.id)
+                AccessLogCard(
+                    log = log,
+                    isExpanded = isExpanded,
+                    onToggleExpand = {
+                        if (isExpanded) expandedLogIds.remove(log.id)
+                        else expandedLogIds.add(log.id)
+                    }
+                )
             }
         }
     }
 }
 
 @Composable
-private fun AccessLogCard(log: AccessLog) {
+private fun AccessLogCard(
+    log: AccessLog,
+    isExpanded: Boolean,
+    onToggleExpand: () -> Unit
+) {
     val isIntruder = log.user.contains("Intruder", ignoreCase = true) || log.action.equals("BREACH", ignoreCase = true)
     val isDeployed = log.action.equals("DEPLOYED", ignoreCase = true) || log.user.contains("DEPLOYED", ignoreCase = true)
 
-    val (badgeBgColor, badgeTextColor) = when {
-        isDeployed -> Pair(CyanAccent.copy(alpha = 0.15f), CyanAccent)
-        isIntruder -> Pair(AlertRed, Color.White)
-        else -> Pair(CyberGreen, Color.Black)
+    val (badgeBgColor, badgeTextColor, badgeBorderColor) = when {
+        isDeployed -> Triple(CyanAccent.copy(alpha = 0.15f), CyanAccent, CyanAccent.copy(alpha = 0.4f))
+        isIntruder -> Triple(AlertRed.copy(alpha = 0.2f), AlertRed, AlertRed.copy(alpha = 0.5f))
+        else -> Triple(CyberGreen.copy(alpha = 0.18f), CyberGreen, CyberGreen.copy(alpha = 0.4f))
     }
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = Modifier.fillMaxWidth()
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        tonalElevation = 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .expressiveBounceClickable(onClick = onToggleExpand)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
-            // User Badge
-            Box(
-                modifier = Modifier
-                    .width(95.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(badgeBgColor)
-                    .padding(vertical = 5.dp, horizontal = 8.dp),
-                contentAlignment = Alignment.Center
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = log.user,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = badgeTextColor,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
+                // User / Actor Badge (Expressive Full Pill)
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = badgeBgColor,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, badgeBorderColor),
+                    modifier = Modifier.widthIn(min = 80.dp)
+                ) {
+                    Box(
+                        modifier = Modifier.padding(vertical = 5.dp, horizontal = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = log.user,
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.ExtraBold,
+                            color = badgeTextColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.width(14.dp))
+
+                // File & Timestamp
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = log.file,
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = log.timestamp,
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+                Icon(
+                    imageVector = if (isExpanded) HoneyIcons.KeyboardArrowUp else HoneyIcons.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
-
-            // File & Time
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = log.file,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = log.timestamp,
-                    fontSize = 11.sp,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+            AnimatedVisibility(
+                visible = isExpanded,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 12.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(12.dp)
+                ) {
+                    Text(
+                        text = if (log.details.isNotBlank()) log.details else "Action: ${log.action} on ${log.file} at ${log.timestamp}",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 16.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
             }
         }
     }

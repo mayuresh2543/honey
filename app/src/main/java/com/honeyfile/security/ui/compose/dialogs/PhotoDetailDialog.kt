@@ -31,8 +31,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.FileProvider
 import coil.compose.AsyncImage
-import com.honeyfile.security.ui.theme.AlertRed
-import com.honeyfile.security.ui.theme.CyanAccent
+import com.honeyfile.security.ui.theme.*
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -59,19 +58,20 @@ fun PhotoDetailDialog(
         onDismissRequest = onDismiss,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
-        Card(
-            shape = RoundedCornerShape(24.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        Surface(
+            shape = RoundedCornerShape(32.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            tonalElevation = 6.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 24.dp)
+                .padding(horizontal = 20.dp, vertical = 24.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
-                    .padding(20.dp),
+                    .padding(22.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 // Header row
@@ -83,14 +83,18 @@ fun PhotoDetailDialog(
                     Text(
                         text = "🚨 Intrusion Evidence",
                         fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.3.sp,
                         color = AlertRed,
                         modifier = Modifier
                             .weight(1f)
                             .padding(end = 8.dp),
                         maxLines = 1
                     )
-                    IconButton(onClick = onDismiss) {
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.expressiveBounceClickable(onClick = onDismiss)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Close",
@@ -99,16 +103,16 @@ fun PhotoDetailDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(14.dp))
 
                 // High-res Image Preview
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(280.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(16.dp))
+                        .clip(RoundedCornerShape(22.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(22.dp))
                 ) {
                     AsyncImage(
                         model = photoFile,
@@ -125,27 +129,29 @@ fun PhotoDetailDialog(
                 val formattedTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(lastModDate)
                 val fileSizeKb = photoFile.length() / 1024
 
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(12.dp)
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "File: ${photoFile.name}",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = "Captured: $formattedTime • ${fileSizeKb} KB",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column(modifier = Modifier.padding(14.dp)) {
+                        Text(
+                            text = "File: ${photoFile.name}",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Spacer(modifier = Modifier.height(3.dp))
+                        Text(
+                            text = "Captured: $formattedTime • ${fileSizeKb} KB",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(20.dp))
@@ -153,14 +159,17 @@ fun PhotoDetailDialog(
                 // Action Buttons Row
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
                 ) {
                     // Export
-                    Button(
+                    FilledTonalButton(
                         onClick = { createDocumentLauncher.launch(photoFile.name) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        modifier = Modifier.weight(1f)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .expressiveBounceClickable { createDocumentLauncher.launch(photoFile.name) }
                     ) {
                         Icon(
                             imageVector = com.honeyfile.security.ui.theme.HoneyIcons.FileDownload,
@@ -178,11 +187,14 @@ fun PhotoDetailDialog(
                     }
 
                     // Share
-                    Button(
+                    FilledTonalButton(
                         onClick = { shareEvidence(context, photoFile) },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        modifier = Modifier.weight(1f)
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(44.dp)
+                            .expressiveBounceClickable { shareEvidence(context, photoFile) }
                     ) {
                         Icon(
                             imageVector = Icons.Default.Share,
@@ -200,16 +212,18 @@ fun PhotoDetailDialog(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(10.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // Delete Button
                 Button(
                     onClick = { showDeleteConfirm = true },
-                    shape = RoundedCornerShape(12.dp),
+                    shape = RoundedCornerShape(16.dp),
                     colors = ButtonDefaults.buttonColors(containerColor = AlertRed.copy(alpha = 0.15f)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .border(1.dp, AlertRed.copy(alpha = 0.5f), RoundedCornerShape(12.dp))
+                        .height(46.dp)
+                        .border(1.dp, AlertRed.copy(alpha = 0.4f), RoundedCornerShape(16.dp))
+                        .expressiveBounceClickable { showDeleteConfirm = true }
                 ) {
                     Icon(
                         imageVector = Icons.Default.Delete,
@@ -221,7 +235,7 @@ fun PhotoDetailDialog(
                     Text(
                         text = "Delete Snapshot from Vault",
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.Black,
                         color = AlertRed
                     )
                 }
@@ -232,6 +246,8 @@ fun PhotoDetailDialog(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
             title = { Text(text = "Delete Photo from Vault", fontWeight = FontWeight.Bold) },
             text = { Text("Are you sure you want to permanently delete snapshot '${photoFile.name}' from the Evidence Vault?") },
             confirmButton = {

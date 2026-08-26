@@ -2,25 +2,27 @@ package com.honeyfile.security.ui.compose
 
 import android.net.Uri
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.*
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import com.honeyfile.security.ui.theme.HoneyIcons
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -83,18 +85,39 @@ fun ScannerScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // MONITORED FOLDER CARD
+        // MONITORED FOLDER CARD (M3 Expressive 28dp Container)
         item {
-            Card(
-                shape = RoundedCornerShape(20.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+            val isMonitoring = folderUri != null && isAutoScanEnabled
+            val infiniteTransition = rememberInfiniteTransition(label = "pulse_transition")
+            val pulseScale by infiniteTransition.animateFloat(
+                initialValue = 1f,
+                targetValue = 1.4f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1200, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "pulse_scale"
+            )
+
+            Surface(
+                shape = RoundedCornerShape(28.dp),
+                color = MaterialTheme.colorScheme.surfaceContainer,
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                tonalElevation = 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp)
+                        .background(
+                            Brush.verticalGradient(
+                                listOf(
+                                    if (isMonitoring) CyberGreen.copy(alpha = 0.08f) else Color.Transparent,
+                                    Color.Transparent
+                                )
+                            )
+                        )
+                        .padding(20.dp)
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -107,89 +130,122 @@ fun ScannerScreen(
                                 .padding(end = 8.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Icon(
-                                imageVector = HoneyIcons.Folder,
-                                contentDescription = null,
-                                tint = CyanAccent,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(36.dp)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(CyanAccent.copy(alpha = 0.15f))
+                                    .border(1.dp, CyanAccent.copy(alpha = 0.3f), RoundedCornerShape(12.dp)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = HoneyIcons.Folder,
+                                    contentDescription = null,
+                                    tint = CyanAccent,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Directory Surveillance",
-                                fontSize = 15.sp,
-                                fontWeight = FontWeight.Bold,
+                                text = "Directory Sentinel",
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Black,
+                                letterSpacing = 0.2.sp,
                                 color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
 
-                        // Status Badge
-                        val isMonitoring = folderUri != null && isAutoScanEnabled
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(if (isMonitoring) CyberGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceVariant)
-                                .border(
-                                    1.dp,
-                                    if (isMonitoring) CyberGreen else MaterialTheme.colorScheme.outline,
-                                    RoundedCornerShape(8.dp)
-                                )
-                                .padding(horizontal = 8.dp, vertical = 3.dp)
-                        ) {
-                            Text(
-                                text = if (isMonitoring) "MONITORING 🟢" else "IDLE ⚪",
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = if (isMonitoring) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                softWrap = false
+                        // Status Badge with Animated Radar Pulse
+                        Surface(
+                            shape = RoundedCornerShape(50),
+                            color = if (isMonitoring) CyberGreen.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHighest,
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.dp,
+                                if (isMonitoring) CyberGreen.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant
                             )
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                            ) {
+                                if (isMonitoring) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .scale(pulseScale)
+                                            .clip(CircleShape)
+                                            .background(CyberGreen)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                }
+                                Text(
+                                    text = if (isMonitoring) "MONITORING 🟢" else "IDLE ⚪",
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = if (isMonitoring) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    softWrap = false
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(10.dp))
-
-                    Text(
-                        text = if (folderUri != null) "📂 $folderDisplayName" else "No directory selected for surveillance",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = if (folderUri != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-
                     Spacer(modifier = Modifier.height(14.dp))
+
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = if (folderUri != null) "📂 $folderDisplayName" else "No directory selected for surveillance",
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = if (folderUri != null) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Button(
+                        FilledTonalButton(
                             onClick = onSelectFolderClicked,
-                            shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
+                            shape = RoundedCornerShape(16.dp),
+                            colors = ButtonDefaults.filledTonalButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                contentColor = CyanNeon
+                            ),
+                            modifier = Modifier.expressiveBounceClickable(onClick = onSelectFolderClicked)
                         ) {
                             Icon(
                                 imageVector = HoneyIcons.FolderOpen,
                                 contentDescription = null,
-                                tint = CyanAccent,
-                                modifier = Modifier.size(16.dp)
+                                tint = CyanNeon,
+                                modifier = Modifier.size(18.dp)
                             )
-                            Spacer(modifier = Modifier.width(6.dp))
+                            Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = if (folderUri == null) "Select Folder" else "Change Folder",
                                 fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
+                                fontWeight = FontWeight.ExtraBold
                             )
                         }
 
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = "Auto-Scan",
-                                fontSize = 12.sp,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -198,7 +254,9 @@ fun ScannerScreen(
                                 onCheckedChange = onAutoScanToggled,
                                 colors = SwitchDefaults.colors(
                                     checkedThumbColor = CyberGreen,
-                                    checkedTrackColor = CyberGreen.copy(alpha = 0.3f)
+                                    checkedTrackColor = CyberGreen.copy(alpha = 0.25f),
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
                                 )
                             )
                         }
@@ -207,11 +265,11 @@ fun ScannerScreen(
             }
         }
 
-        // STATS STRIP (Files Scanned, Honeypots Armed, Latest Event)
+        // STATS STRIP (Files Scanned, Honeypots Armed)
         item {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 SmallStatCard(
                     modifier = Modifier.weight(1f),
@@ -228,41 +286,42 @@ fun ScannerScreen(
             }
         }
 
-        // LATEST SUMMARY BANNER
+        // LATEST SUMMARY BANNER (Expressive Pill Container)
         if (latestChangeSummary.isNotBlank()) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(12.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(horizontal = 14.dp, vertical = 10.dp)
+                Surface(
+                    shape = RoundedCornerShape(18.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
                         text = "⚡ $latestChangeSummary",
                         fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.SemiBold,
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)
                     )
                 }
             }
         }
 
-        // FILTER CHIPS ROW
+        // FILTER CHIPS ROW (Expressive Pill Capsules)
         item {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 filterChips.forEach { (catKey, catLabel) ->
                     val isSelected = selectedFilterCategory == catKey
                     FilterChip(
                         selected = isSelected,
                         onClick = { selectedFilterCategory = catKey },
-                        label = { Text(catLabel, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        label = { Text(catLabel, fontSize = 11.sp, fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = when (catKey) {
                                 "DEPLOYED" -> CyanAccent.copy(alpha = 0.2f)
@@ -275,9 +334,17 @@ fun ScannerScreen(
                                 "BREACHES", "DELETED" -> AlertRed
                                 "EDITED" -> WarningYellow
                                 else -> CyberGreen
-                            }
+                            },
+                            containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
-                        shape = RoundedCornerShape(10.dp)
+                        border = FilterChipDefaults.filterChipBorder(
+                            enabled = true,
+                            selected = isSelected,
+                            borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant,
+                            selectedBorderColor = Color.Transparent
+                        ),
+                        shape = RoundedCornerShape(50)
                     )
                 }
             }
@@ -291,33 +358,49 @@ fun ScannerScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Real-time Kernel Events (${filteredLogs.size})",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Bold,
+                    text = "Kernel Event Stream (${filteredLogs.size})",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Black,
+                    letterSpacing = 0.2.sp,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                Text(
-                    text = "Inotify Active",
-                    fontSize = 11.sp,
-                    color = CyberGreen
-                )
+                Surface(
+                    shape = RoundedCornerShape(8.dp),
+                    color = CyberGreen.copy(alpha = 0.12f)
+                ) {
+                    Text(
+                        text = "Inotify Active 🟢",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = CyberGreen,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                    )
+                }
             }
         }
 
         // LOG ITEMS
         if (filteredLogs.isEmpty()) {
             item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 24.dp),
-                    contentAlignment = Alignment.Center
+                Surface(
+                    shape = RoundedCornerShape(20.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Text(
-                        text = "No filesystem activity recorded under this filter 🛡️",
-                        fontSize = 12.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "No filesystem activity recorded under this filter 🛡️",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         } else {
@@ -347,27 +430,29 @@ private fun SmallStatCard(
     value: String,
     accentColor: Color
 ) {
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    Surface(
+        shape = RoundedCornerShape(22.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        tonalElevation = 2.dp,
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp)
+                .padding(16.dp)
         ) {
             Text(
                 text = label,
                 fontSize = 11.sp,
+                fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
             Text(
                 text = value,
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 24.sp,
+                fontWeight = FontWeight.Black,
                 color = accentColor
             )
         }
@@ -409,18 +494,19 @@ private fun DirectoryLogCard(
 
     val displayDetails = if (log.details.isNotBlank()) log.details else defaultDetails
 
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    Surface(
+        shape = RoundedCornerShape(20.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        tonalElevation = 1.dp,
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { onToggleExpand() }
+            .expressiveBounceClickable(onClick = onToggleExpand)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(16.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -432,7 +518,7 @@ private fun DirectoryLogCard(
                     Text(
                         text = log.file,
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
@@ -441,24 +527,24 @@ private fun DirectoryLogCard(
                     Text(
                         text = log.timestamp,
                         fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                Box(
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(badgeColor.copy(alpha = 0.15f))
-                        .border(1.dp, badgeColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                Surface(
+                    shape = RoundedCornerShape(50),
+                    color = badgeColor.copy(alpha = 0.15f),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.4f))
                 ) {
                     Text(
                         text = eventLabel,
                         fontSize = 10.sp,
-                        fontWeight = FontWeight.Bold,
+                        fontWeight = FontWeight.ExtraBold,
                         color = badgeColor,
                         maxLines = 1,
-                        softWrap = false
+                        softWrap = false,
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                     )
                 }
 
@@ -481,15 +567,16 @@ private fun DirectoryLogCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(top = 12.dp)
-                        .clip(RoundedCornerShape(10.dp))
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
-                        .padding(10.dp)
+                        .clip(RoundedCornerShape(14.dp))
+                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                        .padding(12.dp)
                 ) {
                     Text(
                         text = displayDetails,
                         fontSize = 11.sp,
+                        fontWeight = FontWeight.Medium,
                         lineHeight = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
             }

@@ -24,8 +24,7 @@ import androidx.compose.ui.unit.sp
 import com.honeyfile.security.data.AccessLog
 import com.honeyfile.security.data.AppDatabase
 import com.honeyfile.security.decoy.DecoyGeneratorEngine
-import com.honeyfile.security.ui.theme.CyanAccent
-import com.honeyfile.security.ui.theme.CyberGreen
+import com.honeyfile.security.ui.theme.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -61,8 +60,9 @@ fun DecoyStudioSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = MaterialTheme.colorScheme.surface,
-        shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp)
+        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+        shape = RoundedCornerShape(topStart = 32.dp, topEnd = 32.dp),
+        dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
         Column(
             modifier = Modifier
@@ -85,34 +85,40 @@ fun DecoyStudioSheet(
                         Text(
                             text = "🍯 Decoy Studio",
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.3.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .padding(horizontal = 8.dp, vertical = 2.dp)
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f))
                         ) {
                             Text(
                                 text = versionName,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
                                 color = MaterialTheme.colorScheme.primary,
                                 maxLines = 1,
-                                softWrap = false
+                                softWrap = false,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                             )
                         }
                     }
+                    Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = "Deploy multi-format honeypot traps into monitored folder",
                         fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
-                IconButton(onClick = onDismiss) {
+                IconButton(
+                    onClick = onDismiss,
+                    modifier = Modifier.expressiveBounceClickable(onClick = onDismiss)
+                ) {
                     Icon(
                         imageVector = Icons.Default.Close,
                         contentDescription = "Close",
@@ -123,116 +129,127 @@ fun DecoyStudioSheet(
 
             Spacer(modifier = Modifier.height(14.dp))
 
-            // Category Chips Row
+            // Category Chips Row (Expressive Full Pills)
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 categories.forEach { category ->
                     val isSelected = activeCategory == category
                     FilterChip(
                         selected = isSelected,
                         onClick = { activeCategory = category },
-                        label = { Text(category, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal) },
+                        label = { Text(category, fontSize = 12.sp, fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = CyberGreen.copy(alpha = 0.2f),
-                            selectedLabelColor = CyberGreen
+                            selectedLabelColor = CyberGreen,
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant
                         ),
                         border = FilterChipDefaults.filterChipBorder(
                             enabled = true,
                             selected = isSelected,
-                            borderColor = MaterialTheme.colorScheme.outline,
-                            selectedBorderColor = CyberGreen
+                            borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant,
+                            selectedBorderColor = Color.Transparent
                         ),
-                        shape = RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(50)
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            // Selection Controls (Select All / Deselect All)
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                OutlinedButton(
-                    onClick = {
-                        visibleTemplates.forEach {
-                            if (!checkedTemplates.contains(it.fileName)) checkedTemplates.add(it.fileName)
-                        }
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f).height(36.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("Select All", fontSize = 12.sp)
-                }
-
-                OutlinedButton(
-                    onClick = {
-                        visibleTemplates.forEach { checkedTemplates.remove(it.fileName) }
-                    },
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.weight(1f).height(36.dp),
-                    contentPadding = PaddingValues(0.dp)
-                ) {
-                    Text("Deselect All", fontSize = 12.sp)
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Template Checklist
+            // Selection Controls (Select All / Deselect All)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
+            ) {
+                FilledTonalButton(
+                    onClick = {
+                        visibleTemplates.forEach {
+                            if (!checkedTemplates.contains(it.fileName)) checkedTemplates.add(it.fileName)
+                        }
+                    },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("Select All", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+
+                FilledTonalButton(
+                    onClick = {
+                        visibleTemplates.forEach { checkedTemplates.remove(it.fileName) }
+                    },
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(containerColor = MaterialTheme.colorScheme.surfaceContainerHigh),
+                    modifier = Modifier.weight(1f).height(38.dp),
+                    contentPadding = PaddingValues(0.dp)
+                ) {
+                    Text("Deselect All", fontSize = 12.sp, fontWeight = FontWeight.Bold)
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // Template Checklist (M3 Expressive Items)
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = 280.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp)
+                verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 items(visibleTemplates) { template ->
                     val isChecked = checkedTemplates.contains(template.fileName)
-                    Row(
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        border = androidx.compose.foundation.BorderStroke(
+                            1.dp,
+                            if (isChecked) CyberGreen.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant
+                        ),
+                        tonalElevation = 1.dp,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(14.dp))
-                            .background(MaterialTheme.colorScheme.surfaceVariant)
-                            .border(
-                                1.dp,
-                                if (isChecked) CyberGreen.copy(alpha = 0.6f) else MaterialTheme.colorScheme.outline,
-                                RoundedCornerShape(14.dp)
-                            )
-                            .clickable {
+                            .expressiveBounceClickable {
                                 if (isChecked) checkedTemplates.remove(template.fileName)
                                 else checkedTemplates.add(template.fileName)
                             }
-                            .padding(12.dp),
-                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Checkbox(
-                            checked = isChecked,
-                            onCheckedChange = { checked ->
-                                if (checked) checkedTemplates.add(template.fileName)
-                                else checkedTemplates.remove(template.fileName)
-                            },
-                            colors = CheckboxDefaults.colors(
-                                checkedColor = CyberGreen,
-                                checkmarkColor = Color.Black
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Checkbox(
+                                checked = isChecked,
+                                onCheckedChange = { checked ->
+                                    if (checked) checkedTemplates.add(template.fileName)
+                                    else checkedTemplates.remove(template.fileName)
+                                },
+                                colors = CheckboxDefaults.colors(
+                                    checkedColor = CyberGreen,
+                                    checkmarkColor = Color.Black
+                                )
                             )
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "${template.emoji}  ${template.displayName}",
-                                fontSize = 13.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Text(
-                                text = template.fileName,
-                                fontSize = 11.sp,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "${template.emoji}  ${template.displayName}",
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                                Spacer(modifier = Modifier.height(2.dp))
+                                Text(
+                                    text = template.fileName,
+                                    fontSize = 11.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
                     }
                 }
@@ -244,16 +261,16 @@ fun DecoyStudioSheet(
             if (isDeploying) {
                 LinearProgressIndicator(
                     progress = { deployProgress },
-                    modifier = Modifier.fillMaxWidth().height(6.dp).clip(RoundedCornerShape(3.dp)),
+                    modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(50)),
                     color = CyberGreen,
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                 )
                 Spacer(modifier = Modifier.height(6.dp))
                 Text(
                     text = statusText,
                     fontSize = 12.sp,
-                    color = CyanAccent,
-                    fontWeight = FontWeight.Medium
+                    color = CyanNeon,
+                    fontWeight = FontWeight.Bold
                 )
                 Spacer(modifier = Modifier.height(10.dp))
             }
@@ -331,23 +348,23 @@ fun DecoyStudioSheet(
                     }
                 },
                 enabled = !isDeploying && folderUri != null,
-                shape = RoundedCornerShape(14.dp),
+                shape = RoundedCornerShape(18.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = CyberGreen),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp)
+                    .height(50.dp)
             ) {
                 Icon(
                     imageVector = com.honeyfile.security.ui.theme.HoneyIcons.ElectricBolt,
                     contentDescription = null,
                     tint = Color.Black,
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(20.dp)
                 )
-                Spacer(modifier = Modifier.width(6.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text(
                     text = "Deploy Selected Decoys 🍯",
                     color = Color.Black,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.Black,
                     fontSize = 14.sp
                 )
             }

@@ -2,7 +2,6 @@ package com.honeyfile.security.ui.compose
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -14,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -67,121 +67,146 @@ fun OverviewScreen(
             )
         }
 
-        // THREAT INTELLIGENCE SUMMARY CARD
-        Card(
-            shape = RoundedCornerShape(20.dp),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        // THREAT INTELLIGENCE SUMMARY CARD (M3 Expressive 28dp Container)
+        Surface(
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainer,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+            tonalElevation = 2.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(18.dp)
+                    .background(
+                        Brush.verticalGradient(
+                            listOf(
+                                when (threatSummary.severityLevel) {
+                                    SeverityLevel.LOW -> CyberGreen.copy(alpha = 0.06f)
+                                    SeverityLevel.ELEVATED -> WarningYellow.copy(alpha = 0.08f)
+                                    SeverityLevel.CRITICAL -> AlertRed.copy(alpha = 0.10f)
+                                },
+                                Color.Transparent
+                            )
+                        )
+                    )
+                    .padding(20.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(
-                        modifier = Modifier
-                            .weight(1f, fill = false)
-                            .padding(end = 8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "🛡️ Endpoint Risk Index",
-                            fontSize = 15.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
+                    Text(
+                        text = "🛡️ Endpoint Risk Index",
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Black,
+                        letterSpacing = 0.2.sp,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
 
-                    // Severity Badge
+                    // Severity Badge (Expressive Full Pill)
                     val (badgeText, badgeColor) = when (threatSummary.severityLevel) {
                         SeverityLevel.LOW -> Pair("LOW RISK 🟢", CyberGreen)
                         SeverityLevel.ELEVATED -> Pair("ELEVATED 🟡", WarningYellow)
                         SeverityLevel.CRITICAL -> Pair("CRITICAL 🔴", AlertRed)
                     }
 
-                    Box(
-                        modifier = Modifier
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(badgeColor.copy(alpha = 0.15f))
-                            .border(1.dp, badgeColor.copy(alpha = 0.4f), RoundedCornerShape(8.dp))
-                            .padding(horizontal = 10.dp, vertical = 4.dp)
+                    Surface(
+                        shape = RoundedCornerShape(50),
+                        color = badgeColor.copy(alpha = 0.15f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.4f))
                     ) {
                         Text(
                             text = badgeText,
                             fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontWeight = FontWeight.ExtraBold,
                             color = badgeColor,
-                            maxLines = 1,
-                            softWrap = false
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 5.dp)
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(14.dp))
+                Spacer(modifier = Modifier.height(16.dp))
 
-                // Score Display & Progress Bar
+                // Score Display & Peak Window
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.Bottom
                 ) {
-                    Text(
-                        text = "Score: ${threatSummary.threatScore} / 100",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = "Peak: ${threatSummary.peakAttackTimeWindow}",
-                        fontSize = 12.sp,
-                        color = CyanAccent,
-                        fontWeight = FontWeight.Medium
-                    )
+                    Row(verticalAlignment = Alignment.Bottom) {
+                        Text(
+                            text = "${threatSummary.threatScore}",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Black,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Text(
+                            text = " / 100",
+                            fontSize = 15.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
+                        )
+                    }
+
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, CyanAccent.copy(alpha = 0.3f))
+                    ) {
+                        Text(
+                            text = "Peak: ${threatSummary.peakAttackTimeWindow}",
+                            fontSize = 12.sp,
+                            color = CyanAccent,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        )
+                    }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(10.dp))
 
                 LinearProgressIndicator(
                     progress = { (threatSummary.threatScore / 100f).coerceIn(0f, 1f) },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp)),
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(50)),
                     color = when (threatSummary.severityLevel) {
                         SeverityLevel.LOW -> CyberGreen
                         SeverityLevel.ELEVATED -> WarningYellow
                         SeverityLevel.CRITICAL -> AlertRed
                     },
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(18.dp))
 
-                // View Details Button
-                OutlinedButton(
+                // View Details Button with Expressive Spring Press
+                FilledTonalButton(
                     onClick = onOpenThreatDetails,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = CyanAccent),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, CyanAccent.copy(alpha = 0.5f)),
-                    modifier = Modifier.fillMaxWidth()
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.filledTonalButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        contentColor = CyanNeon
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .expressiveBounceClickable(onClick = onOpenThreatDetails)
                 ) {
                     Icon(
                         imageVector = HoneyIcons.Analytics,
                         contentDescription = null,
-                        tint = CyanAccent,
-                        modifier = Modifier.size(16.dp)
+                        tint = CyanNeon,
+                        modifier = Modifier.size(18.dp)
                     )
-                    Spacer(modifier = Modifier.width(6.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text(
                         text = "View Analytics & Heatmap 📊",
                         fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.ExtraBold
                     )
                 }
             }
@@ -190,19 +215,20 @@ fun OverviewScreen(
         // QUICK ACTIONS SECTION
         Text(
             text = "⚡ Security Management",
-            fontSize = 15.sp,
-            fontWeight = FontWeight.Bold,
+            fontSize = 16.sp,
+            fontWeight = FontWeight.Black,
+            letterSpacing = 0.3.sp,
             color = MaterialTheme.colorScheme.onSurface
         )
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             ActionTile(
                 modifier = Modifier.weight(1f),
                 title = "Trigger Access",
-                subtitle = "Simulate File Access",
+                subtitle = "Simulate Access",
                 icon = HoneyIcons.FlashOn,
                 accentColor = CyberGreen,
                 onClick = onTriggerAccess
@@ -220,7 +246,7 @@ fun OverviewScreen(
 
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(10.dp)
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             ActionTile(
                 modifier = Modifier.weight(1f),
@@ -252,16 +278,22 @@ private fun StatCard(
     accentColor: Color,
     subtitle: String
 ) {
-    Card(
-        shape = RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+    Surface(
+        shape = RoundedCornerShape(26.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        tonalElevation = 2.dp,
         modifier = modifier
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .background(
+                    Brush.verticalGradient(
+                        listOf(accentColor.copy(alpha = 0.08f), Color.Transparent)
+                    )
+                )
+                .padding(18.dp)
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -271,18 +303,18 @@ private fun StatCard(
                 Text(
                     text = title,
                     fontSize = 12.sp,
-                    fontWeight = FontWeight.Medium,
+                    fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(text = icon, fontSize = 16.sp)
+                Text(text = icon, fontSize = 18.sp)
             }
 
-            Spacer(modifier = Modifier.height(10.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             Text(
                 text = count,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 32.sp,
+                fontWeight = FontWeight.Black,
                 color = accentColor
             )
 
@@ -291,6 +323,7 @@ private fun StatCard(
             Text(
                 text = subtitle,
                 fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
@@ -306,44 +339,49 @@ private fun ActionTile(
     accentColor: Color,
     onClick: () -> Unit
 ) {
-    Card(
-        shape = RoundedCornerShape(18.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-        modifier = modifier.clickable { onClick() }
+    Surface(
+        shape = RoundedCornerShape(24.dp),
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        tonalElevation = 2.dp,
+        modifier = modifier.expressiveBounceClickable(onClick = onClick)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(14.dp)
+                .padding(16.dp)
         ) {
             Box(
                 modifier = Modifier
-                    .size(36.dp)
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(accentColor.copy(alpha = 0.15f)),
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accentColor.copy(alpha = 0.15f))
+                    .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
                     tint = accentColor,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
             Text(
                 text = title,
-                fontSize = 13.sp,
-                fontWeight = FontWeight.Bold,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Black,
                 color = MaterialTheme.colorScheme.onSurface
             )
+
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = subtitle,
                 fontSize = 11.sp,
+                fontWeight = FontWeight.Medium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }

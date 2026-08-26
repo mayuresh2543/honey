@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
@@ -86,45 +87,56 @@ fun HoneyfileApp(
                     ) {
                         Text(
                             text = "🛡️ Honeyfile",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.5.sp,
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(MaterialTheme.colorScheme.primaryContainer)
-                                .padding(horizontal = 7.dp, vertical = 2.dp)
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Surface(
+                            shape = RoundedCornerShape(10.dp),
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                         ) {
                             Text(
                                 text = versionName,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.primary
+                                fontSize = 11.sp,
+                                fontWeight = FontWeight.ExtraBold,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                             )
                         }
                     }
                 },
                 actions = {
-                    // Dark / Light Theme Toggle
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
+                    // Dark / Light Theme Toggle in Expressive Pill
+                    Surface(
+                        shape = RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.surfaceContainer,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.padding(end = 12.dp)
                     ) {
-                        Text(
-                            text = if (isDarkMode) "🌙" else "☀️",
-                            fontSize = 14.sp
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Switch(
-                            checked = isDarkMode,
-                            onCheckedChange = onThemeToggled,
-                            colors = SwitchDefaults.colors(
-                                checkedThumbColor = CyberGreen,
-                                checkedTrackColor = CyberGreen.copy(alpha = 0.3f)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                        ) {
+                            Text(
+                                text = if (isDarkMode) "🌙" else "☀️",
+                                fontSize = 14.sp
                             )
-                        )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Switch(
+                                checked = isDarkMode,
+                                onCheckedChange = onThemeToggled,
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = CyberGreen,
+                                    checkedTrackColor = CyberGreen.copy(alpha = 0.25f),
+                                    uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                    uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                                ),
+                                modifier = Modifier.scale(0.85f)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -134,39 +146,60 @@ fun HoneyfileApp(
         },
         bottomBar = {
             val navTabs = remember { HoneyNavTab.entries }
-            NavigationBar(
-                containerColor = MaterialTheme.colorScheme.surface,
-                tonalElevation = 8.dp
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .navigationBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 10.dp)
             ) {
-                navTabs.forEach { tab ->
-                    val isSelected = currentTab == tab
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            currentTab = tab
-                            if (tab == HoneyNavTab.VAULT) {
-                                onRefreshGallery()
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = tab.icon,
-                                contentDescription = tab.label,
-                                tint = if (isSelected) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                Surface(
+                    shape = RoundedCornerShape(30.dp),
+                    color = MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 6.dp,
+                    shadowElevation = 8.dp,
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    NavigationBar(
+                        containerColor = Color.Transparent,
+                        windowInsets = WindowInsets(0, 0, 0, 0),
+                        modifier = Modifier.height(68.dp)
+                    ) {
+                        navTabs.forEach { tab ->
+                            val isSelected = currentTab == tab
+                            NavigationBarItem(
+                                selected = isSelected,
+                                onClick = {
+                                    currentTab = tab
+                                    if (tab == HoneyNavTab.VAULT) {
+                                        onRefreshGallery()
+                                    }
+                                },
+                                icon = {
+                                    Icon(
+                                        imageVector = tab.icon,
+                                        contentDescription = tab.label,
+                                        tint = if (isSelected) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                label = {
+                                    Text(
+                                        text = tab.label,
+                                        fontSize = 11.sp,
+                                        fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium,
+                                        color = if (isSelected) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                },
+                                colors = NavigationBarItemDefaults.colors(
+                                    indicatorColor = CyberGreen.copy(alpha = 0.18f),
+                                    selectedIconColor = CyberGreen,
+                                    selectedTextColor = CyberGreen,
+                                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             )
-                        },
-                        label = {
-                            Text(
-                                text = tab.label,
-                                fontSize = 11.sp,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                                color = if (isSelected) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            indicatorColor = CyberGreen.copy(alpha = 0.15f)
-                        )
-                    )
+                        }
+                    }
                 }
             }
         },

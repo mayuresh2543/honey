@@ -358,7 +358,7 @@ fun AdminEnrollScanDialog(
                     OutlinedTextField(
                         value = adminEmailInput,
                         onValueChange = { adminEmailInput = it },
-                        label = { Text("Alert Email Address (Optional)") },
+                        label = { Text("Alert Email Address *") },
                         placeholder = { Text("admin@example.com") },
                         singleLine = true,
                         shape = RoundedCornerShape(14.dp),
@@ -407,15 +407,17 @@ fun AdminEnrollScanDialog(
                                     Toast.makeText(context, "❌ Administrator name already registered to another account.", Toast.LENGTH_LONG).show()
                                     return@Button
                                 }
-                                if (email.isNotEmpty()) {
-                                    if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-                                        Toast.makeText(context, "Please enter a valid email address format!", Toast.LENGTH_SHORT).show()
-                                        return@Button
-                                    }
-                                    if (faceAuthManager.isEmailTaken(email, adminTarget)) {
-                                        Toast.makeText(context, "❌ Email address already registered to another administrator account.", Toast.LENGTH_LONG).show()
-                                        return@Button
-                                    }
+                                if (email.isEmpty()) {
+                                    Toast.makeText(context, "Please enter Admin $adminTarget's email address!", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                if (!android.util.Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+                                    Toast.makeText(context, "Please enter a valid email address format!", Toast.LENGTH_SHORT).show()
+                                    return@Button
+                                }
+                                if (faceAuthManager.isEmailTaken(email, adminTarget)) {
+                                    Toast.makeText(context, "❌ Email address already registered to another administrator account.", Toast.LENGTH_LONG).show()
+                                    return@Button
                                 }
 
                                 val bitmap = tempCapturedBitmap ?: return@Button

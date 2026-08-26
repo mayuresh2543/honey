@@ -50,10 +50,7 @@ class HoneyFileObserver(
     private val recentAccessTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
     @Volatile
     private var lastFolderMutationTimeMs = 0L
-    @Volatile
-    private var lastMovedFromPath: String? = null
-    @Volatile
-    private var lastMovedFromTimeMs: Long = 0L
+    private val pendingMovedFromMap = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     override fun onEvent(event: Int, path: String?) {
         if (path.isNullOrBlank()) return
@@ -137,13 +134,11 @@ class HoneyFileObserver(
 
         // Buffer MOVED_FROM to pair with subsequent MOVED_TO for clean rename tracking
         if (isMovedFrom) {
-            lastMovedFromPath = path
             val moveTime = System.currentTimeMillis()
-            lastMovedFromTimeMs = moveTime
+            pendingMovedFromMap[path] = moveTime
             coroutineScope.launch {
                 kotlinx.coroutines.delay(1800L)
-                if (lastMovedFromPath == path && lastMovedFromTimeMs == moveTime) {
-                    lastMovedFromPath = null
+                if (pendingMovedFromMap.remove(path, moveTime)) {
                     val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
                     Log.d(TAG, "inotify event: $path → DELETED (moved out of directory) at $timestamp")
                     onAlterationDetected(FileAlterationEvent(fileName = path, eventType = FileAlterationType.DELETED, timestamp = timestamp))
@@ -158,10 +153,12 @@ class HoneyFileObserver(
         val eventType: FileAlterationType = when {
             isMovedTo -> {
                 val now = System.currentTimeMillis()
-                val prev = lastMovedFromPath
-                if (prev != null && (now - lastMovedFromTimeMs < 2000L)) {
-                    reportedFileName = "$prev ➔ $path"
-                    lastMovedFromPath = null
+                val matchedEntry = pendingMovedFromMap.entries
+                    .filter { now - it.value < 2000L }
+                    .maxByOrNull { it.value }
+
+                if (matchedEntry != null && pendingMovedFromMap.remove(matchedEntry.key, matchedEntry.value)) {
+                    reportedFileName = "${matchedEntry.key} ➔ $path"
                 }
                 FileAlterationType.RENAMED
             }

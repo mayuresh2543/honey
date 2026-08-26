@@ -2,6 +2,9 @@ package com.honeyfile.security.integrity
 
 import android.os.FileObserver
 import android.util.Log
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -43,6 +46,7 @@ class HoneyFileObserver(
     // Read/access event — CLOSE_NOWRITE is the sole reliable indicator of a finished file read
     CLOSE_NOWRITE
 ) {
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val recentAccessTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
     @Volatile
     private var lastFolderMutationTimeMs = 0L
@@ -134,7 +138,17 @@ class HoneyFileObserver(
         // Buffer MOVED_FROM to pair with subsequent MOVED_TO for clean rename tracking
         if (isMovedFrom) {
             lastMovedFromPath = path
-            lastMovedFromTimeMs = System.currentTimeMillis()
+            val moveTime = System.currentTimeMillis()
+            lastMovedFromTimeMs = moveTime
+            coroutineScope.launch {
+                kotlinx.coroutines.delay(1800L)
+                if (lastMovedFromPath == path && lastMovedFromTimeMs == moveTime) {
+                    lastMovedFromPath = null
+                    val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                    Log.d(TAG, "inotify event: $path → DELETED (moved out of directory) at $timestamp")
+                    onAlterationDetected(FileAlterationEvent(fileName = path, eventType = FileAlterationType.DELETED, timestamp = timestamp))
+                }
+            }
             return
         }
 

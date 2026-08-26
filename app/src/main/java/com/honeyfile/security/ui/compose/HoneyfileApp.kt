@@ -54,7 +54,7 @@ fun HoneyfileApp(
     capturedPhotos: List<File>,
     onRefreshGallery: () -> Unit,
     onTriggerAccess: () -> Unit,
-    versionName: String = "v1.0.0",
+    versionName: String = "v1.0.1",
     mandatoryEnrollmentRequested: Boolean = false,
     onMandatoryEnrollmentHandled: () -> Unit = {},
     onAdminEnrolled: () -> Unit = {}

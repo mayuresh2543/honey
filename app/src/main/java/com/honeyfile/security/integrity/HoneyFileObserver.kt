@@ -70,21 +70,28 @@ class HoneyFileObserver(
             return
         }
 
-        val masked = event and ALL_EVENTS
+        val targetFile = java.io.File(folderPath, path)
+        val fileExists = targetFile.exists()
+
+        // Bitwise inotify event flags
+        val isDelete = (event and (DELETE or DELETE_SELF or MOVED_FROM)) != 0
+        val isCreate = (event and (CREATE or MOVED_TO)) != 0
+        val isModify = (event and (MODIFY or CLOSE_WRITE or ATTRIB)) != 0
+        val isAccess = (event and CLOSE_NOWRITE) != 0
 
         // Track folder mutation timestamps (deletion, creation, modify, rename)
-        if (masked == DELETE || masked == DELETE_SELF || masked == CREATE || masked == MOVED_FROM || masked == MOVED_TO || masked == MODIFY) {
+        if (isDelete || isCreate || isModify || !fileExists) {
             lastFolderMutationTimeMs = System.currentTimeMillis()
         }
 
         // 2. Suppress known decoy creations and initial writes
-        if ((masked == CREATE || masked == MODIFY) && com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(path)) {
+        if ((isCreate || isModify) && fileExists && com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(path)) {
             Log.d(TAG, "Known decoy file creation/write inotify event ignored: $path")
             return
         }
 
         // 3. For read/access events (CLOSE_NOWRITE):
-        if (masked == CLOSE_NOWRITE) {
+        if (isAccess && fileExists) {
             // Must match honey keywords
             if (!isHoneyFile(path)) return
 
@@ -97,9 +104,8 @@ class HoneyFileObserver(
                 return
             }
 
-            val targetFile = java.io.File(folderPath, path)
-            // Ensure target is an actual existing regular file, not a directory or deleted entry
-            if (!targetFile.exists() || targetFile.isDirectory) {
+            // Ensure target is an actual existing regular file, not a directory
+            if (targetFile.isDirectory) {
                 return
             }
 
@@ -119,17 +125,28 @@ class HoneyFileObserver(
             recentAccessTimestamps[path] = now
         }
 
-        val eventType = when (masked) {
-            CREATE                  -> FileAlterationType.COPIED_PASTED
-            MODIFY                  -> FileAlterationType.EDITED
-            DELETE, DELETE_SELF     -> FileAlterationType.DELETED
-            MOVED_FROM, MOVED_TO    -> FileAlterationType.RENAMED
-            CLOSE_NOWRITE           -> FileAlterationType.ACCESSED
-            else                    -> return
+        // 4. Resolve exact event type with physical disk state verification
+        val eventType: FileAlterationType = when {
+            isDelete || !fileExists -> {
+                FileAlterationType.DELETED
+            }
+            isCreate -> {
+                FileAlterationType.COPIED_PASTED
+            }
+            isModify -> {
+                FileAlterationType.EDITED
+            }
+            isAccess -> {
+                FileAlterationType.ACCESSED
+            }
+            (event and (MOVED_FROM or MOVED_TO)) != 0 -> {
+                FileAlterationType.RENAMED
+            }
+            else -> return
         }
 
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        Log.d(TAG, "inotify event: $path → $eventType (mask=$masked) at $timestamp")
+        Log.d(TAG, "inotify event: $path → $eventType (event=$event, exists=$fileExists) at $timestamp")
         onAlterationDetected(FileAlterationEvent(fileName = path, eventType = eventType, timestamp = timestamp))
     }
 

@@ -38,7 +38,7 @@ import java.util.Locale
 @Composable
 fun DecoyStudioSheet(
     folderUri: Uri?,
-    versionName: String = "v1.0.0",
+    versionName: String = "v1.0.1",
     onDismiss: () -> Unit
 ) {
     val context = LocalContext.current

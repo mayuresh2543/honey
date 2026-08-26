@@ -234,7 +234,7 @@ fun OverviewScreen(
             ActionTile(
                 modifier = Modifier.weight(1f),
                 title = "About & Credits",
-                subtitle = "Honeyfile v1.0.0",
+                subtitle = "Honeyfile v1.0.1",
                 icon = Icons.Default.Info,
                 accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 onClick = onOpenAbout

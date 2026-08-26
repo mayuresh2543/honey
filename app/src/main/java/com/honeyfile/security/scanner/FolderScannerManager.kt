@@ -106,10 +106,17 @@ class FolderScannerManager(private val context: Context) {
         if (realPath != null) {
             try {
                 fileObserver = HoneyFileObserver(realPath) { alterationEvent ->
+                    val targetFile = File(realPath, alterationEvent.fileName)
+                    val resolvedEventType = if (!targetFile.exists() && alterationEvent.eventType != FileAlterationType.DELETED) {
+                        FileAlterationType.DELETED
+                    } else {
+                        alterationEvent.eventType
+                    }
+
                     val timeFormatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
                     val timestamp = timeFormatter.format(Date())
 
-                    val (actionType, verb, icon) = when (alterationEvent.eventType) {
+                    val (actionType, verb, icon) = when (resolvedEventType) {
                         FileAlterationType.ACCESSED -> Triple("ACCESSED", "opened/accessed", "👁️")
                         FileAlterationType.EDITED -> Triple("MODIFIED", "modified", "✏️")
                         FileAlterationType.COPIED_PASTED -> Triple("CREATED", "created", "➕")

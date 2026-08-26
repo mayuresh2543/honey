@@ -46,6 +46,10 @@ class HoneyFileObserver(
     private val recentAccessTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
     @Volatile
     private var lastFolderMutationTimeMs = 0L
+    @Volatile
+    private var lastMovedFromPath: String? = null
+    @Volatile
+    private var lastMovedFromTimeMs: Long = 0L
 
     override fun onEvent(event: Int, path: String?) {
         if (path.isNullOrBlank()) return
@@ -74,13 +78,15 @@ class HoneyFileObserver(
         val fileExists = targetFile.exists()
 
         // Bitwise inotify event flags
-        val isDelete = (event and (DELETE or DELETE_SELF or MOVED_FROM)) != 0
-        val isCreate = (event and (CREATE or MOVED_TO)) != 0
+        val isMovedFrom = (event and MOVED_FROM) != 0
+        val isMovedTo = (event and MOVED_TO) != 0
+        val isDelete = (event and (DELETE or DELETE_SELF)) != 0
+        val isCreate = (event and CREATE) != 0
         val isModify = (event and (MODIFY or CLOSE_WRITE or ATTRIB)) != 0
         val isAccess = (event and CLOSE_NOWRITE) != 0
 
         // Track folder mutation timestamps (deletion, creation, modify, rename)
-        if (isDelete || isCreate || isModify || !fileExists) {
+        if (isDelete || isCreate || isModify || isMovedFrom || isMovedTo || !fileExists) {
             lastFolderMutationTimeMs = System.currentTimeMillis()
         }
 
@@ -125,8 +131,26 @@ class HoneyFileObserver(
             recentAccessTimestamps[path] = now
         }
 
-        // 4. Resolve exact event type with physical disk state verification
+        // Buffer MOVED_FROM to pair with subsequent MOVED_TO for clean rename tracking
+        if (isMovedFrom) {
+            lastMovedFromPath = path
+            lastMovedFromTimeMs = System.currentTimeMillis()
+            return
+        }
+
+        var reportedFileName = path
+
+        // 4. Resolve exact event type
         val eventType: FileAlterationType = when {
+            isMovedTo -> {
+                val now = System.currentTimeMillis()
+                val prev = lastMovedFromPath
+                if (prev != null && (now - lastMovedFromTimeMs < 2000L)) {
+                    reportedFileName = "$prev ➔ $path"
+                    lastMovedFromPath = null
+                }
+                FileAlterationType.RENAMED
+            }
             isDelete || !fileExists -> {
                 FileAlterationType.DELETED
             }
@@ -139,15 +163,12 @@ class HoneyFileObserver(
             isAccess -> {
                 FileAlterationType.ACCESSED
             }
-            (event and (MOVED_FROM or MOVED_TO)) != 0 -> {
-                FileAlterationType.RENAMED
-            }
             else -> return
         }
 
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        Log.d(TAG, "inotify event: $path → $eventType (event=$event, exists=$fileExists) at $timestamp")
-        onAlterationDetected(FileAlterationEvent(fileName = path, eventType = eventType, timestamp = timestamp))
+        Log.d(TAG, "inotify event: $reportedFileName → $eventType (event=$event, exists=$fileExists) at $timestamp")
+        onAlterationDetected(FileAlterationEvent(fileName = reportedFileName, eventType = eventType, timestamp = timestamp))
     }
 
     private fun isHoneyFile(fileName: String): Boolean {

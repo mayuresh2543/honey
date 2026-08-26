@@ -106,8 +106,9 @@ class FolderScannerManager(private val context: Context) {
         if (realPath != null) {
             try {
                 fileObserver = HoneyFileObserver(realPath) { alterationEvent ->
-                    val targetFile = File(realPath, alterationEvent.fileName)
-                    val resolvedEventType = if (!targetFile.exists() && alterationEvent.eventType != FileAlterationType.DELETED) {
+                    val resolvedEventType = if (alterationEvent.eventType != FileAlterationType.RENAMED &&
+                        alterationEvent.eventType != FileAlterationType.DELETED &&
+                        !File(realPath, alterationEvent.fileName).exists()) {
                         FileAlterationType.DELETED
                     } else {
                         alterationEvent.eventType

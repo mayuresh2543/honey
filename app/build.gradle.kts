@@ -14,8 +14,8 @@ android {
         applicationId = "com.honeyfile.security"
         minSdk = 24
         targetSdk = 30
-        versionCode = 6
-        versionName = "2.0.1-beta"
+        versionCode = 1
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         

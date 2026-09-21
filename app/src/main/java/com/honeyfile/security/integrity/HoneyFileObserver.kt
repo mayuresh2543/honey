@@ -61,6 +61,15 @@ class HoneyFileObserver(
     override fun onEvent(event: Int, path: String?) {
         if (path.isNullOrBlank()) return
 
+        val now = System.currentTimeMillis()
+
+        // 0. If file was already processed as deleted within the last 6 seconds, suppress all trailing kernel events
+        val lastDeletedTime = recentlyDeletedFiles[path]
+        if (lastDeletedTime != null && now - lastDeletedTime < 6000L) {
+            Log.d(TAG, "Suppressed duplicate/trailing inotify event ($event) on recently deleted file: $path")
+            return
+        }
+
         // 1. Ignore inotify events on directories themselves (0x40000000 = IN_ISDIR)
         if ((event and 0x40000000) != 0) {
             return
@@ -111,16 +120,6 @@ class HoneyFileObserver(
 
         // 3. For read/access events (CLOSE_NOWRITE):
         if (isAccess) {
-            val now = System.currentTimeMillis()
-
-            // If file was deleted recently (within 5 seconds) or does not exist on disk,
-            // this CLOSE_NOWRITE is a trailing inotify kernel artifact from unlinking/closing the deleted file.
-            val lastDeletedTime = recentlyDeletedFiles[path]
-            if (!fileExists || (lastDeletedTime != null && now - lastDeletedTime < 5000L)) {
-                Log.d(TAG, "Suppressed trailing CLOSE_NOWRITE for deleted file: $path")
-                return
-            }
-
             // Must match honey keywords
             if (!isHoneyFile(path)) return
 
@@ -158,20 +157,25 @@ class HoneyFileObserver(
                 delay(450L)
                 pendingAccessJobs.remove(path)
 
-                val checkFile = File(folderPath, path)
-                val checkExists = checkFile.exists()
-                val wasDeleted = recentlyDeletedFiles[path]?.let { System.currentTimeMillis() - it < 5000L } == true
+                // If file was already processed as deleted, silently drop without emitting anything
+                val wasDeleted = recentlyDeletedFiles[path]?.let { System.currentTimeMillis() - it < 6000L } == true
+                if (wasDeleted) {
+                    Log.d(TAG, "Access settling window: '$path' was already processed as deleted, suppressing duplicate.")
+                    return@launch
+                }
 
-                if (!checkExists || wasDeleted) {
-                    Log.d(TAG, "File '$path' unlinked during access settling window — converting to DELETED")
+                val checkFile = File(folderPath, path)
+                if (!checkFile.exists()) {
+                    Log.d(TAG, "File '$path' vanished during access settling window — emitting DELETED")
                     recentlyDeletedFiles[path] = System.currentTimeMillis()
                     val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
                     onAlterationDetected(FileAlterationEvent(fileName = path, eventType = FileAlterationType.DELETED, timestamp = timestamp))
-                } else {
-                    val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-                    Log.d(TAG, "inotify verified access: $path → ACCESSED at $timestamp")
-                    onAlterationDetected(FileAlterationEvent(fileName = path, eventType = FileAlterationType.ACCESSED, timestamp = timestamp))
+                    return@launch
                 }
+
+                val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                Log.d(TAG, "inotify verified access: $path → ACCESSED at $timestamp")
+                onAlterationDetected(FileAlterationEvent(fileName = path, eventType = FileAlterationType.ACCESSED, timestamp = timestamp))
             }
             pendingAccessJobs[path] = accessJob
             return

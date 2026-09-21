@@ -68,6 +68,7 @@ class MainActivity : ComponentActivity() {
     private val mandatoryEnrollmentState = mutableStateOf(false)
 
     private val lastSecurityAlertTimeMs = AtomicLong(0L)
+    private val recentDeletedFileAlerts = java.util.concurrent.ConcurrentHashMap<String, Long>()
 
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -259,6 +260,13 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        // Only process verification in MainActivity when MainActivity is in the foreground.
+        // When in the background, HoneyMonitoringService handles background breach surveillance.
+        if (!isInForeground) {
+            Log.d(TAG, "MainActivity in background — HoneyMonitoringService handles event: ${event.fileName}")
+            return
+        }
+
         // Suppress DEPLOYED honeypot events
         if (event.eventType == "DEPLOYED" ||
             com.honeyfile.security.decoy.DecoyGeneratorEngine.isDecoyFileName(event.fileName) && (event.eventType == "CREATED" || event.eventType == "DEPLOYED")) {
@@ -288,13 +296,13 @@ class MainActivity : ComponentActivity() {
         val now = System.currentTimeMillis()
         val last = lastSecurityAlertTimeMs.get()
 
-        // Critical: DELETED events must NEVER be debounced and dropped due to preceding read/access events
-        if (!isDelete && (now - last < 6000L || !lastSecurityAlertTimeMs.compareAndSet(last, now))) {
-            Log.d(TAG, "Security verification debounced for: ${event.fileName}")
-            return
-        }
-
         if (isDelete) {
+            val lastFileDelete = recentDeletedFileAlerts[event.fileName] ?: 0L
+            if (now - lastFileDelete < 6000L) {
+                Log.d(TAG, "Duplicate DELETED event debounced for file: ${event.fileName}")
+                return
+            }
+            recentDeletedFileAlerts[event.fileName] = now
             lastSecurityAlertTimeMs.set(now)
             withContext(Dispatchers.IO) {
                 try {
@@ -302,6 +310,11 @@ class MainActivity : ComponentActivity() {
                 } catch (e: Exception) {
                     Log.e(TAG, "Error cleaning pre-delete access logs", e)
                 }
+            }
+        } else {
+            if (now - last < 6000L || !lastSecurityAlertTimeMs.compareAndSet(last, now)) {
+                Log.d(TAG, "Security verification debounced for: ${event.fileName}")
+                return
             }
         }
 

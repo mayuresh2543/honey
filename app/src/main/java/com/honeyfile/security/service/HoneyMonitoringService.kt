@@ -51,6 +51,7 @@ class HoneyMonitoringService : LifecycleService() {
 
     // Atomic debounce — only one background capture per 5-second window.
     private val lastBreachTimeMs = AtomicLong(0L)
+    private val recentDeletedBreaches = java.util.concurrent.ConcurrentHashMap<String, Long>()
     private val BREACH_DEBOUNCE_MS = 5000L
 
     override fun onCreate() {
@@ -173,13 +174,19 @@ class HoneyMonitoringService : LifecycleService() {
         val now = System.currentTimeMillis()
         val last = lastBreachTimeMs.get()
 
-        // Critical: DELETED events must NEVER be debounced and dropped due to preceding read/access events
-        if (!isDelete && (now - last < BREACH_DEBOUNCE_MS || !lastBreachTimeMs.compareAndSet(last, now))) {
-            Log.d(TAG, "Breach debounced ($fileName) within ${BREACH_DEBOUNCE_MS}ms window")
-            return
-        }
         if (isDelete) {
+            val lastFileDelete = recentDeletedBreaches[fileName] ?: 0L
+            if (now - lastFileDelete < 6000L) {
+                Log.d(TAG, "Duplicate DELETED breach debounced for: $fileName")
+                return
+            }
+            recentDeletedBreaches[fileName] = now
             lastBreachTimeMs.set(now)
+        } else {
+            if (now - last < BREACH_DEBOUNCE_MS || !lastBreachTimeMs.compareAndSet(last, now)) {
+                Log.d(TAG, "Breach debounced ($fileName) within ${BREACH_DEBOUNCE_MS}ms window")
+                return
+            }
         }
 
         Log.w(TAG, "Silent background breach detected: $fileName ($actionStr) — ZERO UI, NO APP LAUNCH")

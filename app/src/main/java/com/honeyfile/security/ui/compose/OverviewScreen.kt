@@ -31,7 +31,6 @@ fun OverviewScreen(
     intruderCount: Int,
     threatSummary: ThreatSummary,
     onOpenThreatDetails: () -> Unit,
-    onTriggerAccess: () -> Unit,
     onOpenAdminManagement: () -> Unit,
     onOpenDecoyStudio: () -> Unit,
     onOpenAbout: () -> Unit
@@ -239,11 +238,11 @@ fun OverviewScreen(
         ) {
             ActionTile(
                 modifier = Modifier.weight(1f),
-                title = "Trigger Access",
-                subtitle = "Simulate Access",
-                icon = HoneyIcons.FlashOn,
-                accentColor = CyberGreen,
-                onClick = onTriggerAccess
+                title = "Deploy Decoy",
+                subtitle = "Multi-Format Traps",
+                icon = HoneyIcons.FolderSpecial,
+                accentColor = WarningYellow,
+                onClick = onOpenDecoyStudio
             )
 
             ActionTile(
@@ -256,28 +255,14 @@ fun OverviewScreen(
             )
         }
 
-        Row(
+        WideActionTile(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            ActionTile(
-                modifier = Modifier.weight(1f),
-                title = "Deploy Decoy",
-                subtitle = "Multi-Format Traps",
-                icon = HoneyIcons.FolderSpecial,
-                accentColor = WarningYellow,
-                onClick = onOpenDecoyStudio
-            )
-
-            ActionTile(
-                modifier = Modifier.weight(1f),
-                title = "About & Credits",
-                subtitle = "Honeyfile v1.0.2",
-                icon = Icons.Default.Info,
-                accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                onClick = onOpenAbout
-            )
-        }
+            title = "About & Credits",
+            subtitle = "Honeyfile v1.0.2 • Architecture & Attributions",
+            icon = Icons.Default.Info,
+            accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            onClick = onOpenAbout
+        )
     }
 }
 
@@ -399,3 +384,63 @@ private fun ActionTile(
         }
     }
 }
+
+@Composable
+private fun WideActionTile(
+    modifier: Modifier = Modifier,
+    title: String,
+    subtitle: String,
+    icon: ImageVector,
+    accentColor: Color,
+    onClick: () -> Unit
+) {
+    Surface(
+        shape = ActionTileShape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        tonalElevation = 3.dp,
+        modifier = modifier.expressiveBounceClickable(onClick = onClick)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(RoundedCornerShape(14.dp))
+                    .background(accentColor.copy(alpha = 0.15f))
+                    .border(1.dp, accentColor.copy(alpha = 0.3f), RoundedCornerShape(14.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = accentColor,
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.width(14.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = title,
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Black,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = subtitle,
+                    fontSize = 11.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+    }
+}
+

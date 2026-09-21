@@ -52,18 +52,6 @@
             </intent-filter>
         </activity>
 
-        <activity
-            android:name=".ui.DecoyViewerActivity"
-            android:exported="false"
-            android:label="Protected File Viewer"
-            android:parentActivityName=".ui.MainActivity" />
-
-        <activity
-            android:name=".ui.RealFileViewerActivity"
-            android:exported="false"
-            android:label="Admin Confidential Viewer"
-            android:parentActivityName=".ui.MainActivity" />
-
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"

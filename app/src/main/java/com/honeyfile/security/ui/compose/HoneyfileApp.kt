@@ -56,7 +56,6 @@ fun HoneyfileApp(
     allAccessLogs: List<AccessLog>,
     capturedPhotos: List<File>,
     onRefreshGallery: () -> Unit,
-    onTriggerAccess: () -> Unit,
     versionName: String = "v1.0.2",
     mandatoryEnrollmentRequested: Boolean = false,
     onMandatoryEnrollmentHandled: () -> Unit = {},
@@ -252,7 +251,6 @@ fun HoneyfileApp(
                             intruderCount = intruderCount,
                             threatSummary = threatSummary,
                             onOpenThreatDetails = { showThreatDetailsDialog = true },
-                            onTriggerAccess = onTriggerAccess,
                             onOpenAdminManagement = { showAdminManagementDialog = true },
                             onOpenDecoyStudio = { showDecoyStudioSheet = true },
                             onOpenAbout = { showAboutDialog = true }

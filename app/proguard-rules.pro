@@ -33,3 +33,12 @@
     void traceEventStart(int, int, int, java.lang.String);
     void traceEventEnd();
 }
+
+# Strip all android.util.Log logging methods for maximum performance & minimum APK size
+-assumenosideeffects class android.util.Log {
+    public static boolean isLoggable(java.lang.String, int);
+    public static *** d(...);
+    public static *** v(...);
+    public static *** i(...);
+}
+

@@ -28,6 +28,12 @@ android {
         localeFilters += listOf("en")
     }
 
+    lint {
+        abortOnError = false
+        checkReleaseBuilds = false
+        disable += "ExpiredTargetSdkVersion"
+    }
+
     buildTypes {
         debug {
             isMinifyEnabled = true

@@ -1,9 +1,16 @@
 package com.honeyfile.security.data
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "access_logs")
+@Entity(
+    tableName = "access_logs",
+    indices = [
+        Index(value = ["file"]),
+        Index(value = ["timestamp"])
+    ]
+)
 data class AccessLog(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,

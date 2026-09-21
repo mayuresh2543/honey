@@ -146,9 +146,13 @@ class MainActivity : ComponentActivity() {
             val isAutoScan by isAutoScanEnabledState
             val isMandatoryEnroll by mandatoryEnrollmentState
 
-            val allLogs by database.logDao().getAllLogs().observeAsState(initial = emptyList())
-            val adminCount by database.logDao().getAdminCount().observeAsState(initial = 0)
-            val intruderCount by database.logDao().getIntruderCount().observeAsState(initial = 0)
+            val allLogsLiveData = remember { database.logDao().getAllLogs() }
+            val adminCountLiveData = remember { database.logDao().getAdminCount() }
+            val intruderCountLiveData = remember { database.logDao().getIntruderCount() }
+
+            val allLogs by allLogsLiveData.observeAsState(initial = emptyList())
+            val adminCount by adminCountLiveData.observeAsState(initial = 0)
+            val intruderCount by intruderCountLiveData.observeAsState(initial = 0)
 
             val scanResult by folderScannerManager.scanResult.collectAsState()
             val threatSummary = remember(allLogs) {

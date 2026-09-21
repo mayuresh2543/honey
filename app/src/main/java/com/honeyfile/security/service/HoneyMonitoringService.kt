@@ -29,6 +29,7 @@ import com.honeyfile.security.scanner.FolderScannerManager
 import com.honeyfile.security.ui.MainActivity
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
@@ -45,6 +46,7 @@ class HoneyMonitoringService : LifecycleService() {
     private lateinit var folderScannerManager: FolderScannerManager
     private lateinit var intruderCaptureManager: IntruderCaptureManager
     private val serviceScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private var eventsCollectionJob: Job? = null
 
     private var imageCapture: ImageCapture? = null
     private val cameraExecutor = Executors.newSingleThreadExecutor()
@@ -100,7 +102,8 @@ class HoneyMonitoringService : LifecycleService() {
 
         // Unified folder monitor: SAF polling (writes) + Linux inotify (reads/opens)
         folderScannerManager.startContinuousScanning(uri)
-        serviceScope.launch {
+        eventsCollectionJob?.cancel()
+        eventsCollectionJob = serviceScope.launch {
             folderScannerManager.fileChangeEvents.collect { event ->
                 Log.w(TAG, "Honeyfile event [${event.eventType}]: ${event.fileName}")
                 handleBackgroundFileBreach(event.fileName, event.eventType)
@@ -377,6 +380,8 @@ class HoneyMonitoringService : LifecycleService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        eventsCollectionJob?.cancel()
+        eventsCollectionJob = null
         folderScannerManager.stopScanning()
         serviceScope.cancel()
         cameraExecutor.shutdown()

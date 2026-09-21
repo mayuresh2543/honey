@@ -157,9 +157,11 @@ class FolderScannerManager(private val context: Context) {
             // Initial scan to populate file counts & list for UI stats
             performScan(folderUri, folderName)
 
-            // Relaxed periodic refresh (15000ms) to keep UI file counts updated without hammering the storage provider
+            // Adaptive periodic refresh: relaxed to 60s when inotify (HoneyFileObserver) is active,
+            // 15s in fallback mode to keep UI file counts updated without excessive flash storage I/O.
             while (isActive) {
-                delay(15000L)
+                val pollDelay = if (fileObserver != null) 60000L else 15000L
+                delay(pollDelay)
                 performScan(folderUri, folderName)
             }
         }

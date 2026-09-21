@@ -41,9 +41,10 @@ class IntruderCaptureManager(private val context: Context) {
 
         return try {
             FileOutputStream(photoFile).use { out ->
-                finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+                finalBitmap.compress(Bitmap.CompressFormat.JPEG, 82, out)
             }
             Log.d(TAG, "Intruder photo (${if (isRealCapture) "REAL CAMERA" else "EVIDENCE LOG"}) saved successfully: ${photoFile.absolutePath} (${finalBitmap.width}x${finalBitmap.height})")
+            pruneOldEvidence()
             photoFile
         } catch (e: Exception) {
             Log.e(TAG, "Failed to save intruder photo", e)
@@ -241,6 +242,30 @@ class IntruderCaptureManager(private val context: Context) {
             ?.filter { it.extension.lowercase() in listOf("jpg", "jpeg", "png") }
             ?.sortedByDescending { it.lastModified() }
             ?: emptyList()
+    }
+
+    private fun pruneOldEvidence(maxFilesToKeep: Int = 100) {
+        try {
+            val files = capturedFolder.listFiles()
+                ?.filter { it.extension.lowercase() in listOf("jpg", "jpeg", "png") }
+                ?.sortedByDescending { it.lastModified() }
+                ?: return
+
+            if (files.size > maxFilesToKeep) {
+                val toDelete = files.drop(maxFilesToKeep)
+                for (oldFile in toDelete) {
+                    try {
+                        if (oldFile.delete()) {
+                            Log.d(TAG, "Pruned old evidence file: ${oldFile.name}")
+                        }
+                    } catch (e: Exception) {
+                        Log.w(TAG, "Failed to delete old evidence: ${oldFile.name}", e)
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Error during evidence pruning", e)
+        }
     }
 
     companion object {

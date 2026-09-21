@@ -1,5 +1,6 @@
 package com.honeyfile.security.ui.compose
 
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -10,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -67,12 +69,30 @@ fun OverviewScreen(
             )
         }
 
-        // THREAT INTELLIGENCE SUMMARY CARD (M3 Expressive 28dp Container)
+        // Severity Badge & Glow Color
+        val (badgeText, badgeColor) = when (threatSummary.severityLevel) {
+            SeverityLevel.LOW -> Pair("LOW RISK 🟢", CyberGreen)
+            SeverityLevel.ELEVATED -> Pair("ELEVATED 🟡", WarningYellow)
+            SeverityLevel.CRITICAL -> Pair("CRITICAL 🔴", AlertRed)
+        }
+
+        val infiniteGlow = rememberInfiniteTransition(label = "risk_pulse")
+        val borderAlpha by infiniteGlow.animateFloat(
+            initialValue = if (threatSummary.severityLevel == SeverityLevel.LOW) 0.25f else 0.4f,
+            targetValue = if (threatSummary.severityLevel == SeverityLevel.LOW) 0.55f else 0.95f,
+            animationSpec = infiniteRepeatable(
+                animation = tween(1200, easing = FastOutSlowInEasing),
+                repeatMode = RepeatMode.Reverse
+            ),
+            label = "border_alpha"
+        )
+
+        // THREAT INTELLIGENCE SUMMARY CARD (M3 Expressive Container)
         Surface(
-            shape = RoundedCornerShape(28.dp),
+            shape = ContainerSurfaceShape,
             color = MaterialTheme.colorScheme.surfaceContainer,
-            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-            tonalElevation = 2.dp,
+            border = androidx.compose.foundation.BorderStroke(1.5.dp, badgeColor.copy(alpha = borderAlpha)),
+            tonalElevation = 4.dp,
             modifier = Modifier.fillMaxWidth()
         ) {
             Column(
@@ -82,9 +102,9 @@ fun OverviewScreen(
                         Brush.verticalGradient(
                             listOf(
                                 when (threatSummary.severityLevel) {
-                                    SeverityLevel.LOW -> CyberGreen.copy(alpha = 0.06f)
-                                    SeverityLevel.ELEVATED -> WarningYellow.copy(alpha = 0.08f)
-                                    SeverityLevel.CRITICAL -> AlertRed.copy(alpha = 0.10f)
+                                    SeverityLevel.LOW -> CyberGreen.copy(alpha = 0.08f)
+                                    SeverityLevel.ELEVATED -> WarningYellow.copy(alpha = 0.10f)
+                                    SeverityLevel.CRITICAL -> AlertRed.copy(alpha = 0.12f)
                                 },
                                 Color.Transparent
                             )
@@ -105,15 +125,8 @@ fun OverviewScreen(
                         color = MaterialTheme.colorScheme.onSurface
                     )
 
-                    // Severity Badge (Expressive Full Pill)
-                    val (badgeText, badgeColor) = when (threatSummary.severityLevel) {
-                        SeverityLevel.LOW -> Pair("LOW RISK 🟢", CyberGreen)
-                        SeverityLevel.ELEVATED -> Pair("ELEVATED 🟡", WarningYellow)
-                        SeverityLevel.CRITICAL -> Pair("CRITICAL 🔴", AlertRed)
-                    }
-
                     Surface(
-                        shape = RoundedCornerShape(50),
+                        shape = FullPillShape,
                         color = badgeColor.copy(alpha = 0.15f),
                         border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.4f))
                     ) {
@@ -138,7 +151,7 @@ fun OverviewScreen(
                     Row(verticalAlignment = Alignment.Bottom) {
                         Text(
                             text = "${threatSummary.threatScore}",
-                            fontSize = 32.sp,
+                            fontSize = 34.sp,
                             fontWeight = FontWeight.Black,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -158,9 +171,8 @@ fun OverviewScreen(
                     ) {
                         Text(
                             text = "Peak: ${threatSummary.peakAttackTimeWindow}",
-                            fontSize = 12.sp,
+                            style = TelemetryCodeBold,
                             color = CyanAccent,
-                            fontWeight = FontWeight.Bold,
                             modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                         )
                     }
@@ -279,10 +291,10 @@ private fun StatCard(
     subtitle: String
 ) {
     Surface(
-        shape = RoundedCornerShape(26.dp),
+        shape = StatCardShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        tonalElevation = 2.dp,
+        tonalElevation = 3.dp,
         modifier = modifier
     ) {
         Column(
@@ -340,10 +352,10 @@ private fun ActionTile(
     onClick: () -> Unit
 ) {
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = ActionTileShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        tonalElevation = 2.dp,
+        tonalElevation = 3.dp,
         modifier = modifier.expressiveBounceClickable(onClick = onClick)
     ) {
         Column(

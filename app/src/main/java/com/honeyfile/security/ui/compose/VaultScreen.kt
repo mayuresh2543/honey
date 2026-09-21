@@ -69,7 +69,7 @@ fun VaultScreen(
 
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Surface(
-                    shape = RoundedCornerShape(50),
+                    shape = FullPillShape,
                     color = if (capturedPhotos.isNotEmpty()) AlertRed.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surfaceContainerHighest,
                     border = androidx.compose.foundation.BorderStroke(
                         1.dp,
@@ -104,9 +104,10 @@ fun VaultScreen(
 
         if (capturedPhotos.isEmpty()) {
             Surface(
-                shape = RoundedCornerShape(28.dp),
+                shape = ContainerSurfaceShape,
                 color = MaterialTheme.colorScheme.surfaceContainer,
                 border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                tonalElevation = 2.dp,
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(vertical = 16.dp)
@@ -182,10 +183,10 @@ private fun EvidencePhotoCard(
     val formattedTime = SimpleDateFormat("MM-dd HH:mm", Locale.getDefault()).format(lastModDate)
 
     Surface(
-        shape = RoundedCornerShape(22.dp),
+        shape = StatCardShape,
         color = MaterialTheme.colorScheme.surfaceContainer,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        tonalElevation = 2.dp,
+        tonalElevation = 3.dp,
         modifier = Modifier
             .fillMaxWidth()
             .expressiveBounceClickable(onClick = onClick)
@@ -195,7 +196,7 @@ private fun EvidencePhotoCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(145.dp)
-                    .clip(RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp))
+                    .clip(RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest)
             ) {
                 AsyncImage(
@@ -212,7 +213,7 @@ private fun EvidencePhotoCard(
 
                 // Timestamp pill floating overlay
                 Surface(
-                    shape = RoundedCornerShape(50),
+                    shape = FullPillShape,
                     color = DarkBackground.copy(alpha = 0.75f),
                     border = androidx.compose.foundation.BorderStroke(1.dp, AlertRed.copy(alpha = 0.5f)),
                     modifier = Modifier
@@ -221,9 +222,7 @@ private fun EvidencePhotoCard(
                 ) {
                     Text(
                         text = "🚨 $formattedTime",
-                        fontSize = 10.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = AlertRed,
+                        style = TelemetryCodeBold.copy(fontSize = 10.sp, color = AlertRed),
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
                     )
                 }
@@ -238,17 +237,17 @@ private fun EvidencePhotoCard(
             ) {
                 Text(
                     text = photoFile.name,
-                    fontSize = 11.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    style = TelemetryCodeStyle.copy(
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    ),
                     maxLines = 1,
                     modifier = Modifier.weight(1f, fill = false)
                 )
                 Text(
                     text = "${photoFile.length() / 1024} KB",
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = TelemetryCodeSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                 )
             }
         }

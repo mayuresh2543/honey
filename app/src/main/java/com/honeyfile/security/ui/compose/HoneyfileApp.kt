@@ -1,6 +1,8 @@
 package com.honeyfile.security.ui.compose
 
 import android.net.Uri
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -167,6 +169,14 @@ fun HoneyfileApp(
                     ) {
                         navTabs.forEach { tab ->
                             val isSelected = currentTab == tab
+                            val iconScale by animateFloatAsState(
+                                targetValue = if (isSelected) 1.18f else 1.0f,
+                                animationSpec = spring(
+                                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                                    stiffness = Spring.StiffnessMediumLow
+                                ),
+                                label = "nav_icon_scale"
+                            )
                             NavigationBarItem(
                                 selected = isSelected,
                                 onClick = {
@@ -179,7 +189,8 @@ fun HoneyfileApp(
                                     Icon(
                                         imageVector = tab.icon,
                                         contentDescription = tab.label,
-                                        tint = if (isSelected) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant
+                                        tint = if (isSelected) CyberGreen else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.scale(iconScale)
                                     )
                                 },
                                 label = {
@@ -210,41 +221,66 @@ fun HoneyfileApp(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            when (currentTab) {
-                HoneyNavTab.OVERVIEW -> {
-                    OverviewScreen(
-                        adminCount = adminCount,
-                        intruderCount = intruderCount,
-                        threatSummary = threatSummary,
-                        onOpenThreatDetails = { showThreatDetailsDialog = true },
-                        onTriggerAccess = onTriggerAccess,
-                        onOpenAdminManagement = { showAdminManagementDialog = true },
-                        onOpenDecoyStudio = { showDecoyStudioSheet = true },
-                        onOpenAbout = { showAboutDialog = true }
+            AnimatedContent(
+                targetState = currentTab,
+                transitionSpec = {
+                    val forward = targetState.ordinal > initialState.ordinal
+                    val enterAnim = slideInHorizontally(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ) { width -> if (forward) width / 4 else -width / 4 } + fadeIn(
+                        animationSpec = tween(220)
                     )
-                }
-                HoneyNavTab.SCANNER -> {
-                    ScannerScreen(
-                        folderUri = folderUri,
-                        folderDisplayName = folderDisplayName,
-                        isAutoScanEnabled = isAutoScanEnabled,
-                        onAutoScanToggled = onAutoScanToggled,
-                        onSelectFolderClicked = onSelectFolderClicked,
-                        totalFilesScanned = totalFilesScanned,
-                        honeypotsFound = honeypotsFound,
-                        latestChangeSummary = latestChangeSummary,
-                        directoryLogs = directoryLogs
+                    val exitAnim = slideOutHorizontally(
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    ) { width -> if (forward) -width / 4 else width / 4 } + fadeOut(
+                        animationSpec = tween(180)
                     )
-                }
-                HoneyNavTab.LOGS -> {
-                    LogsScreen(logs = allAccessLogs)
-                }
-                HoneyNavTab.VAULT -> {
-                    VaultScreen(
-                        capturedPhotos = capturedPhotos,
-                        onRefresh = onRefreshGallery,
-                        onPhotoClicked = { selectedPhotoForDetail = it }
-                    )
+                    enterAnim togetherWith exitAnim
+                },
+                label = "HoneyTabTransition"
+            ) { tab ->
+                when (tab) {
+                    HoneyNavTab.OVERVIEW -> {
+                        OverviewScreen(
+                            adminCount = adminCount,
+                            intruderCount = intruderCount,
+                            threatSummary = threatSummary,
+                            onOpenThreatDetails = { showThreatDetailsDialog = true },
+                            onTriggerAccess = onTriggerAccess,
+                            onOpenAdminManagement = { showAdminManagementDialog = true },
+                            onOpenDecoyStudio = { showDecoyStudioSheet = true },
+                            onOpenAbout = { showAboutDialog = true }
+                        )
+                    }
+                    HoneyNavTab.SCANNER -> {
+                        ScannerScreen(
+                            folderUri = folderUri,
+                            folderDisplayName = folderDisplayName,
+                            isAutoScanEnabled = isAutoScanEnabled,
+                            onAutoScanToggled = onAutoScanToggled,
+                            onSelectFolderClicked = onSelectFolderClicked,
+                            totalFilesScanned = totalFilesScanned,
+                            honeypotsFound = honeypotsFound,
+                            latestChangeSummary = latestChangeSummary,
+                            directoryLogs = directoryLogs
+                        )
+                    }
+                    HoneyNavTab.LOGS -> {
+                        LogsScreen(logs = allAccessLogs)
+                    }
+                    HoneyNavTab.VAULT -> {
+                        VaultScreen(
+                            capturedPhotos = capturedPhotos,
+                            onRefresh = onRefreshGallery,
+                            onPhotoClicked = { selectedPhotoForDetail = it }
+                        )
+                    }
                 }
             }
         }

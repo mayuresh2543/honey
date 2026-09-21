@@ -10,6 +10,9 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +30,21 @@ import com.honeyfile.security.ui.theme.*
 fun LogsScreen(
     logs: List<AccessLog>
 ) {
+    var searchQuery by remember { mutableStateOf("") }
     val expandedLogIds = remember { mutableStateListOf<Long>() }
+
+    val filteredLogs = remember(logs, searchQuery) {
+        if (searchQuery.isBlank()) logs
+        else {
+            val query = searchQuery.trim().lowercase()
+            logs.filter {
+                it.file.lowercase().contains(query) ||
+                it.action.lowercase().contains(query) ||
+                it.user.lowercase().contains(query) ||
+                it.details.lowercase().contains(query)
+            }
+        }
+    }
 
     LazyColumn(
         modifier = Modifier
@@ -78,10 +95,54 @@ fun LogsScreen(
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(4.dp))
         }
 
-        if (logs.isEmpty()) {
+        // Expressive Search & Filter Bar (M3 Pill)
+        item {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = { searchQuery = it },
+                placeholder = {
+                    Text(
+                        "Search logs by file, user, or action...",
+                        fontSize = 12.sp,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.Search,
+                        contentDescription = "Search",
+                        tint = CyanAccent,
+                        modifier = Modifier.size(20.dp)
+                    )
+                },
+                trailingIcon = {
+                    if (searchQuery.isNotBlank()) {
+                        IconButton(onClick = { searchQuery = "" }) {
+                            Icon(
+                                imageVector = Icons.Default.Close,
+                                contentDescription = "Clear",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                },
+                singleLine = true,
+                shape = FullPillShape,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = CyanAccent,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outlineVariant,
+                    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainer,
+                    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainer
+                ),
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
+
+        if (filteredLogs.isEmpty()) {
             item {
                 Surface(
                     shape = RoundedCornerShape(20.dp),
@@ -96,7 +157,7 @@ fun LogsScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            text = "No audit log records found yet 🛡️",
+                            text = if (searchQuery.isNotBlank()) "No logs match \"$searchQuery\" 🔍" else "No audit log records found yet 🛡️",
                             fontSize = 13.sp,
                             fontWeight = FontWeight.Medium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -106,7 +167,7 @@ fun LogsScreen(
             }
         } else {
             items(
-                items = logs,
+                items = filteredLogs,
                 key = { it.id },
                 contentType = { "access_log" }
             ) { log ->
@@ -143,7 +204,7 @@ private fun AccessLogCard(
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surfaceContainer,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        tonalElevation = 1.dp,
+        tonalElevation = 2.dp,
         modifier = Modifier
             .fillMaxWidth()
             .expressiveBounceClickable(onClick = onToggleExpand)
@@ -159,7 +220,7 @@ private fun AccessLogCard(
             ) {
                 // User / Actor Badge (Expressive Full Pill)
                 Surface(
-                    shape = RoundedCornerShape(50),
+                    shape = FullPillShape,
                     color = badgeBgColor,
                     border = androidx.compose.foundation.BorderStroke(1.dp, badgeBorderColor),
                     modifier = Modifier.widthIn(min = 80.dp)
@@ -181,22 +242,18 @@ private fun AccessLogCard(
 
                 Spacer(modifier = Modifier.width(14.dp))
 
-                // File & Timestamp
+                // File & Timestamp (Telemetry typography)
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = log.file,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        style = TelemetryCodeBold.copy(color = MaterialTheme.colorScheme.onSurface),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = log.timestamp,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = TelemetryCodeSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                     )
                 }
 
@@ -223,10 +280,11 @@ private fun AccessLogCard(
                 ) {
                     Text(
                         text = if (log.details.isNotBlank()) log.details else "Action: ${log.action} on ${log.file} at ${log.timestamp}",
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        lineHeight = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = TelemetryCodeStyle.copy(
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     )
                 }
             }

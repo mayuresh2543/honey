@@ -8,6 +8,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material.ripple.rememberRipple
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -19,6 +20,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
@@ -80,21 +83,25 @@ private val LightColorScheme = lightColorScheme(
 
 /**
  * Material 3 Expressive Tactile Spring Press Modifier
- * Adds a responsive, hardware-accelerated spring compression effect upon user touch.
+ * Adds a responsive, hardware-accelerated spring compression effect combined with
+ * Material ripple and physical haptic feedback upon user touch.
  */
 @Composable
 fun Modifier.expressiveBounceClickable(
     enabled: Boolean = true,
     pressedScale: Float = 0.96f,
+    withRipple: Boolean = true,
     onClick: () -> Unit
 ): Modifier {
     val interactionSource = remember { MutableInteractionSource() }
     val isPressed by interactionSource.collectIsPressedAsState()
+    val haptic = LocalHapticFeedback.current
+
     val scale by animateFloatAsState(
         targetValue = if (isPressed && enabled) pressedScale else 1f,
         animationSpec = spring(
             dampingRatio = Spring.DampingRatioMediumBouncy,
-            stiffness = Spring.StiffnessLow
+            stiffness = Spring.StiffnessMediumLow
         ),
         label = "expressive_bounce"
     )
@@ -103,10 +110,12 @@ fun Modifier.expressiveBounceClickable(
         .scale(scale)
         .clickable(
             interactionSource = interactionSource,
-            indication = null,
-            enabled = enabled,
-            onClick = onClick
-        )
+            indication = if (withRipple) rememberRipple() else null,
+            enabled = enabled
+        ) {
+            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+            onClick()
+        }
 }
 
 @Composable
@@ -130,6 +139,8 @@ fun HoneyTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
+        typography = HoneyTypography,
+        shapes = HoneyShapes,
         content = content
     )
 }

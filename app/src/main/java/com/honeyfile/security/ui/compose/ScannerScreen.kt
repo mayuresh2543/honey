@@ -85,7 +85,7 @@ fun ScannerScreen(
             .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(14.dp)
     ) {
-        // MONITORED FOLDER CARD (M3 Expressive 28dp Container)
+        // MONITORED FOLDER CARD (M3 Expressive Container)
         item {
             val isMonitoring = folderUri != null && isAutoScanEnabled
             val infiniteTransition = rememberInfiniteTransition(label = "pulse_transition")
@@ -98,12 +98,24 @@ fun ScannerScreen(
                 ),
                 label = "pulse_scale"
             )
+            val monitorGlowAlpha by infiniteTransition.animateFloat(
+                initialValue = if (isMonitoring) 0.3f else 0f,
+                targetValue = if (isMonitoring) 0.9f else 0f,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(1200, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse
+                ),
+                label = "monitor_glow"
+            )
 
             Surface(
-                shape = RoundedCornerShape(28.dp),
+                shape = ContainerSurfaceShape,
                 color = MaterialTheme.colorScheme.surfaceContainer,
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                tonalElevation = 2.dp,
+                border = androidx.compose.foundation.BorderStroke(
+                    1.5.dp,
+                    if (isMonitoring) CyberGreen.copy(alpha = monitorGlowAlpha) else MaterialTheme.colorScheme.outlineVariant
+                ),
+                tonalElevation = if (isMonitoring) 4.dp else 2.dp,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
@@ -517,18 +529,14 @@ private fun DirectoryLogCard(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = log.file,
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.ExtraBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        style = TelemetryCodeBold.copy(color = MaterialTheme.colorScheme.onSurface),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
                         text = log.timestamp,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        style = TelemetryCodeSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                     )
                 }
 
@@ -573,10 +581,11 @@ private fun DirectoryLogCard(
                 ) {
                     Text(
                         text = displayDetails,
-                        fontSize = 11.sp,
-                        fontWeight = FontWeight.Medium,
-                        lineHeight = 16.sp,
-                        color = MaterialTheme.colorScheme.onSurface
+                        style = TelemetryCodeStyle.copy(
+                            fontSize = 11.sp,
+                            lineHeight = 16.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
                     )
                 }
             }

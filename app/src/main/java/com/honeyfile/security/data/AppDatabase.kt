@@ -22,6 +22,7 @@ abstract class AppDatabase : RoomDatabase() {
                     "honeyfile_logs.db"
                 )
                 .fallbackToDestructiveMigration()
+                .allowMainThreadQueries()
                 .build()
                 INSTANCE = instance
                 instance

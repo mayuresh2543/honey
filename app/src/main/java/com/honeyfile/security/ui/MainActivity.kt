@@ -482,7 +482,7 @@ class MainActivity : ComponentActivity() {
 
     private suspend fun getOrAwaitImageCapture(): ImageCapture? {
         if (imageCapture != null) return imageCapture
-        for (i in 0..50) {
+        for (i in 0..15) {
             kotlinx.coroutines.delay(100)
             if (imageCapture != null) return imageCapture
         }
@@ -491,66 +491,92 @@ class MainActivity : ComponentActivity() {
 
     private fun onTriggerAccessClicked() {
         lifecycleScope.launch {
-            Toast.makeText(this@MainActivity, "Capturing photo & verifying security...", Toast.LENGTH_SHORT).show()
+            try {
+                Toast.makeText(this@MainActivity, "Capturing photo & verifying security...", Toast.LENGTH_SHORT).show()
 
-            val captureInstance = getOrAwaitImageCapture()
-            val frame = intruderCaptureManager.takeSilentPhoto(captureInstance, cameraExecutor)
+                if (imageCapture == null && faceAuthManager.hasAtLeastOneAdmin()) {
+                    initializeBackgroundCamera()
+                    kotlinx.coroutines.delay(600)
+                }
 
-            val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
-            val isAuthenticated = authResult?.isAuthenticated ?: false
-            val adminName = authResult?.adminName ?: "Admin"
-            val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-            val detectedHoneyName = folderScannerManager.scanResult.value.honeyFileNames.firstOrNull()
-            val filename = detectedHoneyName ?: "admin_passwords.txt"
+                val captureInstance = getOrAwaitImageCapture()
+                val frame = intruderCaptureManager.takeSilentPhoto(captureInstance, cameraExecutor)
 
-            if (isAuthenticated) {
-                Log.d(TAG, "$adminName verified ✅")
-                database.logDao().insertLog(
-                    AccessLog(
-                        file = filename,
-                        user = adminName,
-                        action = "ACCESS",
-                        details = "$adminName verified via facial biometric auth. Confidential file opened.",
-                        timestamp = timestamp
+                val authResult = frame?.let { faceAuthManager.authenticateFace(it) }
+                val isAuthenticated = authResult?.isAuthenticated ?: false
+                val adminName = authResult?.adminName ?: "Admin"
+                val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                val detectedHoneyName = folderScannerManager.scanResult.value.honeyFileNames.firstOrNull()
+                val filename = detectedHoneyName ?: "admin_passwords.txt"
+
+                if (isAuthenticated) {
+                    Log.d(TAG, "$adminName verified ✅")
+                    withContext(Dispatchers.IO) {
+                        database.logDao().insertLog(
+                            AccessLog(
+                                file = filename,
+                                user = adminName,
+                                action = "ACCESS",
+                                details = "$adminName verified via facial biometric auth. Confidential file opened.",
+                                timestamp = timestamp
+                            )
+                        )
+                    }
+                    Toast.makeText(this@MainActivity, "$adminName Verified ✅ Opening Confidential File", Toast.LENGTH_SHORT).show()
+                    try {
+                        startActivity(Intent(this@MainActivity, RealFileViewerActivity::class.java))
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error opening RealFileViewerActivity", e)
+                    }
+                } else {
+                    Log.d(TAG, "Intruder detected 🚨")
+                    withContext(Dispatchers.IO) {
+                        database.logDao().insertLog(
+                            AccessLog(
+                                file = filename,
+                                user = "Intruder",
+                                action = "BREACH",
+                                details = "UNAUTHORIZED INTRUDER BREACH on honeyfile '$filename'! Facial auth failed. Silent photo captured and email alert sent.",
+                                timestamp = timestamp
+                            )
+                        )
+                    }
+
+                    val photoFile = withContext(Dispatchers.IO) {
+                        intruderCaptureManager.captureIntruderImage(frame)
+                    }
+                    val telemetry = withContext(Dispatchers.IO) {
+                        telemetryManager.getDeviceTelemetry()
+                    }
+
+                    emailAlertManager.sendAlert(
+                        context = this@MainActivity,
+                        subject = "Intruder tried opening honeyfile!",
+                        body = "Unauthorized access attempt detected at $timestamp on file: $filename.",
+                        imageFile = photoFile,
+                        telemetry = telemetry
                     )
-                )
-                Toast.makeText(this@MainActivity, "$adminName Verified ✅ Opening Confidential File", Toast.LENGTH_SHORT).show()
-                startActivity(Intent(this@MainActivity, RealFileViewerActivity::class.java))
-            } else {
-                Log.d(TAG, "Intruder detected 🚨")
-                database.logDao().insertLog(
-                    AccessLog(
-                        file = filename,
-                        user = "Intruder",
-                        action = "BREACH",
-                        details = "UNAUTHORIZED INTRUDER BREACH on honeyfile '$filename'! Facial auth failed. Silent photo captured and email alert sent.",
-                        timestamp = timestamp
+
+                    FirebaseCloudVaultManager(this@MainActivity).syncBreachIncidentToCloud(
+                        fileName = filename,
+                        actionType = "BREACH",
+                        timestamp = timestamp,
+                        details = "UNAUTHORIZED INTRUDER BREACH on honeyfile '$filename'! Facial auth failed.",
+                        imageFile = photoFile,
+                        telemetry = telemetry
                     )
-                )
 
-                val photoFile = intruderCaptureManager.captureIntruderImage(frame)
-                val telemetry = telemetryManager.getDeviceTelemetry()
-
-                emailAlertManager.sendAlert(
-                    context = this@MainActivity,
-                    subject = "Intruder tried opening honeyfile!",
-                    body = "Unauthorized access attempt detected at $timestamp on file: $filename.",
-                    imageFile = photoFile,
-                    telemetry = telemetry
-                )
-
-                FirebaseCloudVaultManager(this@MainActivity).syncBreachIncidentToCloud(
-                    fileName = filename,
-                    actionType = "BREACH",
-                    timestamp = timestamp,
-                    details = "UNAUTHORIZED INTRUDER BREACH on honeyfile '$filename'! Facial auth failed.",
-                    imageFile = photoFile,
-                    telemetry = telemetry
-                )
-
-                refreshGallery()
-                Toast.makeText(this@MainActivity, "Intruder Detected 🚨 Diverting to Decoy File", Toast.LENGTH_LONG).show()
-                startActivity(Intent(this@MainActivity, DecoyViewerActivity::class.java))
+                    refreshGallery()
+                    Toast.makeText(this@MainActivity, "Intruder Detected 🚨 Diverting to Decoy File", Toast.LENGTH_LONG).show()
+                    try {
+                        startActivity(Intent(this@MainActivity, DecoyViewerActivity::class.java))
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error opening DecoyViewerActivity", e)
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error executing Trigger Access simulation", e)
+                Toast.makeText(this@MainActivity, "Simulation completed: ${e.localizedMessage ?: "Done"}", Toast.LENGTH_SHORT).show()
             }
         }
     }

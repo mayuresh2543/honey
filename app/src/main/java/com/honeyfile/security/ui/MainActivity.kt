@@ -266,11 +266,43 @@ class MainActivity : ComponentActivity() {
             return
         }
 
+        val actionTag = when (event.eventType.uppercase()) {
+            "DELETED" -> "DELETED"
+            "MODIFIED", "EDITED" -> "EDITED"
+            "CREATED", "NEW", "COPIED" -> "CREATED"
+            "RENAMED" -> "RENAMED"
+            "ACCESSED", "OPENED" -> "ACCESSED"
+            else -> event.eventType
+        }
+
+        val actionVerb = when (actionTag) {
+            "ACCESSED" -> "opened/accessed"
+            "DELETED" -> "deleted"
+            "EDITED" -> "edited"
+            "CREATED" -> "created"
+            "RENAMED" -> "renamed"
+            else -> actionTag.lowercase()
+        }
+
+        val isDelete = actionTag == "DELETED"
         val now = System.currentTimeMillis()
         val last = lastSecurityAlertTimeMs.get()
-        if (now - last < 6000L || !lastSecurityAlertTimeMs.compareAndSet(last, now)) {
+
+        // Critical: DELETED events must NEVER be debounced and dropped due to preceding read/access events
+        if (!isDelete && (now - last < 6000L || !lastSecurityAlertTimeMs.compareAndSet(last, now))) {
             Log.d(TAG, "Security verification debounced for: ${event.fileName}")
             return
+        }
+
+        if (isDelete) {
+            lastSecurityAlertTimeMs.set(now)
+            withContext(Dispatchers.IO) {
+                try {
+                    database.logDao().deleteAccessLogsForFile(event.fileName)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error cleaning pre-delete access logs", e)
+                }
+            }
         }
 
         if (imageCapture == null) {
@@ -295,51 +327,41 @@ class MainActivity : ComponentActivity() {
         val adminName = authResult?.adminName ?: "Admin"
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
 
-        val actionTag = when (event.eventType.uppercase()) {
-            "DELETED" -> "DELETED"
-            "MODIFIED", "EDITED" -> "EDITED"
-            "CREATED", "NEW", "COPIED" -> "CREATED"
-            "RENAMED" -> "RENAMED"
-            "ACCESSED", "OPENED" -> "ACCESSED"
-            else -> event.eventType
-        }
-
-        val actionVerb = when (actionTag) {
-            "ACCESSED" -> "opened/accessed"
-            "DELETED" -> "deleted"
-            "EDITED" -> "edited"
-            "CREATED" -> "created"
-            "RENAMED" -> "renamed"
-            else -> actionTag.lowercase()
-        }
-
         if (isAuthenticated) {
             Log.d(TAG, "File access/change verified by $adminName ✅")
-            database.logDao().insertLog(
-                AccessLog(
-                    file = event.fileName,
-                    user = adminName,
-                    action = actionTag,
-                    details = "Authorized access: File '${event.fileName}' $actionVerb by $adminName at $timestamp.",
-                    timestamp = timestamp
+            withContext(Dispatchers.IO) {
+                database.logDao().insertLog(
+                    AccessLog(
+                        file = event.fileName,
+                        user = adminName,
+                        action = actionTag,
+                        details = "Authorized access: File '${event.fileName}' $actionVerb by $adminName at $timestamp.",
+                        timestamp = timestamp
+                    )
                 )
-            )
+            }
         } else {
             Log.w(TAG, "Unauthorized file action ($actionTag) by Intruder 🚨")
             val photoFile = intruderCaptureManager.captureIntruderImage(frame)
             val telemetry = telemetryManager.getDeviceTelemetry()
 
-            database.logDao().insertLog(
-                AccessLog(
-                    file = event.fileName,
-                    user = "Intruder",
-                    action = actionTag,
-                    details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionVerb by Intruder at $timestamp.\n${telemetry.formattedSummary}",
-                    timestamp = timestamp
+            withContext(Dispatchers.IO) {
+                database.logDao().insertLog(
+                    AccessLog(
+                        file = event.fileName,
+                        user = "Intruder",
+                        action = actionTag,
+                        details = "UNAUTHORIZED INTRUSION: File '${event.fileName}' $actionVerb by Intruder at $timestamp.\n${telemetry.formattedSummary}",
+                        timestamp = timestamp
+                    )
                 )
-            )
+            }
 
-            val alertSubject = if (actionTag == "ACCESSED") "🚨 Intruder opened monitored file: ${event.fileName}" else "🚨 Intruder modified monitored file: ${event.fileName}"
+            val alertSubject = when (actionTag) {
+                "ACCESSED" -> "🚨 Intruder opened monitored file: ${event.fileName}"
+                "DELETED" -> "🚨 Intruder deleted monitored file: ${event.fileName}"
+                else -> "🚨 Intruder modified monitored file: ${event.fileName}"
+            }
             val alertBody = "Unauthorized file access detected at ${event.timestamp}.\n\nAction: $actionTag ($actionVerb)\nFile: ${event.fileName}\nDetails:\n${event.changeDetails}"
 
             emailAlertManager.sendAlert(

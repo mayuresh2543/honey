@@ -33,6 +33,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -168,11 +169,17 @@ class HoneyMonitoringService : LifecycleService() {
             return
         }
 
+        val isDelete = actionStr.uppercase() in listOf("DELETED", "DELETE")
         val now = System.currentTimeMillis()
         val last = lastBreachTimeMs.get()
-        if (now - last < BREACH_DEBOUNCE_MS || !lastBreachTimeMs.compareAndSet(last, now)) {
+
+        // Critical: DELETED events must NEVER be debounced and dropped due to preceding read/access events
+        if (!isDelete && (now - last < BREACH_DEBOUNCE_MS || !lastBreachTimeMs.compareAndSet(last, now))) {
             Log.d(TAG, "Breach debounced ($fileName) within ${BREACH_DEBOUNCE_MS}ms window")
             return
+        }
+        if (isDelete) {
+            lastBreachTimeMs.set(now)
         }
 
         Log.w(TAG, "Silent background breach detected: $fileName ($actionStr) — ZERO UI, NO APP LAUNCH")
@@ -203,6 +210,16 @@ class HoneyMonitoringService : LifecycleService() {
             else -> actionTag.lowercase()
         }
 
+        if (actionTag == "DELETED") {
+            try {
+                withContext(Dispatchers.IO) {
+                    AppDatabase.getDatabase(this@HoneyMonitoringService).logDao().deleteAccessLogsForFile(fileName)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error cleaning pre-delete access logs in background service", e)
+            }
+        }
+
         // Silent camera capture in background — no activity, no window, zero popup
         if (imageCapture == null) {
             initializeServiceCamera()
@@ -226,32 +243,43 @@ class HoneyMonitoringService : LifecycleService() {
 
         if (isAuthenticated) {
             Log.d(TAG, "Background file access verified by $adminName ✅")
-            AppDatabase.getDatabase(this).logDao().insertLog(
-                AccessLog(
-                    file = fileName,
-                    user = adminName,
-                    action = actionTag,
-                    details = "Authorized background access: File '$fileName' $actionVerb by $adminName at $timestamp.",
-                    timestamp = timestamp
+            withContext(Dispatchers.IO) {
+                AppDatabase.getDatabase(this@HoneyMonitoringService).logDao().insertLog(
+                    AccessLog(
+                        file = fileName,
+                        user = adminName,
+                        action = actionTag,
+                        details = "Authorized background access: File '$fileName' $actionVerb by $adminName at $timestamp.",
+                        timestamp = timestamp
+                    )
                 )
-            )
+            }
         } else {
             Log.w(TAG, "Unauthorized background breach by Intruder: $fileName ($actionTag) 🚨")
             val photoFile = intruderCaptureManager.captureIntruderImage(frame)
-            AppDatabase.getDatabase(this).logDao().insertLog(
-                AccessLog(
-                    file = fileName,
-                    user = "Intruder",
-                    action = actionTag,
-                    details = "BACKGROUND INTRUSION: File '$fileName' $actionVerb while app was closed at $timestamp.\n${telemetry.formattedSummary}",
-                    timestamp = timestamp
+            withContext(Dispatchers.IO) {
+                AppDatabase.getDatabase(this@HoneyMonitoringService).logDao().insertLog(
+                    AccessLog(
+                        file = fileName,
+                        user = "Intruder",
+                        action = actionTag,
+                        details = "BACKGROUND INTRUSION: File '$fileName' $actionVerb while app was closed at $timestamp.\n${telemetry.formattedSummary}",
+                        timestamp = timestamp
+                    )
                 )
-            )
+            }
+
+            val alertSubject = when (actionTag) {
+                "DELETED" -> "🚨 Background Intruder Deletion: $fileName"
+                "ACCESSED" -> "🚨 Background Intruder Opened File: $fileName"
+                else -> "🚨 Background Intruder Alert: $fileName"
+            }
+            val alertBody = "Unauthorized file activity detected at $timestamp.\n\nFile: $fileName\nAction: $actionTag ($actionVerb)\n\n${telemetry.formattedSummary}"
 
             EmailAlertManager().sendAlert(
                 context = this,
-                subject = "🚨 Background Intruder Alert: $fileName",
-                body = "Unauthorized file activity detected at $timestamp.\n\nFile: $fileName\nAction: $actionTag ($actionVerb)\n\n${telemetry.formattedSummary}",
+                subject = alertSubject,
+                body = alertBody,
                 imageFile = photoFile,
                 telemetry = telemetry
             )

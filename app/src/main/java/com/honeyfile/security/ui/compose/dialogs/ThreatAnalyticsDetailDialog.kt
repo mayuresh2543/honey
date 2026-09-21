@@ -1,5 +1,6 @@
 package com.honeyfile.security.ui.compose.dialogs
 
+import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -25,10 +26,12 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+import com.honeyfile.security.analytics.HeatmapSlot
 import com.honeyfile.security.analytics.SeverityLevel
 import com.honeyfile.security.analytics.ThreatAnalyticsManager
 import com.honeyfile.security.data.AccessLog
@@ -75,7 +78,7 @@ fun ThreatAnalyticsDetailDialog(
         }
     }
 
-    // Prepare Pie Slices
+    // Prepare Pie Slices for actual security event breakdown
     val pieSlices = remember(allLogs) {
         val authorizedCount = allLogs.count { !it.user.contains("Intruder", ignoreCase = true) && it.action != "BREACH" && it.action != "DEPLOYED" }
         val deletedCount = allLogs.count { it.action.equals("DELETED", ignoreCase = true) }
@@ -83,18 +86,13 @@ fun ThreatAnalyticsDetailDialog(
         val createdCount = allLogs.count { it.action.equals("CREATED", ignoreCase = true) || it.action.equals("NEW", ignoreCase = true) || it.action.equals("COPIED", ignoreCase = true) }
         val breachCount = allLogs.count { it.user.contains("Intruder", ignoreCase = true) || it.action.equals("BREACH", ignoreCase = true) }
 
-        if (allLogs.isEmpty()) {
-            listOf(ComposePieSlice("Protected System (0 Threat Events)", 1f, CyberGreen))
-        } else {
-            val list = mutableListOf<ComposePieSlice>()
-            if (authorizedCount > 0) list.add(ComposePieSlice("Admin Passes ($authorizedCount)", authorizedCount.toFloat(), CyberGreen))
-            if (breachCount > 0) list.add(ComposePieSlice("Intruder Breaches ($breachCount)", breachCount.toFloat(), AlertRed))
-            if (deletedCount > 0) list.add(ComposePieSlice("Deletions ($deletedCount)", deletedCount.toFloat(), PurpleAccent))
-            if (editedCount > 0) list.add(ComposePieSlice("Modifications ($editedCount)", editedCount.toFloat(), WarningYellow))
-            if (createdCount > 0) list.add(ComposePieSlice("New Files ($createdCount)", createdCount.toFloat(), CyanAccent))
-            if (list.isEmpty()) list.add(ComposePieSlice("Audited Events (${allLogs.size})", allLogs.size.toFloat(), CyanAccent))
-            list
-        }
+        val list = mutableListOf<ComposePieSlice>()
+        if (authorizedCount > 0) list.add(ComposePieSlice("Admin Passes ($authorizedCount)", authorizedCount.toFloat(), CyberGreen))
+        if (breachCount > 0) list.add(ComposePieSlice("Intruder Breaches ($breachCount)", breachCount.toFloat(), AlertRed))
+        if (deletedCount > 0) list.add(ComposePieSlice("Deletions ($deletedCount)", deletedCount.toFloat(), PurpleAccent))
+        if (editedCount > 0) list.add(ComposePieSlice("Modifications ($editedCount)", editedCount.toFloat(), WarningYellow))
+        if (createdCount > 0) list.add(ComposePieSlice("New Files ($createdCount)", createdCount.toFloat(), CyanAccent))
+        list
     }
 
     val timeSlots = listOf("00-04h", "04-08h", "08-12h", "12-16h", "16-20h", "20-24h")
@@ -104,24 +102,21 @@ fun ThreatAnalyticsDetailDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Surface(
-            shape = RoundedCornerShape(32.dp),
+            shape = DialogSurfaceShape,
             color = MaterialTheme.colorScheme.surfaceContainer,
             border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
             tonalElevation = 6.dp,
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp)
+                .padding(horizontal = 16.dp, vertical = 24.dp)
                 .fillMaxHeight(0.92f)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(22.dp)
-            ) {
-                // Top Header
+            Column(modifier = Modifier.fillMaxSize()) {
+                // PINNED TOP HEADER: Stays fixed at the top so it never scrolls away or gets cut off
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -132,7 +127,7 @@ fun ThreatAnalyticsDetailDialog(
                     ) {
                         Text(
                             text = "📊 Threat Intelligence",
-                            fontSize = 18.sp,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Black,
                             letterSpacing = 0.3.sp,
                             color = MaterialTheme.colorScheme.onSurface
@@ -140,8 +135,7 @@ fun ThreatAnalyticsDetailDialog(
                         Spacer(modifier = Modifier.height(2.dp))
                         Text(
                             text = "24-hour endpoint risk distribution & heatmap",
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
+                            style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -149,242 +143,298 @@ fun ThreatAnalyticsDetailDialog(
                         onClick = onDismiss,
                         modifier = Modifier.expressiveBounceClickable(onClick = onDismiss)
                     ) {
-                        Icon(imageVector = Icons.Default.Close, contentDescription = "Close", tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Severity Banner (Expressive 20dp Card)
-                val (badgeText, badgeColor, explanation) = when (summary.severityLevel) {
-                    SeverityLevel.LOW -> Triple(
-                        "LOW RISK 🟢",
-                        CyberGreen,
-                        "System threat level is LOW (${summary.threatScore}/100). No significant unauthorized breach patterns detected."
-                    )
-                    SeverityLevel.ELEVATED -> Triple(
-                        "ELEVATED THREAT 🟡",
-                        WarningYellow,
-                        "System threat level is ELEVATED (${summary.threatScore}/100). Multiple unauthorized file access attempts or alterations recorded."
-                    )
-                    SeverityLevel.CRITICAL -> Triple(
-                        "CRITICAL BREACH 🔴",
-                        AlertRed,
-                        "CRITICAL SECURITY ALERT (${summary.threatScore}/100)! High frequency of intruder intrusions or file deletions detected."
-                    )
-                }
-
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = badgeColor.copy(alpha = 0.10f),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.35f)),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = badgeColor.copy(alpha = 0.2f),
-                                border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
-                            ) {
-                                Text(
-                                    text = badgeText,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.ExtraBold,
-                                    color = badgeColor,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                )
-                            }
-                            Text(
-                                text = "Score: ${summary.threatScore} / 100",
-                                fontSize = 14.sp,
-                                fontWeight = FontWeight.Black,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = explanation,
-                            fontSize = 12.sp,
-                            fontWeight = FontWeight.Medium,
-                            lineHeight = 17.sp,
-                            color = MaterialTheme.colorScheme.onSurface
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Close",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
 
-                // Donut Chart Graphic
-                Box(
+                // SCROLLABLE CONTENT BODY
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(180.dp),
-                    contentAlignment = Alignment.Center
+                        .weight(1f)
+                        .verticalScroll(rememberScrollState())
+                        .padding(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    DonutChart(slices = pieSlices)
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = "${summary.threatScore}",
-                            fontSize = 30.sp,
-                            fontWeight = FontWeight.Black,
-                            color = badgeColor
+                    // 1. Severity Status Banner
+                    val (badgeText, badgeColor, explanation) = when (summary.severityLevel) {
+                        SeverityLevel.LOW -> Triple(
+                            "LOW RISK 🟢",
+                            CyberGreen,
+                            "System threat level is LOW (${summary.threatScore}/100). Endpoint perimeter is secure with zero critical breach patterns."
                         )
-                        Text(
-                            text = "Risk Index",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        SeverityLevel.ELEVATED -> Triple(
+                            "ELEVATED THREAT 🟡",
+                            WarningYellow,
+                            "System threat level is ELEVATED (${summary.threatScore}/100). Multiple unauthorized file access attempts or alterations recorded."
+                        )
+                        SeverityLevel.CRITICAL -> Triple(
+                            "CRITICAL BREACH 🔴",
+                            AlertRed,
+                            "CRITICAL SECURITY ALERT (${summary.threatScore}/100)! High frequency of intruder breaches or honeypot tampering detected."
                         )
                     }
-                }
 
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Legends (Full Pills)
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.Center,
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    pieSlices.forEach { slice ->
-                        Surface(
-                            shape = RoundedCornerShape(50),
-                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                            modifier = Modifier.padding(horizontal = 4.dp)
-                        ) {
+                    Surface(
+                        shape = RoundedCornerShape(18.dp),
+                        color = badgeColor.copy(alpha = 0.10f),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.35f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
                             Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(10.dp)
-                                        .clip(CircleShape)
-                                        .background(slice.color)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
+                                Surface(
+                                    shape = FullPillShape,
+                                    color = badgeColor.copy(alpha = 0.2f),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.5f))
+                                ) {
+                                    Text(
+                                        text = badgeText,
+                                        fontSize = 11.sp,
+                                        fontWeight = FontWeight.ExtraBold,
+                                        color = badgeColor,
+                                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                    )
+                                }
                                 Text(
-                                    text = slice.label,
-                                    fontSize = 11.sp,
-                                    fontWeight = FontWeight.SemiBold,
+                                    text = "Score: ${summary.threatScore} / 100",
+                                    style = TelemetryCodeBold,
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text(
+                                text = explanation,
+                                style = MaterialTheme.typography.bodySmall,
+                                lineHeight = 17.sp,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
                         }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                    // 2. RADIAL RISK GAUGE: Accurately renders threatScore / 100% arc
+                    RadialRiskGauge(
+                        threatScore = summary.threatScore,
+                        severityLevel = summary.severityLevel,
+                        badgeColor = badgeColor
+                    )
 
-                // Peak Attack Window Card
-                Surface(
-                    shape = RoundedCornerShape(20.dp),
-                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(14.dp)) {
-                        Text(
-                            text = "🔥 Peak Attack Window: ${summary.peakAttackTimeWindow}",
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Black,
-                            color = CyanNeon
-                        )
-                        Spacer(modifier = Modifier.height(3.dp))
-                        Text(
-                            text = "Highest volume of security alerts recorded during active surveillance.",
-                            fontSize = 11.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    // 3. SECURITY EVENT DISTRIBUTION (Pie / Donut Chart)
+                    if (pieSlices.isEmpty()) {
+                        // Clean state when there are 0 events
+                        Surface(
+                            shape = RoundedCornerShape(16.dp),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(38.dp)
+                                        .clip(CircleShape)
+                                        .background(CyberGreen.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text("🛡️", fontSize = 18.sp)
+                                }
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Column {
+                                    Text(
+                                        text = "Clean Audit Ledger (0 Threat Events)",
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(2.dp))
+                                    Text(
+                                        text = "No honeypot triggers, breach attempts, or file alterations detected.",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        // Multi-segment event distribution donut
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Text(
+                                text = "Security Event Distribution",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Black,
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                            EventDonutChart(slices = pieSlices, totalEvents = allLogs.size)
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            FlowRow(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                pieSlices.forEach { slice ->
+                                    Surface(
+                                        shape = FullPillShape,
+                                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                        modifier = Modifier.padding(horizontal = 4.dp)
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .size(8.dp)
+                                                    .clip(CircleShape)
+                                                    .background(slice.color)
+                                            )
+                                            Spacer(modifier = Modifier.width(6.dp))
+                                            Text(
+                                                text = slice.label,
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.SemiBold,
+                                                color = MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
 
-                Spacer(modifier = Modifier.height(18.dp))
-
-                // 6-Slot Heatmap Time Chips (Pills)
-                Text(
-                    text = "Hourly Attack Window Heatmap",
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Black,
-                    letterSpacing = 0.2.sp,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    timeSlots.forEachIndexed { index, slotLabel ->
-                        val isSelected = selectedSlotIndex == index
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { selectedSlotIndex = index },
-                            label = { Text(slotLabel, fontSize = 10.sp, fontWeight = if (isSelected) FontWeight.ExtraBold else FontWeight.Medium) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = CyanAccent.copy(alpha = 0.2f),
-                                selectedLabelColor = CyanAccent,
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            ),
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = isSelected,
-                                borderColor = if (isSelected) Color.Transparent else MaterialTheme.colorScheme.outlineVariant,
-                                selectedBorderColor = Color.Transparent
-                            ),
-                            shape = RoundedCornerShape(50),
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Slot Breaches Header
-                Text(
-                    text = "Logs in ${timeSlots[selectedSlotIndex]} (${slotLogs.size} events)",
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-
-                if (slotLogs.isEmpty()) {
+                    // 4. Peak Attack Window Card
                     Surface(
-                        shape = RoundedCornerShape(16.dp),
+                        shape = RoundedCornerShape(18.dp),
                         color = MaterialTheme.colorScheme.surfaceContainerHigh,
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(vertical = 20.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
+                        Column(modifier = Modifier.padding(14.dp)) {
                             Text(
-                                text = "No recorded events during this time slot ✅",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
+                                text = "🔥 Peak Attack Window: ${summary.peakAttackTimeWindow}",
+                                style = MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Black,
+                                color = CyanNeon
+                            )
+                            Spacer(modifier = Modifier.height(3.dp))
+                            Text(
+                                text = "Highest concentration of security alerts recorded during active surveillance.",
+                                style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
-                } else {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        slotLogs.forEach { log ->
-                            SlotLogItem(log = log)
+
+                    // 5. HOURLY ATTACK WINDOW HEATMAP (2 Rows of 3 Columns - Zero character wrapping)
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Hourly Attack Window Heatmap",
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Black,
+                            letterSpacing = 0.2.sp,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        val heatmapSlots = remember(summary.heatmapSlots) {
+                            if (summary.heatmapSlots.size == 6) summary.heatmapSlots
+                            else timeSlots.map { HeatmapSlot(it, 0, "#16A34A") }
+                        }
+
+                        // 2 Rows x 3 Columns Layout
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            // Row 1: Slots 0, 1, 2 (00-04h, 04-08h, 08-12h)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                for (index in 0..2) {
+                                    HeatmapSlotCard(
+                                        modifier = Modifier.weight(1f),
+                                        slot = heatmapSlots[index],
+                                        isSelected = selectedSlotIndex == index,
+                                        onClick = { selectedSlotIndex = index }
+                                    )
+                                }
+                            }
+
+                            // Row 2: Slots 3, 4, 5 (12-16h, 16-20h, 20-24h)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                for (index in 3..5) {
+                                    HeatmapSlotCard(
+                                        modifier = Modifier.weight(1f),
+                                        slot = heatmapSlots[index],
+                                        isSelected = selectedSlotIndex == index,
+                                        onClick = { selectedSlotIndex = index }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 6. Slot Breaches & Events List
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = "Logs in ${timeSlots[selectedSlotIndex]} (${slotLogs.size} events)",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        if (slotLogs.isEmpty()) {
+                            Surface(
+                                shape = RoundedCornerShape(14.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 18.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "No recorded events during this time slot ✅",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        } else {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                slotLogs.forEach { log ->
+                                    SlotLogItem(log = log)
+                                }
+                            }
                         }
                     }
                 }
@@ -393,37 +443,228 @@ fun ThreatAnalyticsDetailDialog(
     }
 }
 
+/**
+ * Radial Risk Gauge (0-100)
+ * Displays an animated progress arc accurately proportional to the threat score (e.g. 5/100 = 5% arc).
+ */
 @Composable
-private fun DonutChart(slices: List<ComposePieSlice>) {
-    val total = slices.sumOf { it.value.toDouble() }.toFloat()
+private fun RadialRiskGauge(
+    threatScore: Int,
+    severityLevel: SeverityLevel,
+    badgeColor: Color
+) {
     val animatedProgress by animateFloatAsState(
-        targetValue = 1f,
-        animationSpec = tween(durationMillis = 800),
-        label = "donut_anim"
+        targetValue = (threatScore / 100f).coerceIn(0.04f, 1f),
+        animationSpec = tween(durationMillis = 900, easing = FastOutSlowInEasing),
+        label = "gauge_progress_anim"
     )
 
-    Canvas(modifier = Modifier.size(160.dp)) {
-        var startAngle = -90f
-        val strokeWidth = 22.dp.toPx()
-        val radius = (size.minDimension - strokeWidth) / 2f
-        val topLeft = Offset(
-            (size.width - radius * 2) / 2f,
-            (size.height - radius * 2) / 2f
-        )
-        val arcSize = Size(radius * 2, radius * 2)
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(180.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        val trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
 
-        slices.forEach { slice ->
-            val sweepAngle = if (total > 0f) (slice.value / total) * 360f * animatedProgress else 360f
+        Canvas(modifier = Modifier.size(160.dp)) {
+            val strokeWidth = 18.dp.toPx()
+            val radius = (size.minDimension - strokeWidth) / 2f
+            val topLeft = Offset(
+                (size.width - radius * 2) / 2f,
+                (size.height - radius * 2) / 2f
+            )
+            val arcSize = Size(radius * 2, radius * 2)
+
+            // 1. Full 360-degree background track
             drawArc(
-                color = slice.color,
-                startAngle = startAngle,
-                sweepAngle = sweepAngle,
+                color = trackColor,
+                startAngle = -90f,
+                sweepAngle = 360f,
                 useCenter = false,
                 topLeft = topLeft,
                 size = arcSize,
                 style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
             )
-            startAngle += sweepAngle
+
+            // 2. Active score progress arc
+            val sweep = animatedProgress * 360f
+
+            // Soft glowing underlay
+            drawArc(
+                color = badgeColor.copy(alpha = 0.25f),
+                startAngle = -90f,
+                sweepAngle = sweep,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokeWidth + 6.dp.toPx(), cap = StrokeCap.Round)
+            )
+
+            // Primary active arc
+            drawArc(
+                color = badgeColor,
+                startAngle = -90f,
+                sweepAngle = sweep,
+                useCenter = false,
+                topLeft = topLeft,
+                size = arcSize,
+                style = Stroke(width = strokeWidth, cap = StrokeCap.Round)
+            )
+        }
+
+        // Center Risk Score Metrics
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Row(verticalAlignment = Alignment.Bottom) {
+                Text(
+                    text = "$threatScore",
+                    fontSize = 36.sp,
+                    fontWeight = FontWeight.Black,
+                    color = badgeColor
+                )
+                Text(
+                    text = " / 100",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 6.dp, start = 2.dp)
+                )
+            }
+            Text(
+                text = "Risk Index",
+                fontSize = 11.sp,
+                fontWeight = FontWeight.ExtraBold,
+                letterSpacing = 0.5.sp,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/**
+ * Event Donut Chart
+ * Multi-segment pie chart with clean separation gaps (no cap overlap) for event breakdown.
+ */
+@Composable
+private fun EventDonutChart(slices: List<ComposePieSlice>, totalEvents: Int) {
+    val total = slices.sumOf { it.value.toDouble() }.toFloat()
+    val animatedProgress by animateFloatAsState(
+        targetValue = 1f,
+        animationSpec = tween(durationMillis = 800, easing = FastOutSlowInEasing),
+        label = "donut_anim"
+    )
+
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Canvas(modifier = Modifier.size(145.dp)) {
+            var startAngle = -90f
+            val strokeWidth = 18.dp.toPx()
+            val radius = (size.minDimension - strokeWidth) / 2f
+            val topLeft = Offset(
+                (size.width - radius * 2) / 2f,
+                (size.height - radius * 2) / 2f
+            )
+            val arcSize = Size(radius * 2, radius * 2)
+
+            slices.forEach { slice ->
+                val rawSweep = if (total > 0f) (slice.value / total) * 360f * animatedProgress else 360f
+                val gap = if (slices.size > 1 && rawSweep > 4f) 2f else 0f
+                val sweepAngle = (rawSweep - gap).coerceAtLeast(1f)
+
+                drawArc(
+                    color = slice.color,
+                    startAngle = startAngle + (gap / 2f),
+                    sweepAngle = sweepAngle,
+                    useCenter = false,
+                    topLeft = topLeft,
+                    size = arcSize,
+                    style = Stroke(width = strokeWidth, cap = StrokeCap.Butt)
+                )
+                startAngle += rawSweep
+            }
+        }
+
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "$totalEvents",
+                fontSize = 26.sp,
+                fontWeight = FontWeight.Black,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = "Total Events",
+                fontSize = 10.sp,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/**
+ * Interactive Heatmap Slot Card
+ * Clean 2-row layout with single-line horizontal text and live alert status indicator dot.
+ */
+@Composable
+private fun HeatmapSlotCard(
+    modifier: Modifier = Modifier,
+    slot: HeatmapSlot,
+    isSelected: Boolean,
+    onClick: () -> Unit
+) {
+    val indicatorColor = remember(slot.intensityColorHex) {
+        try {
+            Color(android.graphics.Color.parseColor(slot.intensityColorHex))
+        } catch (e: Exception) {
+            CyberGreen
+        }
+    }
+
+    Surface(
+        shape = RoundedCornerShape(14.dp),
+        color = if (isSelected) CyanAccent.copy(alpha = 0.18f) else MaterialTheme.colorScheme.surfaceContainerHigh,
+        border = androidx.compose.foundation.BorderStroke(
+            1.5.dp,
+            if (isSelected) CyanAccent else MaterialTheme.colorScheme.outlineVariant
+        ),
+        modifier = modifier.expressiveBounceClickable(onClick = onClick)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp, vertical = 9.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = slot.timeLabel,
+                style = TelemetryCodeBold,
+                fontSize = 11.sp,
+                color = if (isSelected) CyanAccent else MaterialTheme.colorScheme.onSurface,
+                maxLines = 1,
+                softWrap = false
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(indicatorColor)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = if (slot.count == 0) "Normal" else "${slot.count} alerts",
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (slot.count == 0) MaterialTheme.colorScheme.onSurfaceVariant else AlertRed,
+                    maxLines = 1,
+                    softWrap = false
+                )
+            }
         }
     }
 }
@@ -440,7 +681,7 @@ private fun SlotLogItem(log: AccessLog) {
     }
 
     Surface(
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surfaceContainerHigh,
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
         modifier = Modifier.fillMaxWidth()
@@ -455,20 +696,18 @@ private fun SlotLogItem(log: AccessLog) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = log.file,
-                    fontSize = 12.sp,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onSurface
+                    style = TelemetryCodeBold.copy(color = MaterialTheme.colorScheme.onSurface),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = log.timestamp,
-                    fontSize = 10.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = TelemetryCodeSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                 )
             }
             Surface(
-                shape = RoundedCornerShape(50),
+                shape = FullPillShape,
                 color = badgeColor.copy(alpha = 0.15f),
                 border = androidx.compose.foundation.BorderStroke(1.dp, badgeColor.copy(alpha = 0.4f))
             ) {

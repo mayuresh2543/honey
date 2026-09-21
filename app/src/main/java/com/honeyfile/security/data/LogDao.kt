@@ -23,6 +23,9 @@ interface LogDao {
     @Query("SELECT COUNT(*) FROM access_logs WHERE (LOWER(user) LIKE 'intruder%' OR action = 'BREACH') AND action != 'DEPLOYED'")
     fun getIntruderCount(): LiveData<Int>
 
+    @Query("DELETE FROM access_logs WHERE file = :fileName AND (action = 'ACCESSED' OR action = 'ACCESS')")
+    fun deleteAccessLogsForFile(fileName: String): Int
+
     @Query("DELETE FROM access_logs")
     fun clearAll(): Int
 }

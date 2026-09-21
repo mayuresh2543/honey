@@ -252,7 +252,7 @@ private fun AccessLogCard(
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = log.timestamp,
+                        text = "${log.action.uppercase()} • ${log.timestamp}",
                         style = TelemetryCodeSmall.copy(color = MaterialTheme.colorScheme.onSurfaceVariant)
                     )
                 }

@@ -4,10 +4,14 @@ import android.os.FileObserver
 import android.util.Log
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Watches a real filesystem directory using Linux inotify (via Android FileObserver).
@@ -41,16 +45,18 @@ class HoneyFileObserver(
     private val onAlterationDetected: (FileAlterationEvent) -> Unit
 ) : FileObserver(
     folderPath,
-    // Write events
-    CREATE or MODIFY or DELETE or MOVED_FROM or MOVED_TO or
+    // Write & mutation events
+    CREATE or MODIFY or CLOSE_WRITE or ATTRIB or DELETE or DELETE_SELF or MOVED_FROM or MOVED_TO or
     // Read/access event — CLOSE_NOWRITE is the sole reliable indicator of a finished file read
     CLOSE_NOWRITE
 ) {
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
-    private val recentAccessTimestamps = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private val recentAccessTimestamps = ConcurrentHashMap<String, Long>()
+    private val pendingAccessJobs = ConcurrentHashMap<String, Job>()
+    private val recentlyDeletedFiles = ConcurrentHashMap<String, Long>()
     @Volatile
     private var lastFolderMutationTimeMs = 0L
-    private val pendingMovedFromMap = java.util.concurrent.ConcurrentHashMap<String, Long>()
+    private val pendingMovedFromMap = ConcurrentHashMap<String, Long>()
 
     override fun onEvent(event: Int, path: String?) {
         if (path.isNullOrBlank()) return
@@ -75,7 +81,7 @@ class HoneyFileObserver(
             return
         }
 
-        val targetFile = java.io.File(folderPath, path)
+        val targetFile = File(folderPath, path)
         val fileExists = targetFile.exists()
 
         // Bitwise inotify event flags
@@ -97,12 +103,26 @@ class HoneyFileObserver(
             return
         }
 
+        // If file was deleted or unlinked, immediately cancel any pending access job and track deletion
+        if (isDelete || !fileExists) {
+            pendingAccessJobs.remove(path)?.cancel()
+            recentlyDeletedFiles[path] = System.currentTimeMillis()
+        }
+
         // 3. For read/access events (CLOSE_NOWRITE):
-        if (isAccess && fileExists) {
+        if (isAccess) {
+            val now = System.currentTimeMillis()
+
+            // If file was deleted recently (within 5 seconds) or does not exist on disk,
+            // this CLOSE_NOWRITE is a trailing inotify kernel artifact from unlinking/closing the deleted file.
+            val lastDeletedTime = recentlyDeletedFiles[path]
+            if (!fileExists || (lastDeletedTime != null && now - lastDeletedTime < 5000L)) {
+                Log.d(TAG, "Suppressed trailing CLOSE_NOWRITE for deleted file: $path")
+                return
+            }
+
             // Must match honey keywords
             if (!isHoneyFile(path)) return
-
-            val now = System.currentTimeMillis()
 
             // Mutation cooldown: If a file deletion, creation, or rename occurred in this directory
             // within the last 3.5 seconds, ignore CLOSE_NOWRITE (OS media/sqlite cleanup probe on existing files)
@@ -130,6 +150,31 @@ class HoneyFileObserver(
                 return
             }
             recentAccessTimestamps[path] = now
+
+            // Buffer access event by 450ms settling delay to differentiate genuine read from a pre-delete attribute check.
+            // Android file managers routinely open & close files immediately before unlinking/deleting them.
+            pendingAccessJobs.remove(path)?.cancel()
+            val accessJob = coroutineScope.launch {
+                delay(450L)
+                pendingAccessJobs.remove(path)
+
+                val checkFile = File(folderPath, path)
+                val checkExists = checkFile.exists()
+                val wasDeleted = recentlyDeletedFiles[path]?.let { System.currentTimeMillis() - it < 5000L } == true
+
+                if (!checkExists || wasDeleted) {
+                    Log.d(TAG, "File '$path' unlinked during access settling window — converting to DELETED")
+                    recentlyDeletedFiles[path] = System.currentTimeMillis()
+                    val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                    onAlterationDetected(FileAlterationEvent(fileName = path, eventType = FileAlterationType.DELETED, timestamp = timestamp))
+                } else {
+                    val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
+                    Log.d(TAG, "inotify verified access: $path → ACCESSED at $timestamp")
+                    onAlterationDetected(FileAlterationEvent(fileName = path, eventType = FileAlterationType.ACCESSED, timestamp = timestamp))
+                }
+            }
+            pendingAccessJobs[path] = accessJob
+            return
         }
 
         // Buffer MOVED_FROM to pair with subsequent MOVED_TO for clean rename tracking
@@ -137,7 +182,7 @@ class HoneyFileObserver(
             val moveTime = System.currentTimeMillis()
             pendingMovedFromMap[path] = moveTime
             coroutineScope.launch {
-                kotlinx.coroutines.delay(1800L)
+                delay(1800L)
                 if (pendingMovedFromMap.remove(path, moveTime)) {
                     val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
                     Log.d(TAG, "inotify event: $path → DELETED (moved out of directory) at $timestamp")
@@ -163,6 +208,8 @@ class HoneyFileObserver(
                 FileAlterationType.RENAMED
             }
             isDelete || !fileExists -> {
+                pendingAccessJobs.remove(path)?.cancel()
+                recentlyDeletedFiles[path] = System.currentTimeMillis()
                 FileAlterationType.DELETED
             }
             isCreate -> {
@@ -171,15 +218,19 @@ class HoneyFileObserver(
             isModify -> {
                 FileAlterationType.EDITED
             }
-            isAccess -> {
-                FileAlterationType.ACCESSED
-            }
             else -> return
         }
 
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
         Log.d(TAG, "inotify event: $reportedFileName → $eventType (event=$event, exists=$fileExists) at $timestamp")
         onAlterationDetected(FileAlterationEvent(fileName = reportedFileName, eventType = eventType, timestamp = timestamp))
+    }
+
+    override fun stopWatching() {
+        super.stopWatching()
+        pendingAccessJobs.values.forEach { it.cancel() }
+        pendingAccessJobs.clear()
+        pendingMovedFromMap.clear()
     }
 
     private fun isHoneyFile(fileName: String): Boolean {

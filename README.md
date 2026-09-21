@@ -11,9 +11,10 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Platform-Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" />
   <img src="https://img.shields.io/badge/Language-Kotlin-7F52FF?style=for-the-badge&logo=kotlin&logoColor=white" />
+  <img src="https://img.shields.io/badge/UI-Jetpack_Compose_M3_Expressive-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white" />
   <img src="https://img.shields.io/badge/Min_SDK-24_(Android_7.0)-blue?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Target_SDK-34_(Android_14)-green?style=for-the-badge" />
-  <img src="https://img.shields.io/badge/Architecture-MVVM_%2B_Clean-orange?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Target_SDK-30-green?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Compile_SDK-34_(Android_14)-orange?style=for-the-badge" />
 </p>
 
 ---
@@ -26,13 +27,16 @@
 4. [Detailed System Architecture](#-detailed-system-architecture)
    - [1. Biometric Facial Authentication Subsystem](#1-biometric-facial-authentication-subsystem)
    - [2. Dual-Engine Directory & Integrity Surveillance](#2-dual-engine-directory--integrity-surveillance)
-   - [3. Background Surveillance & Stealth Camera Engine](#3-background-surveillance--stealth-camera-engine)
-   - [4. Intruder Evidence Capture & Forensic Vault](#4-intruder-evidence-capture--forensic-vault)
-   - [5. Alert Dispatch & Forensic Device Telemetry](#5-alert-dispatch--forensic-device-telemetry)
-   - [6. Cloud Vault Synchronization (Firestore & Auth)](#6-cloud-vault-synchronization-firestore--auth)
-   - [7. Threat Analytics & Temporal Heatmap Intelligence](#7-threat-analytics--temporal-heatmap-intelligence)
-   - [8. Room Database Audit Logging & CSV Export](#8-room-database-audit-logging--csv-export)
-   - [9. In-Place Theme Engine (Zero-Recreation Dark/Light Mode)](#9-in-place-theme-engine-zero-recreation-darklight-mode)
+   - [3. Headless Foreground Surveillance & CameraX Engine](#3-headless-foreground-surveillance--camerax-engine)
+   - [4. Foreground vs. Background Coordination (Handshake Architecture)](#4-foreground-vs-background-coordination-handshake-architecture)
+   - [5. Intruder Evidence Capture & Forensic Photo Vault](#5-intruder-evidence-capture--forensic-photo-vault)
+   - [6. Alert Dispatch & Forensic Device Telemetry](#6-alert-dispatch--forensic-device-telemetry)
+   - [7. Cloud Vault Synchronization (Firestore & Auth)](#7-cloud-vault-synchronization-firestore--auth)
+   - [8. Threat Analytics & Temporal Heatmap Intelligence](#8-threat-analytics--temporal-heatmap-intelligence)
+   - [9. Room Database Audit Logging & Real-Time Search Ledger](#9-room-database-audit-logging--real-time-search-ledger)
+   - [10. Decoy Studio & Honeyfile Synthesis Engine](#10-decoy-studio--honeyfile-synthesis-engine)
+   - [11. Material 3 Expressive UI & Theming](#11-material-3-expressive-ui--theming)
+   - [12. Performance, Battery & Storage Optimizations](#12-performance-battery--storage-optimizations)
 5. [End-to-End Execution Flow (Sequence Diagram)](#-end-to-end-execution-flow)
 6. [User Interface & Dashboard Walkthrough](#-user-interface--dashboard-walkthrough)
 7. [Directory Structure & Code Map](#-directory-structure--code-map)
@@ -40,21 +44,23 @@
 9. [Android Permissions & Security Policies](#-android-permissions--security-policies)
 10. [Setup, Build & Deployment Guide](#-setup-build--deployment-guide)
 11. [Configuration & Environment Parameters](#-configuration--environment-parameters)
+12. [Project Credits & Attributions](#-project-credits--attributions)
+13. [License & Ethical Security Use](#-license--ethical-security-use)
 
 ---
 
 ## 🌟 Executive Overview
 
-**Honeyfile Security** is an advanced endpoint security and deception engineering application designed for Android devices. Operating on the principle of **cyber deception (Honeypotting)**, the application deploys enticing decoy files (*honeyfiles*) containing simulated confidential information (such as root passwords, secret API keys, and executive payroll sheets) into monitored storage locations.
+**Honeyfile Security** is an enterprise-grade mobile endpoint security and cyber deception engineering application designed for the Android ecosystem. Operating on the proven principles of **cyber deception (Honeypotting)**, the application deploys realistic decoy documents (*honeyfiles*) containing simulated high-value targets (such as banking records, corporate non-disclosure agreements, tax filings, cryptocurrency seed backup ledgers, executive payroll sheets, cloud service account credentials, and database dumps) into monitored storage directories.
 
-When unauthorized personnel or malicious processes attempt to access, modify, copy, rename, or delete these files:
-- The system **diverts the intruder** to a realistic decoy viewer without alerting them to the breach detection.
-- The **stealth front camera engine** silently captures a high-resolution facial photograph of the perpetrator.
-- The **facial biometric engine** compares the captured image against enrolled Administrator profiles using on-device Machine Learning (ML Kit).
-- The system collects **forensic device telemetry** (GPS location, Wi-Fi SSID, local IPv4, and battery state).
-- An encrypted **HTML security alert email** containing the intruder's photo and exact location is dispatched immediately via SMTP.
-- The incident and evidence are mirrored instantly to a **Firebase Cloud Firestore Vault** to prevent evidence destruction.
-- All events are permanently recorded in a local **Room Audit Database** and analyzed for threat scoring, peak attack windows, and hourly heatmaps.
+When unauthorized users or malicious processes interact with, open, modify, copy, rename, or delete these honeyfiles:
+- The **stealth camera engine** silently captures a high-resolution facial photograph of the perpetrator via CameraX without triggering screen overlays, activity popups, or recents-list footprints.
+- The **facial biometric engine** compares the captured image against enrolled Administrator profiles using on-device Machine Learning (Google ML Kit Face Detection) and scale-invariant geometric landmark ratios.
+- The system collects **forensic device telemetry** (GPS geolocation coordinates, Google Maps pinpoint URL, local IPv4 address, connected Wi-Fi SSID, battery percentage, and charging state).
+- An encrypted **HTML security alert email** containing the intruder's photo and exact location is dispatched immediately via SMTP to all registered administrator email addresses.
+- The breach incident, metadata, and evidence snapshot are mirrored instantly to a remote **Firebase Cloud Firestore Vault** to prevent evidence loss even if the physical device is damaged or wiped.
+- All events are permanently recorded in a local, indexed **Room Audit Database** and analyzed by the **Threat Analytics Engine** for threat scoring, peak attack windows, and 24-hour heatmaps.
+- Multi-format decoy documents can be synthesized natively on demand (PDF, DOCX, XLSX, JSON, ENV, SQL) via the integrated **Decoy Studio**.
 
 ---
 
@@ -62,52 +68,53 @@ When unauthorized personnel or malicious processes attempt to access, modify, co
 
 | Feature Area | Technical Implementation | Security Advantage |
 | :--- | :--- | :--- |
-| **Facial Biometrics** | Google ML Kit Face Detection + Landmark Geometry Ratio Analysis | On-device, sub-second facial authentication; prevents cloud latency and maintains privacy. |
-| **Dual Admin Slots** | Independent Administrator profiles (Admin 1 & Admin 2) with distinct facial templates & emails | Multi-administrator governance; anti-impersonation cross-validation. |
-| **Hybrid Surveillance** | Android SAF Polling (every 500ms) + Native Linux `inotify` (`FileObserver`) | Instant microsecond kernel detection for file reads (`CLOSE_NOWRITE`) and file writes. |
-| **Stealth Background Capture** | Zero-UI transparent activity (`OverlayCaptureActivity`) with headless `ImageAnalysis` session | Bypasses Android background camera restrictions silently without UI flashing or notification popups. |
-| **Dual Deception Flow** | Split navigation: Verified Admin $\to$ Real Master File; Intruder $\to$ Decoy Document | Intruder remains unaware of detection while active forensic capture takes place. |
-| **Forensic Telemetry** | GPS Geolocation, Maps URL, IPv4 address, Wi-Fi SSID, Battery level & charging state | Complete situational awareness for enterprise forensic investigations. |
+| **100% Jetpack Compose UI** | Material 3 Expressive design, Spring physics interactions, dynamic glowing risk borders, custom Canvas charts | Zero legacy XML view inflation overhead, fluid 60/120 FPS rendering, expressive tactile feedback. |
+| **Facial Biometrics** | Unbundled Google ML Kit Face Detection + Normalized Landmark Geometry Ratio Analysis | On-device, sub-second facial verification; lazy-initialized for zero idle native memory allocation. |
+| **Dual Admin Slots & Anti-Impersonation** | Independent Administrator profiles (Admin 1 & Admin 2) with distinct facial templates & emails | Multi-administrator governance; anti-impersonation cross-validation prevents duplicate face enrollments. |
+| **Sole Admin Protection** | Deletion safeguards enforcing at least one active enrolled administrator profile | Prevents accidental system disarming and guarantees alert delivery continuity. |
+| **Hybrid Surveillance** | Native Linux `inotify` (`FileObserver`) + Adaptive SAF Polling (60s active / 15s fallback) | Instant microsecond kernel detection for file reads (`CLOSE_NOWRITE`) and mutations with 75% reduced disk I/O. |
+| **Headless Camera Capture** | CameraX `ImageCapture` bound directly to `LifecycleService` (`HoneyMonitoringService`) | 100% silent execution in background service — zero UI flashing, no activity popups or recents footprint. |
+| **Foreground / Background Handshake** | Dynamic `MainActivity.isInForeground` coordination between Activity and Service | Prevents hardware camera lock contention and eliminates duplicate breach alert firing. |
+| **Smart Debounce Engine** | 5s global atomic breach debounce + 6s per-file deletion debounce window | Prevents alert storming from rapid file operations and dual inotify/SAF delete notifications. |
+| **Decoy Studio** | Native generator using Android `PdfDocument`, `ZipOutputStream` (OpenXML), and SQLite | Realistic multi-format honeyfiles (PDF, Word, Excel, SQL, JSON) without third-party document libraries. |
+| **Deployment Suppression** | Concurrency flag `isDeploymentInProgress` with a 1.5s post-completion cooldown | Completely eliminates false-positive intrusion alerts during deliberate decoy generation. |
+| **Forensic Telemetry** | GPS Geolocation, Google Maps URL, IPv4 address, Wi-Fi SSID, Battery percentage & charging state | Complete situational awareness for mobile forensic audit trails. |
 | **Multi-Tier Email Alert** | JavaMail SMTP (TLS/SSL `smtp.gmail.com:465`) with CID inline image embedding | Real-time off-device notification delivered to all registered administrator inboxes. |
 | **Off-Device Cloud Sync** | Firebase Anonymous Auth + Cloud Firestore document payload (Base64 JPEG) | Tamper-proof remote log persistence even if the local device is compromised or formatted. |
-| **Threat Intelligence** | Dynamic 0–100 Threat Index, 6-slot 24h temporal heatmap, custom canvas donut chart | Real-time attack velocity analytics and risk categorization (Low, Elevated, Critical). |
-| **High-Performance UI** | Coil 2.6.0 async image pipeline, `ListAdapter` + `DiffUtil`, in-place theme animator | 60 FPS scrolling, zero main-thread bitmap decoding jank, instant theme switching without activity restarts. |
+| **Threat Intelligence** | Dynamic 0–100 Threat Index, 6-slot 24h temporal heatmap, custom Compose Donut Chart | Real-time attack velocity analytics and risk categorization (Low, Elevated, Critical). |
+| **Forensic Photo Vault** | Coil 2.6.0 async image pipeline, rolling LRU 100-photo retention, 82% optimized JPEG | Hardware bitmap acceleration, full-screen inspector, SAF external export, and bounded storage usage. |
+| **Real-Time Audit Ledger** | Room DB v3 with composite indices (`file`, `timestamp`) & dynamic multi-field search | Instant filtering across file, action, user, and details with expandable forensic cards. |
+| **Optimized Bytecode** | R8 full-mode shrinking, ProGuard stripping of all `android.util.Log` calls, resource exclusions | Stripped raw protobuf/metadata files, zero debug logging in production bytecode, minimal APK footprint. |
 
 ---
 
 ## 🍯 Deception & Honeypot Philosophy
 
-Traditional mobile security relies on access control barriers (passwords, PINs, biometric locks) that inform an intruder when access is blocked. **Honeyfile Security** utilizes an active deception strategy:
+Traditional mobile security relies on access control barriers (passwords, PINs, biometric locks) that alert an intruder when access is denied. **Honeyfile Security** utilizes an active deception strategy:
 
 ```
-                              [ Target Directory Monitored ]
-                                            │
-                                            ▼
+                              [ Monitored Directory ]
+                                         │
+                                         ▼
                       [ User / Process Interacts with Honeyfile ]
-                                            │
-                                            ▼
-                         [ Background Camera Silent Capture ]
-                                            │
-                                            ▼
-                           [ ML Kit Facial Ratio Verification ]
-                                            │
-                     ┌──────────────────────┴──────────────────────┐
-                     ▼                                             ▼
-             [ MATCH: Admin ]                             [ NO MATCH: Intruder ]
-                     │                                             │
-      • Access Granted                               • Diverted to Decoy Viewer
-      • Open Real Confidential File                  • Generate Tamper Alert
-      • Log "Authorized Access"                      • Gather Telemetry (GPS, IP, Wi-Fi)
-                                                     • Dispatch SMTP Email with Photo
-                                                     • Sync to Cloud Firestore Vault
-                                                     • Increment Threat Score
+                                         │
+                                         ▼
+                        [ Background Silent Photo Capture ]
+                                         │
+                                         ▼
+                       [ ML Kit Facial Ratio Verification ]
+                                         │
+                 ┌───────────────────────┴───────────────────────┐
+                 ▼                                               ▼
+         [ MATCH: Admin ]                               [ NO MATCH: Intruder ]
+                 │                                               │
+  • Authorized Access Verified                   • Silent Forensic Capture Executed
+  • Logged in Room Database                      • Evidence Photo Saved to Vault
+  • Live Dashboard Counters Updated              • Gather Forensic Telemetry (GPS, IP, Wi-Fi)
+                                                 • Dispatch SMTP Email with Photo & Coordinates
+                                                 • Mirror Incident to Firebase Cloud Vault
+                                                 • Increment Threat Score & Heatmap Bins
 ```
-
-### Deployed Decoy Profiles
-Administrators can deploy pre-packaged decoy files directly into any selected directory:
-1. `admin_passwords.txt` — Realistic system root credentials and database connection strings.
-2. `salary_records.xlsx` — Executive salary and disbursement payroll data.
-3. `secret_api_keys.json` — Simulated AWS root keys and Stripe live tokens.
 
 ---
 
@@ -117,14 +124,15 @@ Administrators can deploy pre-packaged decoy files directly into any selected di
 com.honeyfile.security
  ├── alert/         --> SMTP JavaMail Dispatcher & Device Telemetry Manager
  ├── analytics/     --> Threat Scoring, 24h Window Calculation & Heatmap Engine
- ├── auth/          --> ML Kit Facial Biometrics, Geometric Ratio Matcher & Theme Manager
- ├── camera/        --> CameraX Silent Capture & Transparent Background Overlay
- ├── cloud/         --> Firebase Firestore Cloud Vault Synchronizer
- ├── data/          --> Room Database, AccessLog Entity & LogDao
+ ├── auth/          --> Lazy ML Kit Facial Biometrics, Geometric Ratio Matcher & Theme Manager
+ ├── camera/        --> CameraX Silent Capture, Synthetic Evidence Generator & LRU Pruning
+ ├── cloud/         --> Firebase Firestore Cloud Vault Synchronizer & Anonymous Auth
+ ├── data/          --> Room Database (v3 Indexed), AccessLog Entity & LogDao
+ ├── decoy/         --> DecoyGeneratorEngine (Native PDF, OpenXML DOCX/XLSX, SQL/JSON)
  ├── integrity/     --> inotify FileObserver, SAF Path Resolver & Alteration Types
- ├── scanner/       --> Continuous Directory Delta Polling & Keyword Engine
- ├── service/       --> HoneyMonitoringService Foreground Surveillance Service
- └── ui/            --> Activities, Dialog Fragments, RecyclerView Adapters & Custom Views
+ ├── scanner/       --> Adaptive Directory Polling & Keyword Matching Engine
+ ├── service/       --> HoneyMonitoringService Headless Foreground Surveillance Service
+ └── ui/            --> MainActivity, Jetpack Compose Screens, Dialogs & Expressive Theme
 ```
 
 ---
@@ -136,7 +144,8 @@ com.honeyfile.security
                        [ Captured Frame Bitmap ]
                                    │
                                    ▼
-                   [ ML Kit FaceDetection.getClient() ]
+                   [ Lazy ML Kit FaceDetector Client ]
+                   (Allocated only when biometrics run)
                                    │
                     (Detect Face Landmarks & Bounds)
                                    │
@@ -161,102 +170,119 @@ com.honeyfile.security
               (Admin Match)                  (Intruder)
 ```
 
-- **Algorithm Details:** Rather than relying on computationally heavy deep feature embeddings that require high memory overhead, the engine extracts normalized biometric proportions:
+- **Mathematical Foundations:** Rather than relying on computationally heavy deep neural network embeddings that require hundreds of megabytes of RAM, the biometric engine extracts scale-invariant geometric proportions:
   $$\text{Inter-Pupillary Distance } (D_{\text{eyes}}) = \sqrt{(x_{\text{left}} - x_{\text{right}})^2 + (y_{\text{left}} - y_{\text{right}})^2}$$
   $$\text{Eye-to-Nose Distance } (D_{\text{eye-nose}}) = \sqrt{\left(\frac{x_{\text{left}} + x_{\text{right}}}{2} - x_{\text{nose}}\right)^2 + \left(\frac{y_{\text{left}} + y_{\text{right}}}{2} - y_{\text{nose}}\right)^2}$$
   $$R_1 = \frac{D_{\text{eyes}}}{\text{BoundingBox.Width}}, \quad R_2 = \frac{D_{\text{eye-nose}}}{\text{BoundingBox.Height}}$$
+  $$\Delta = |R_{1,\text{captured}} - R_{1,\text{enrolled}}| + |R_{2,\text{captured}} - R_{2,\text{enrolled}}|$$
+- **Lazy Client Allocation:** `FaceDetection.getClient(...)` is initialized via `by lazy`. Methods inspecting administrative names, email recipients, or enrollment status from `SharedPreferences` execute with **zero native ML Kit C++ memory overhead**.
+- **Dual Administrator Profiles:** Supports independent profiles for Admin 1 and Admin 2 with distinct names, notification email addresses, and facial landmark templates.
 - **Anti-Impersonation Safeguards:**
-  - When enrolling Admin 2, the scan is cross-checked against Admin 1 to prevent enrolling duplicate face profiles for both administrator slots.
-  - Profile names and alert emails must be distinct.
-  - Requires at least one active administrator profile before surveillance services can be initiated.
+  - When enrolling Admin 2, the facial scan is cross-checked against Admin 1's profile. If $\Delta < 0.12$, enrollment is rejected to prevent duplicate face registrations.
+  - Distinct identity validation: Prevents sharing administrator names or notification emails across slots.
+- **Sole Administrator Protection:**
+  - Surveillance services require at least one active administrator profile to operate (`hasAtLeastOneAdmin()`).
+  - Clearing Admin 1 is blocked if no Admin 2 exists, preventing an unmonitored or un-administrated state.
+- **Mandatory First-Run Enrollment:** If no administrator is registered upon launching the app, a mandatory enrollment flow intercepts the user before surveillance can be armed.
 
 ---
 
 ### 2. Dual-Engine Directory & Integrity Surveillance
 *Sources: [`FolderScannerManager.kt`](app/src/main/java/com/honeyfile/security/scanner/FolderScannerManager.kt), [`HoneyFileObserver.kt`](app/src/main/java/com/honeyfile/security/integrity/HoneyFileObserver.kt), [`UriPathResolver.kt`](app/src/main/java/com/honeyfile/security/integrity/UriPathResolver.kt)*
 
-The surveillance subsystem combines two complementary file system observation engines:
-
 ```
                                 [ Monitored Storage Location ]
                                                │
                        ┌───────────────────────┴───────────────────────┐
                        ▼                                               ▼
-        [ SAF Continuous Polling Engine ]              [ Linux Kernel inotify Observer ]
-        • Frequency: Every 500ms                       • Microsecond Event Triggers
-        • Uses DocumentFile.fromTreeUri                • Uses Android FileObserver
-        • Tracks: Name, Size, Timestamp                • Tracks: CLOSE_NOWRITE, CREATE,
-        • Detects Write Alterations:                             MODIFY, DELETE, MOVE
-          - CREATED (New file detected)                • Resolves content:// to /storage/...
-          - MODIFIED (Size or time delta)              • Identifies Read/Access Events
-          - DELETED (File absent in scan)                without file modification
+        [ Linux Kernel inotify Observer ]              [ Adaptive SAF Polling Engine ]
+        • Microsecond Event Triggers                   • 60s delay when inotify active
+        • Uses Android FileObserver                    • 15s delay in fallback mode
+        • Detects Reads (CLOSE_NOWRITE)                • Uses DocumentFile.fromTreeUri
+        • Detects Writes (CREATE, MODIFY,              • Keeps UI file counts synchronized
+          DELETE, ATTRIB, MOVED_FROM/TO)               • Zero flash storage hammering
 ```
 
-- **Read Detection Strategy:** Android's Storage Access Framework (SAF) does not provide read notification hooks. The app incorporates `HoneyFileObserver` listening for the Linux kernel `CLOSE_NOWRITE` mask. This allows detection when an intruder opens and reads a sensitive document without modifying its contents.
-- **Keyword Filtering:** To prevent false positives caused by Android OS background indexers, gallery scanners, or backup daemons, read events are filtered against decoy naming patterns:
-  `honey`, `secret`, `password`, `confidential`, `salary`, `admin`, `credential`, `private`, `decoy`, `backup`, `api_key`, `token`, `apikey`, `passwd`.
-- **Path Resolution:** `UriPathResolver` decomposes SAF tree document identifiers (`primary:Documents` or volume UUIDs) into absolute Linux directory paths (`/storage/emulated/0/...`), gracefully falling back if non-standard mount paths are encountered.
+- **Read Detection Strategy:** Android's Storage Access Framework (SAF) does not provide read notification hooks. `HoneyFileObserver` hooks directly into the Linux kernel `FileObserver` listening for the `CLOSE_NOWRITE` mask, detecting when an intruder opens and reads a honeyfile without saving modifications.
+- **Tracked Kernel Event Masks:**
+  - `CLOSE_NOWRITE`: Honeyfile opened and closed without modifications (Read access).
+  - `MODIFY`, `CLOSE_WRITE`: File content altered or updated.
+  - `CREATE`, `MOVED_TO`: New file created or moved into directory.
+  - `DELETE`, `DELETE_SELF`, `MOVED_FROM`: File deleted or removed from directory.
+  - `ATTRIB`: Metadata, timestamps, or file permission changes.
+- **Adaptive Storage Polling:** When Linux inotify is active, SAF background polling automatically relaxes from 15s to 60s, cutting disk read cycles and garbage collection churn by 75% while preserving instant, real-time alert dispatching.
+- **Keyword Filtering:** Events are evaluated against sensitive decoy keywords:
+  `honey`, `secret`, `password`, `confidential`, `salary`, `admin`, `credential`, `private`, `decoy`, `backup`, `api_key`, `token`, `apk`, `tax`, `ledger`, `vault`, `env`.
+- **Path Resolution:** `UriPathResolver` decomposes SAF tree document identifiers into absolute Linux directory paths (`/storage/emulated/0/...`), gracefully resolving secondary SD card paths and non-standard mount paths.
 
 ---
 
-### 3. Background Surveillance & Stealth Camera Engine
-*Sources: [`HoneyMonitoringService.kt`](app/src/main/java/com/honeyfile/security/service/HoneyMonitoringService.kt), [`OverlayCaptureActivity.kt`](app/src/main/java/com/honeyfile/security/camera/OverlayCaptureActivity.kt)*
+### 3. Headless Foreground Surveillance & CameraX Engine
+*Source: [`HoneyMonitoringService.kt`](app/src/main/java/com/honeyfile/security/service/HoneyMonitoringService.kt)*
 
-```
-[ File Tamper Event Detected in Background ]
-                     │
-                     ▼
-[ HoneyMonitoringService: Check Debounce & Foreground Status ]
-                     │
-                     ▼
-[ Launch OverlayCaptureActivity (Theme.Transparent, Window Flags) ]
-                     │
-                     ▼
-[ Bind CameraX: ImageCapture + Headless ImageAnalysis ]
-                     │
-                     ▼
-[ 4000ms Sensor Warmup (AE / AF / AWB Convergence) ]
-                     │
-                     ▼
-[ suspendCancellableCoroutine -> ImageCapture.takePicture() ]
-                     │
-                     ▼
-[ EXIF Rotation Correction -> Save Evidence JPEG ]
-                     │
-                     ▼
-[ Trigger Background Tasks: DB Insert -> SMTP Email -> Firestore Sync ]
-                     │
-                     ▼
-[ Finish Activity Silently (~2 Seconds Total Lifecycle) ]
-```
-
-#### Android Background Camera Policy Compliance:
-Modern Android operating systems strictly forbid background `Services` from opening the camera hardware. **Honeyfile Security** solves this through a zero-latency stealth mechanism:
-1. `HoneyMonitoringService` runs as an ongoing `FOREGROUND_SERVICE_CAMERA` and `FOREGROUND_SERVICE_SPECIAL_USE`.
-2. When a file alteration event occurs while the app is closed, it launches `OverlayCaptureActivity`.
-3. `OverlayCaptureActivity` has no UI layout (`setContentView` is omitted), has transparent window flags (`FLAG_NOT_TOUCHABLE`, `FLAG_NOT_FOCUSABLE`, `FLAG_SHOW_WHEN_LOCKED`, `FLAG_TURN_SCREEN_ON`), and does not appear in Android Recents (`excludeFromRecents="true"`).
-4. `ImageAnalysis` primes the camera HAL repeating session without a visible `PreviewView` texture surface.
-5. Captures the frame, executes background persistence and alerting, and invokes `finish()` immediately.
-6. A thread-safe `AtomicLong` debounce mechanism ensures rapid sequential file operations only trigger a single capture per 5-second interval.
+- **Android 14 Compliance:** Operates as an official Android `ForegroundService` declaring both `FOREGROUND_SERVICE_TYPE_CAMERA` and `FOREGROUND_SERVICE_TYPE_SPECIAL_USE`.
+- **Headless Execution:** CameraX `ImageCapture` is bound directly to the service's `LifecycleService`. Silent captures occur entirely headlessly in the background—no transparent activities, no screen overlays, and no UI flashing.
+- **Dual Notification Channels:**
+  - `honey_monitor_channel` (Importance Low/None): Persistent low-profile status notification indicating active honeypot protection.
+  - `honey_alert_channel` (Importance High): Real-time heads-up breach notification with vibration and alert sound when an intrusion is detected.
+- **Single Event Collector Lifecycle:** Tracks `eventsCollectionJob`, canceling prior collectors before launching in `onStartCommand()`, and canceling upon `onDestroy()` to prevent redundant coroutines.
+- **Thread-Safe Debouncing:**
+  - Global 5-second atomic debounce (`BREACH_DEBOUNCE_MS = 5000L`) preventing alert floods.
+  - Per-file 6-second deletion debounce (`recentDeletedBreaches[fileName]`) eliminating duplicate delete alerts triggered simultaneously by inotify and SAF.
 
 ---
 
-### 4. Intruder Evidence Capture & Forensic Vault
-*Sources: [`IntruderCaptureManager.kt`](app/src/main/java/com/honeyfile/security/camera/IntruderCaptureManager.kt), [`CapturedImageAdapter.kt`](app/src/main/java/com/honeyfile/security/ui/CapturedImageAdapter.kt), [`PhotoDetailDialogFragment.kt`](app/src/main/java/com/honeyfile/security/ui/PhotoDetailDialogFragment.kt)*
+### 4. Foreground vs. Background Coordination (Handshake Architecture)
+*Sources: [`MainActivity.kt`](app/src/main/java/com/honeyfile/security/ui/MainActivity.kt), [`HoneyMonitoringService.kt`](app/src/main/java/com/honeyfile/security/service/HoneyMonitoringService.kt)*
+
+To prevent camera hardware lock contention and duplicate alert execution when the user is actively interacting with the application:
+
+```
+[ File Tamper Event Detected ]
+               │
+               ▼
+   [ Check MainActivity.isInForeground ]
+               │
+       ┌───────┴───────┐
+       ▼               ▼
+    [ TRUE ]       [ FALSE ]
+       │               │
+• App is open in UI • Phone locked or app in background
+• Service skips     • HoneyMonitoringService handles capture
+  camera capture    • Silent CameraX ImageCapture executed
+• MainActivity      • Facial ML Kit verification run
+  handles breach    • SMTP alert email dispatched
+• Prevents camera   • Evidence mirrored to Firestore Cloud Vault
+  hardware locks    • Audit logged to Room Database
+```
+
+- **Foreground Handshake (`isInForeground`):** When `MainActivity` is active in the foreground (`onResume()`), `HoneyMonitoringService` skips background camera captures and delegates breach handling to `MainActivity`.
+- **Background Autonomy:** When the application is minimized, backgrounded, or the screen is turned off (`onStop()`), `HoneyMonitoringService` autonomously manages CameraX silent captures, biometric comparisons, SMTP alert dispatches, and cloud synchronization.
+
+---
+
+### 5. Intruder Evidence Capture & Forensic Photo Vault
+*Sources: [`IntruderCaptureManager.kt`](app/src/main/java/com/honeyfile/security/camera/IntruderCaptureManager.kt), [`VaultScreen.kt`](app/src/main/java/com/honeyfile/security/ui/compose/VaultScreen.kt), [`PhotoDetailDialog.kt`](app/src/main/java/com/honeyfile/security/ui/compose/dialogs/PhotoDetailDialog.kt)*
 
 - **Capture Pipeline:**
   1. **In-Memory Capture:** Direct byte-buffer extraction from `ImageProxy` via `BitmapFactory.decodeByteArray` with rotation matrix compensation.
   2. **File Capture Fallback:** Uses `ImageCapture.OutputFileOptions` to write a temporary JPEG in `cacheDir` and applies EXIF orientation parsing.
-  3. **Synthetic Evidence Generation:** If the hardware camera is blocked or in use by another app, a structured high-contrast canvas alert bitmap containing the breach timestamp and incident metadata is generated so forensic logging is never dropped.
-- **Evidence Storage:** Captured evidence photos are stored in the application's private storage directory (`filesDir/captured/`) named with high-precision timestamps (`yyyyMMdd_HHmmss.jpg`).
-- **High-Performance Vault UI:**
-  - Integrated with **Coil 2.6.0** for asynchronous background thread bitmap decoding, memory caching (`LruCache`), and disk caching.
-  - Implements `ListAdapter` with `DiffUtil` to eliminate UI stuttering when new evidence images are appended to the grid.
-  - Long-press contextual actions: View Fullscreen Evidence, Export to External Storage via SAF (`CreateDocument`), and Permanent Delete.
+  3. **Synthetic Evidence Generation:** If the hardware camera is unavailable or fails, a structured high-contrast canvas alert bitmap containing the breach timestamp, altered file name, device model, and incident metadata is generated automatically.
+- **Storage Optimization:**
+  - Images are compressed at **82% JPEG quality**, saving ~40% file size per snapshot with zero perceptible degradation.
+  - Implements an automated **rolling LRU retention cap (100 photos)** (`pruneOldEvidence()`), keeping internal storage bounded.
+- **Compose Vault Screen:**
+  - Rendered with **Coil 2.6.0** with hardware bitmap acceleration and instant caching.
+  - 2-column grid layout with floating red timestamp pills and evidence count badges.
+  - Full-screen zoomable inspection dialog (`PhotoDetailDialog`):
+    - High-resolution preview with incident metadata (timestamp, file name, file size in KB).
+    - **SAF External Export:** Uses `ActivityResultContracts.CreateDocument("image/jpeg")` to export snapshots to public Downloads or Pictures folders.
+    - **Android Sharesheet:** Integrates with `FileProvider` (`content://...`) to share evidence images across external applications.
+    - **Permanent Deletion:** Confirmed deletion from internal storage with immediate UI refresh.
 
 ---
 
-### 5. Alert Dispatch & Forensic Device Telemetry
+### 6. Alert Dispatch & Forensic Device Telemetry
 *Sources: [`EmailAlertManager.kt`](app/src/main/java/com/honeyfile/security/alert/EmailAlertManager.kt), [`TelemetryManager.kt`](app/src/main/java/com/honeyfile/security/alert/TelemetryManager.kt)*
 
 ```
@@ -282,26 +308,32 @@ Modern Android operating systems strictly forbid background `Services` from open
                └── Delivered Simultaneously to all Enrolled Admin Inboxes
 ```
 
+- **Dual-Provider Geolocation:** Evaluates both `LocationManager.GPS_PROVIDER` and `LocationManager.NETWORK_PROVIDER` to select the freshest, highest-accuracy geographical fix.
+- **Direct Maps URL:** Generates direct pinpoint hyperlinks formatted as `https://maps.google.com/?q={latitude},{longitude}`.
+- **Local Network Auditing:** Iterates device network interfaces, filtering loopback adapters, to log the active local IPv4 address and Wi-Fi SSID.
+- **Power State Telemetry:** Captures battery charge percentage and detects active AC/USB charging states via `Intent.ACTION_BATTERY_CHANGED`.
+- **Multi-Recipient SMTP:** Dispatches formatted HTML alerts with inline CID-embedded JPEG evidence photos to all enrolled administrator email inboxes simultaneously.
+
 ---
 
-### 6. Cloud Vault Synchronization (Firestore & Auth)
+### 7. Cloud Vault Synchronization (Firestore & Auth)
 *Source: [`FirebaseCloudVaultManager.kt`](app/src/main/java/com/honeyfile/security/cloud/FirebaseCloudVaultManager.kt)*
 
-To safeguard audit records against local device tampering (e.g. an intruder uninstalling the app or wiping app storage), every breach incident is immediately mirrored to **Firebase Cloud Firestore**:
+To safeguard audit records against local device tampering or formatting, every breach incident is mirrored to **Firebase Cloud Firestore**:
 
-- **Authentication:** Uses Firebase Anonymous Authentication to establish secure, zero-friction sessions.
+- **Authentication:** Uses Firebase Anonymous Authentication (`signInAnonymously()`) for secure, zero-friction cloud sessions.
 - **Firestore Schema (`breach_incidents` Collection):**
 
 ```json
 {
-  "file_name": "admin_passwords.txt",
-  "action_type": "EDITED",
-  "timestamp": "2026-08-18 15:45:00",
-  "details": "BACKGROUND BREACH: 'admin_passwords.txt' EDITED while app closed.",
+  "file_name": "Chase_Premier_Statement_Q3_2026.pdf",
+  "action_type": "BREACH",
+  "timestamp": "2026-09-21 12:30:00",
+  "details": "UNAUTHORIZED INTRUSION: File 'Chase_Premier_Statement_Q3_2026.pdf' accessed by Intruder.",
   "photo_base64": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBD...",
   "device_model": "Google Pixel 8 Pro",
   "android_version": "Android 14 (API 34)",
-  "synced_at_ms": 1787046300000,
+  "synced_at_ms": 1789974600000,
   "telemetry": {
     "latitude": 19.0760,
     "longitude": 72.8777,
@@ -314,10 +346,12 @@ To safeguard audit records against local device tampering (e.g. an intruder unin
 }
 ```
 
+- **Offline Resilience:** If Firebase credentials are not supplied or the device is offline, cloud synchronization gracefully skips without impacting local monitoring or SMTP alert dispatching.
+
 ---
 
-### 7. Threat Analytics & Temporal Heatmap Intelligence
-*Sources: [`ThreatAnalyticsManager.kt`](app/src/main/java/com/honeyfile/security/analytics/ThreatAnalyticsManager.kt), [`ThreatSummary.kt`](app/src/main/java/com/honeyfile/security/analytics/ThreatSummary.kt), [`PieChartView.kt`](app/src/main/java/com/honeyfile/security/ui/PieChartView.kt)*
+### 8. Threat Analytics & Temporal Heatmap Intelligence
+*Sources: [`ThreatAnalyticsManager.kt`](app/src/main/java/com/honeyfile/security/analytics/ThreatAnalyticsManager.kt), [`ThreatSummary.kt`](app/src/main/java/com/honeyfile/security/analytics/ThreatSummary.kt), [`ThreatAnalyticsDetailDialog.kt`](app/src/main/java/com/honeyfile/security/ui/compose/dialogs/ThreatAnalyticsDetailDialog.kt)*
 
 ```
                             [ Historical Access Logs ]
@@ -336,44 +370,83 @@ To safeguard audit records against local device tampering (e.g. an intruder unin
                                                           • 20:00 - 24:00 (Slot 5)
 ```
 
-- **Interactive Risk Breakdown:** Tapping any heatmap slot or the threat card opens the **Threat Analytics Detail Dialog**, featuring a custom hardware-accelerated Donut/Pie chart (`PieChartView`) rendering real-time distribution across:
+- **Severity Scoring Algorithm:**
+  $$\text{Score} = \begin{cases} 95, & \text{Breaches}_{24\text{h}} \ge 3 \implies \textbf{CRITICAL} \\ 55, & \text{Breaches}_{24\text{h}} \in [1, 2] \implies \textbf{ELEVATED} \\ 20, & \text{Breaches}_{\text{all-time}} > 0 \implies \textbf{LOW} \\ 5, & \text{Breaches}_{\text{all-time}} = 0 \implies \textbf{LOW} \end{cases}$$
+- **Allocation-Free Peak Attack Window:** Uses fast string slicing on timestamps (`substringAfter(" ").substringBefore(":")`) to populate a 24-hour histogram (`hourCounts[0..23]`) without `Calendar` object churn. Identifies the maximum breach hour and formats the window as `HH:00 - (HH+2):00`. Returns `"None Detected"` if zero breaches exist.
+- **6-Slot Heatmap Color Thresholds:** Binned into 4-hour slots with exact visual thresholds:
+  - $\ge 3$ breaches: Solid Vivid Red (`#DC2626`)
+  - 1–2 breaches: Solid Vivid Amber (`#D97706`)
+  - 0 breaches: Solid Vivid Green (`#16A34A`)
+- **Custom Hardware-Accelerated Canvas Donut Chart:** Interactive Compose chart rendering distribution across:
   - Authorized Admin Access (Green)
-  - Intruder Access Breaches (Red)
+  - Intruder Breaches (Red)
   - File Modifications (Amber)
   - File Deletions (Purple)
   - New Files Created (Cyan)
 
 ---
 
-### 8. Room Database Audit Logging & CSV Export
-*Sources: [`AppDatabase.kt`](app/src/main/java/com/honeyfile/security/data/AppDatabase.kt), [`LogDao.kt`](app/src/main/java/com/honeyfile/security/data/LogDao.kt), [`AccessLog.kt`](app/src/main/java/com/honeyfile/security/data/AccessLog.kt)*
+### 9. Room Database Audit Logging & Real-Time Search Ledger
+*Sources: [`AppDatabase.kt`](app/src/main/java/com/honeyfile/security/data/AppDatabase.kt), [`LogDao.kt`](app/src/main/java/com/honeyfile/security/data/LogDao.kt), [`AccessLog.kt`](app/src/main/java/com/honeyfile/security/data/AccessLog.kt), [`LogsScreen.kt`](app/src/main/java/com/honeyfile/security/ui/compose/LogsScreen.kt)*
 
-- **Persistence Layer:** Uses Android Room Database 2.6.1 with SQLite database `honeyfile_logs.db`.
-- **Reactive Observation:** Live query streams (`LiveData`) update dashboard counters, directory lists, and threat graphs without polling.
-- **Audit CSV Export:** Formats all historical security records into standard CSV (`Log ID, Target File, User Identity, Timestamp`) and initiates system share intents using Android `FileProvider`.
+- **Persistence Layer:** Android Room Database 2.6.1 (schema version 3) with SQLite database `honeyfile_logs.db`.
+- **Database Indices:** Table `access_logs` includes composite B-tree indices on `file` and `timestamp`, ensuring sub-millisecond indexed queries instead of sequential table scans.
+- **Live Search Filtering:** Real-time query matching across target file name, action type, actor identity, and technical details.
+- **Expandable Telemetry Cards:** Tapping any log card triggers an M3 spring animation (`expressiveBounceClickable`) expanding the card to reveal the full forensic telemetry summary, device metadata, and timestamp.
 
 ---
 
-### 9. In-Place Theme Engine (Zero-Recreation Dark/Light Mode)
-*Source: [`ThemeManager.kt`](app/src/main/java/com/honeyfile/security/auth/ThemeManager.kt)*
+### 10. Decoy Studio & Honeyfile Synthesis Engine
+*Sources: [`DecoyGeneratorEngine.kt`](app/src/main/java/com/honeyfile/security/decoy/DecoyGeneratorEngine.kt), [`DecoyStudioSheet.kt`](app/src/main/java/com/honeyfile/security/ui/compose/dialogs/DecoyStudioSheet.kt)*
 
-Most Android theme engines call `recreate()` on the Activity, resulting in layout re-inflation, white screen flashes, and camera re-initialization delays. **Honeyfile Security** implements a custom recursive view hierarchy styling engine:
+Administrators can deploy realistic, multi-format honeyfiles directly into any monitored folder via the built-in **Decoy Studio**:
 
-```
-[ User Toggles Theme Switch ]
-             │
-             ▼
-[ ThemeManager.animateTransition(rootView, window, toDark, duration = 150ms) ]
-             │
-             ▼
-[ ArgbEvaluator smoothly interpolates background, card, stroke & text colors ]
-             │
-             ▼
-[ Status bar appearance updated via WindowCompat.getInsetsController ]
-             │
-             ▼
-[ Result: 100% Instant, Zero Flash, Camera Streams Maintained Seamlessly ]
-```
+- **Native Synthesis (Zero Third-Party Libraries):**
+  - **PDF Documents:** Synthesized via Android SDK `android.graphics.pdf.PdfDocument`, utilizing Canvas graphics, typography, headers, line dividers, and colored transaction tables.
+  - **Word Documents (`.docx`):** Built programmatically using `ZipOutputStream` assembling valid OpenXML packages (`[Content_Types].xml`, `_rels/.rels`, `word/document.xml`).
+  - **Excel Spreadsheets (`.xlsx`):** Built programmatically using `ZipOutputStream` assembling valid OpenXML spreadsheet structures (`xl/workbook.xml`, `xl/worksheets/sheet1.xml`).
+  - **Developer Artifacts (`.json`, `.env`, `.sql`):** Generates realistic GCP service account keys, production `.env` credentials, and MySQL/MariaDB database schema dumps with hashed credentials.
+
+#### Decoy Studio Template Catalog
+
+| Category | File Name | MIME Type | Simulated Content Details |
+| :--- | :--- | :--- | :--- |
+| **PDFs** | `Chase_Premier_Statement_Q3_2026.pdf` | `application/pdf` | Chase Premier Banking statement with opening/closing balances, salary credits, debit ledgers, and account numbers. |
+| **PDFs** | `NDA_Confidential_Agreement_2026.pdf` | `application/pdf` | Corporate Non-Disclosure Agreement with legal provisions, \$500,000 liquidated damages clause, and signatures. |
+| **PDFs** | `ITR_2025_Tax_Assessment.pdf` | `application/pdf` | Indian Income Tax Return Form ITR-2 with gross income breakdown, tax deductions, and refund due amounts. |
+| **Office Docs** | `Crypto_Seed_Backup_Ledger.docx` | `application/octet-stream` | OpenXML Word document containing Ledger Nano X Bitcoin, Ethereum, and Solana 24-word seed phrases and PINs. |
+| **Office Docs** | `Payroll_Q3_2026_Confidential.xlsx` | `application/octet-stream` | OpenXML Excel spreadsheet listing executive compensation, designations, allowances, and CTC figures. |
+| **Dev & Database** | `gcp_service_account_prod.json` | `application/json` | Google Cloud IAM service account credential file with RSA private keys, client email, Stripe key, and AWS key. |
+| **Dev & Database** | `app_secrets.env` | `text/plain` | Production environment configuration with database host/port/credentials, Firebase secrets, and Stripe keys. |
+| **Dev & Database** | `database_backup.sql` | `text/plain` | SQL schema dump creating `system_credentials` table populated with bcrypt-hashed passwords and root API tokens. |
+
+- **UI & Deployment Features:**
+  - Category filter pills (`All`, `PDFs`, `Office Docs`, `Dev & Database`).
+  - "Select All" and "Deselect All" quick buttons.
+  - Duplicate detection: Checks `docDir.findFile(template.fileName)` to skip already existing files without overwriting.
+  - Linear progress bar with live template generation status text.
+  - **False-Positive Alert Suppression:** Sets `FolderScannerManager.isDeploymentInProgress` and `HoneyFileObserver.isDeploymentInProgress` to `true` with a 1.5-second post-completion grace period, ensuring intentional decoy generation does not trigger intrusion alarms.
+
+---
+
+### 11. Material 3 Expressive UI & Theming
+*Sources: [`HoneyTheme.kt`](app/src/main/java/com/honeyfile/security/ui/theme/Theme.kt), [`HoneyIcons.kt`](app/src/main/java/com/honeyfile/security/ui/theme/HoneyIcons.kt), [`ThemeManager.kt`](app/src/main/java/com/honeyfile/security/auth/ThemeManager.kt)*
+
+- **Material 3 Expressive Design:** Spring physics click interactions (`expressiveBounceClickable`), glowing border animations, high-contrast container surfaces, and pill badges.
+- **Native Vector Iconography:** Pure inline Compose `ImageVector` definitions in `HoneyIcons.kt` (Shield, FolderSpecial, Analytics, ElectricBolt, People, Lock, KeyboardArrowUp, KeyboardArrowDown, FileDownload, Visibility) eliminating vector XML inflation overhead.
+- **Dynamic Dark/Light Mode:** In-place theme switching via Compose reactive state holders without Activity recreation, preserving active camera sessions and folder observation.
+
+---
+
+### 12. Performance, Battery & Storage Optimizations
+
+1. **Lazy ML Kit Initialization:** `FaceDetector` is initialized on-demand; reading admin metadata and email settings runs with 0 MB native ML Kit memory footprint.
+2. **Adaptive Storage Polling:** SAF directory scanning relaxes to 60s when Linux kernel `inotify` is active, cutting storage wakeups by 75%.
+3. **Room Query Memoization:** LiveData query streams in Compose root are memoized via `remember { ... }`, eliminating query recreation during recompositions.
+4. **LRU Photo Pruning:** Automatically retains the most recent 100 evidence snapshots, preventing unbounded disk growth.
+5. **Bytecode Log Stripping:** R8 ProGuard rules strip all `android.util.Log` calls (`Log.d`, `Log.v`, `Log.i`) and string constants from the compiled APK.
+6. **Packaging Exclusions:** Excludes raw `.proto` schema files, `META-INF/*.version` text files, and debug probe binaries from the APK archive.
+7. **Thread-Safe Breach Debouncing:** 5-second atomic debounce and 6-second per-file deletion debounce eliminate alert storming and redundant capture coroutines.
 
 ---
 
@@ -385,7 +458,6 @@ sequenceDiagram
     actor Intruder
     participant DecoyFolder as Monitored Folder
     participant Service as HoneyMonitoringService
-    participant Overlay as OverlayCaptureActivity
     participant MLKit as ML Kit Face Biometrics
     participant Vault as IntruderCaptureManager
     participant SMTP as EmailAlertManager
@@ -393,65 +465,79 @@ sequenceDiagram
     participant DB as Room Database (LogDao)
     actor Admin as Administrator
 
-    Intruder->>DecoyFolder: Modifies or Reads "admin_passwords.txt"
-    DecoyFolder-->>Service: inotify (CLOSE_NOWRITE) / SAF Polling detects delta
-    Service->>Service: Check 5s Atomic Debounce Window
-    Service->>Overlay: Launch Transparent Overlay Activity
-    Overlay->>Overlay: Initialize CameraX (ImageCapture + ImageAnalysis)
-    Overlay->>Overlay: Warmup Sensor (4000ms AE/AF convergence)
-    Overlay->>Vault: Capture Silent Front-Camera Photo
-    Vault-->>Overlay: Photo Captured (or Fallback Evidence Bitmap)
-    Overlay->>MLKit: Authenticate Face against Enrolled Admins
-    MLKit-->>Overlay: Result: NO MATCH (Intruder)
+    Intruder->>DecoyFolder: Reads or Modifies Decoy Honeyfile
+    DecoyFolder-->>Service: inotify (CLOSE_NOWRITE / WRITE) detects tamper
+    Service->>Service: Verify 5s Atomic Debounce Window
+    Service->>Vault: Trigger Silent Front-Camera Photo
+    Vault-->>Service: Photo Captured (or Synthetic Evidence Bitmap)
+    Service->>MLKit: Authenticate Face against Enrolled Admins
+    MLKit-->>Service: Result: NO MATCH (Intruder)
     
     par Evidence Archival & Dissemination
-        Overlay->>DB: Insert Audit AccessLog (Intruder, File, Timestamp)
-        Overlay->>SMTP: Dispatch HTML Alert Email + Photo + GPS Telemetry
+        Service->>DB: Insert Audit AccessLog (Intruder, File, Timestamp)
+        Service->>Vault: Save 82% Compressed Evidence JPEG & Prune LRU
+        Service->>SMTP: Dispatch HTML Alert Email + Photo + GPS Telemetry
         SMTP-->>Admin: Receives Alert on Registered Admin Inboxes
-        Overlay->>Firestore: Upload Incident Record + Base64 Photo to Cloud
+        Service->>Firestore: Upload Incident Record + Base64 Photo to Cloud
     end
-    
-    Overlay->>Overlay: Finish & Terminate Overlay Activity
-    DecoyFolder-->>Intruder: Diverted to Decoy Viewer (Presents Simulated Dummy Keys)
 ```
 
 ---
 
 ## 📱 User Interface & Dashboard Walkthrough
 
-The application features a 4-tab bottom navigation architecture:
+The application features an intuitive 4-tab bottom navigation bar built entirely with Jetpack Compose:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ 🛡️ Honeyfile Security                     🌙 Dark Mode [x]  │
-│ Multi-Admin Facial Authentication Engine                    │
+│ HONEYFILE SECURITY                          [Dark Mode: ON] │
+│ Endpoint Honeypot & Intrusion Surveillance                  │
 ├─────────────────────────────────────────────────────────────┤
 │                                                             │
-│  [Tab 1: Overview]   [Tab 2: Scanner]   [Tab 3: Vault] ...  │
+│    [Overview]       [Scanner]       [Vault]       [Logs]    │
+│                                                             │
+│  ┌──────────────────────────┐ ┌──────────────────────────┐  │
+│  │ Admin Passes: 12         │ │ Intruder Breaches: 3     │  │
+│  └──────────────────────────┘ └──────────────────────────┘  │
 │                                                             │
 │  ┌───────────────────────────────────────────────────────┐  │
-│  │ 👥 Admin Profiles: John Doe, Jane Smith (2/2)         │  │
+│  │ [!] Endpoint Risk Index: CRITICAL                     │  │
+│  │ Threat Score: 95/100                                  │  │
+│  │ Peak: 14:00 - 16:00 | Breaches in 24h: 3              │  │
+│  │ [ View Analytics & Heatmap ]                          │  │
 │  └───────────────────────────────────────────────────────┘  │
 │                                                             │
-│  ┌─────────────────────────┐   ┌─────────────────────────┐  │
-│  │ ⚡ Risk Index: 95/100    │   │ 🕒 Peak: 14:00 - 16:00  │  │
-│  │ CRITICAL SEVERITY 🔴    │   │ 24h Breaches: 4         │  │
-│  └─────────────────────────┘   └─────────────────────────┘  │
+│  Security Management:                                       │
+│  ┌──────────────────────────┐ ┌──────────────────────────┐  │
+│  │ Deploy Decoy Traps       │ │ Manage Admins            │  │
+│  │ Multi-Format Traps       │ │ Biometric Profiles       │  │
+│  └──────────────────────────┘ └──────────────────────────┘  │
 │                                                             │
-│  Attack Time Window Heatmap:                                │
-│  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐      │
-│  │00-04h│ │04-08h│ │08-12h│ │12-16h│ │16-20h│ │20-24h│      │
-│  │  0   │ │  0   │ │  1   │ │  4   │ │  0   │ │  0   │      │
-│  └──────┘ └──────┘ └──────┘ └──────┘ └──────┘ └──────┘      │
+│  ┌───────────────────────────────────────────────────────┐  │
+│  │ [i] About & Credits (v1.0.2 Architecture)             │  │
+│  └───────────────────────────────────────────────────────┘  │
 │                                                             │
-│  [ 🍯 Deploy Decoy Files ]      [ ⚡ Access Monitored File ] │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-1. **Dashboard Tab (`nav_dashboard`):** Real-time threat index progress gauge, 24h breach count, peak attack window, 6-slot interactive heatmap, quick action buttons for admin management and decoy deployment.
-2. **Scanner Tab (`nav_scanner`):** Directory selector, continuous background auto-scan toggle, live file modification feed, category filter chips (`ALL`, `NEW`, `EDITED`, `COPIED`, `DELETED`, `BREACHES`), and expandable audit list.
-3. **Evidence Vault Tab (`nav_vault`):** 3-column photo grid loaded via Coil, image tap for full-screen analysis dialog with evidence sharing and export options.
-4. **Audit Logs Tab (`nav_logs`):** Historical log timeline with administrator vs intruder badges and CSV export functionality.
+1. **Overview Screen (`OverviewScreen.kt`):**
+   - **Overview Stats Cards**: Dual M3 Expressive counters showing authorized Admin Passes and Intruder Breaches.
+   - **Risk Index Card**: Animated pulsing glow border reflecting real-time severity (Low 🟢, Elevated 🟡, Critical 🔴) with linear progress bar.
+   - **Analytics Modal**: Tap "View Analytics & Heatmap" to view the interactive 6-slot 24h heatmap and custom Compose Donut Chart.
+   - **Quick Actions**: Dual action tiles for **Deploy Decoy** (launches Decoy Studio) and **Manage Admins** (biometric profile editor), and an **About & Credits** tile.
+2. **Scanner Screen (`ScannerScreen.kt`):**
+   - Directory selection via Storage Access Framework (`OpenDocumentTree`).
+   - Continuous background surveillance switch with live status badge.
+   - Monitored files and honeyfile counters.
+   - Live file modification feed with category filter chips (`ALL`, `NEW`, `EDITED`, `DELETED`, `ACCESSED`, `BREACHES`).
+3. **Photo Vault Screen (`VaultScreen.kt`):**
+   - 2-column evidence photo grid with Coil async loading and hardware bitmap caching.
+   - Floating timestamp pills on each image card and total evidence count badge.
+   - Fullscreen zoomable inspection modal with evidence sharing via Sharesheet, external storage export via SAF, and permanent deletion.
+4. **Audit Logs Screen (`LogsScreen.kt`):**
+   - Complete audit trail of endpoint interactions.
+   - Live real-time search filtering across filename, action, identity, and details.
+   - Expandable M3 cards with spring animations displaying full device telemetry.
 
 ---
 
@@ -459,65 +545,78 @@ The application features a 4-tab bottom navigation architecture:
 
 ```
 app/src/main/
-├── AndroidManifest.xml                        # Permissions, services, activities & FileProvider
-├── assets/
-│   ├── decoy_environment/admin_passwords.txt  # Simulated decoy passwords file
-│   └── log/admin_passwords.txt                # Real confidential admin credentials
+├── AndroidManifest.xml                          # Permissions, service declaration & FileProvider
 ├── java/com/honeyfile/security/
 │   ├── alert/
-│   │   ├── EmailAlertManager.kt               # JavaMail SMTP TLS engine with inline photo attachment
-│   │   └── TelemetryManager.kt                # GPS, IPv4, Wi-Fi SSID & battery state collector
+│   │   ├── EmailAlertManager.kt                 # JavaMail SMTP TLS engine with inline photo attachment
+│   │   └── TelemetryManager.kt                  # GPS, IPv4, Wi-Fi SSID & battery state collector
 │   ├── analytics/
-│   │   ├── ThreatAnalyticsManager.kt          # Threat scoring, peak hour & heatmap analysis
-│   │   └── ThreatSummary.kt                   # Analytics domain data models & severity enums
+│   │   ├── ThreatAnalyticsManager.kt            # Threat scoring, peak hour & heatmap analysis
+│   │   └── ThreatSummary.kt                     # Analytics domain data models & severity enums
 │   ├── auth/
-│   │   ├── FaceAuthManager.kt                 # ML Kit facial landmark ratio matching engine
-│   │   └── ThemeManager.kt                    # Zero-recreation in-place animated theme controller
+│   │   ├── FaceAuthManager.kt                   # Lazy ML Kit facial landmark ratio matching engine
+│   │   └── ThemeManager.kt                      # Persistent SharedPreferences theme preference manager
 │   ├── camera/
-│   │   ├── IntruderCaptureManager.kt          # Silent camera capture, fallback bitmap generator
-│   │   └── OverlayCaptureActivity.kt          # Invisible window activity for background camera access
+│   │   └── IntruderCaptureManager.kt            # Silent camera capture, fallback bitmap generator, LRU pruning
 │   ├── cloud/
-│   │   └── FirebaseCloudVaultManager.kt       # Firestore sync & anonymous authentication
+│   │   └── FirebaseCloudVaultManager.kt         # Firestore sync & anonymous authentication
 │   ├── data/
-│   │   ├── AccessLog.kt                       # Room entity for access & tampering logs
-│   │   ├── AppDatabase.kt                     # Room database configuration (version 2)
-│   │   └── LogDao.kt                          # Room Data Access Object queries
+│   │   ├── AccessLog.kt                         # Room entity (v3) with composite indices (file, timestamp)
+│   │   ├── AppDatabase.kt                       # Room database configuration (version 3)
+│   │   └── LogDao.kt                            # Room Data Access Object queries
+│   ├── decoy/
+│   │   └── DecoyGeneratorEngine.kt              # Native generator (PDF, OpenXML DOCX/XLSX, SQL/JSON)
 │   ├── integrity/
-│   │   ├── FileAlterationEvent.kt             # Alteration event data models & types
-│   │   ├── HoneyFileObserver.kt               # Linux inotify file observer for read/write events
-│   │   └── UriPathResolver.kt                 # SAF content:// URI to Linux path converter
+│   │   ├── FileAlterationEvent.kt               # Alteration event data models & types
+│   │   ├── HoneyFileObserver.kt                 # Linux inotify file observer for read/write events
+│   │   └── UriPathResolver.kt                   # SAF content:// URI to Linux path converter
 │   ├── scanner/
-│   │   └── FolderScannerManager.kt            # Continuous SAF polling directory scanner
+│   │   └── FolderScannerManager.kt              # Adaptive directory scanner (inotify + SAF polling)
 │   ├── service/
-│   │   └── HoneyMonitoringService.kt          # Foreground continuous surveillance service
+│   │   └── HoneyMonitoringService.kt            # Headless foreground surveillance service with CameraX
 │   └── ui/
-│       ├── AdminEnrollScanDialogFragment.kt   # Live camera dialog for admin face registration
-│       ├── AdminManagementDialogFragment.kt   # Admin profile management dialog (add/edit/clear)
-│       ├── CapturedImageAdapter.kt            # Coil-powered ListAdapter for vault grid
-│       ├── DecoyViewerActivity.kt             # Viewer presenting fake passwords to intruders
-│       ├── DirectoryLogAdapter.kt             # Expandable adapter with category filtering
-│       ├── LogAdapter.kt                      # Access log list adapter
-│       ├── MainActivity.kt                    # Primary application controller & navigation
-│       ├── PhotoDetailDialogFragment.kt       # Fullscreen evidence inspector & export tool
-│       ├── PieChartView.kt                    # Custom Canvas donut chart for breach distribution
-│       ├── RealFileViewerActivity.kt          # Viewer presenting master passwords to admins
-│       └── ThreatAnalyticsDetailDialogFragment.kt # Comprehensive threat intelligence modal
-└── res/                                       # Layouts, drawables, menus, and color palettes
+│       ├── MainActivity.kt                      # Compose root host, lifecycle & permission manager
+│       ├── compose/
+│       │   ├── HoneyfileApp.kt                  # Root Compose scaffold, tab transitions & navigation
+│       │   ├── OverviewScreen.kt                # Material 3 Expressive overview & quick actions
+│       │   ├── ScannerScreen.kt                 # Directory picker, live event feed & filter chips
+│       │   ├── VaultScreen.kt                   # Evidence photo grid with Coil AsyncImage
+│       │   ├── LogsScreen.kt                    # Audit log timeline with live search filtering
+│       │   └── dialogs/
+│       │       ├── AboutCreditsDialog.kt        # Architecture, attributions & version modal
+│       │       ├── AdminEnrollScanDialog.kt     # Live camera dialog for admin face registration
+│       │       ├── AdminManagementDialog.kt     # Admin profile management modal (add/edit/delete)
+│       │       ├── DecoyStudioSheet.kt          # Multi-format decoy generator bottom sheet
+│       │       ├── PhotoDetailDialog.kt         # Fullscreen evidence inspector & export tool
+│       │       └── ThreatAnalyticsDetailDialog.kt # Interactive threat breakdown & Canvas Donut Chart
+│       └── theme/
+│           ├── Color.kt                         # Cyber Green, Alert Red, Cyan Neon & Dark palettes
+│           ├── HoneyIcons.kt                    # Pure inline ImageVector definitions
+│           ├── Shape.kt                         # Expressive container, pill & card shapes
+│           ├── Theme.kt                         # HoneyTheme Compose Material 3 color schemes
+│           └── Typography.kt                    # Monospace telemetry & bold headline typography
+└── res/                                         # Drawables, mipmaps, XML file paths & strings
 ```
 
 ---
 
 ## 📊 Data Models & Schema Reference
 
-### 1. `AccessLog` (Room Database Entity)
+### 1. `AccessLog` (Room Database Entity — Schema v3)
 ```kotlin
-@Entity(tableName = "access_logs")
+@Entity(
+    tableName = "access_logs",
+    indices = [
+        Index(value = ["file"]),
+        Index(value = ["timestamp"])
+    ]
+)
 data class AccessLog(
     @PrimaryKey(autoGenerate = true)
     val id: Long = 0,
     val file: String,        // Target honeyfile or modified file name
     val user: String,        // Identity: "Admin 1", "Admin 2", "Intruder", "System"
-    val action: String,      // Action: "ACCESS", "BREACH", "CREATED", "EDITED", "DELETED", "RENAMED"
+    val action: String,      // Action: "ACCESS", "BREACH", "CREATED", "MODIFIED", "DELETED", "RENAMED"
     val details: String,     // Human-readable change details and telemetry summary
     val timestamp: String    // Formatted timestamp: "yyyy-MM-dd HH:mm:ss"
 )
@@ -557,23 +656,40 @@ data class ThreatSummary(
 )
 ```
 
+### 4. `DecoyTemplate`
+```kotlin
+data class DecoyTemplate(
+    val fileName: String,
+    val mimeType: String,
+    val category: DecoyCategory,
+    val displayName: String,
+    val emoji: String
+)
+
+enum class DecoyCategory(val label: String) {
+    PDF("PDFs"),
+    OFFICE("Office Docs"),
+    DATABASE("Dev & Database")
+}
+```
+
 ---
 
 ## 🔒 Android Permissions & Security Policies
 
 | Permission | Usage Description |
 | :--- | :--- |
-| `android.permission.CAMERA` | Captures facial biometric frames during enrollment and takes silent photos during intrusion events. |
+| `android.permission.CAMERA` | Captures facial biometric frames during admin enrollment and takes silent photos during intrusion events. |
 | `android.permission.INTERNET` | Dispatches SMTP alert emails to administrators and syncs breach incidents with Firebase Cloud Firestore. |
-| `android.permission.ACCESS_NETWORK_STATE` | Analyzes network connectivity state to inspect IP addressing and routing. |
-| `android.permission.ACCESS_WIFI_STATE` | Retrieves the active Wi-Fi SSID for forensic device telemetry logging. |
+| `android.permission.ACCESS_NETWORK_STATE` | Inspects network connectivity to identify IP routing state. |
+| `android.permission.ACCESS_WIFI_STATE` | Retrieves active Wi-Fi SSID for forensic device telemetry. |
 | `android.permission.ACCESS_FINE_LOCATION` | Captures high-precision GPS coordinates during security breaches. |
 | `android.permission.ACCESS_COARSE_LOCATION` | Fallback network-based geolocation provider. |
 | `android.permission.POST_NOTIFICATIONS` | Displays real-time breach notifications and foreground service status (Android 13+). |
-| `android.permission.FOREGROUND_SERVICE` | Keeps the background deception engine running continuously. |
+| `android.permission.READ_MEDIA_IMAGES` | Scans and displays captured photos in the evidence vault (Android 13+). |
+| `android.permission.FOREGROUND_SERVICE` | Keeps the background surveillance engine running continuously. |
 | `android.permission.FOREGROUND_SERVICE_CAMERA` | Declares camera usage in foreground service mode for Android 14 compliance. |
-| `android.permission.FOREGROUND_SERVICE_SPECIAL_USE` | Continuous Honeypot Security Monitoring service subtype. |
-| `android.permission.SYSTEM_ALERT_WINDOW` | Enables `OverlayCaptureActivity` to execute background stealth photo capture when the screen is locked or another app is open. |
+| `android.permission.FOREGROUND_SERVICE_SPECIAL_USE` | Declares Continuous Honeypot Security Monitoring service subtype. |
 
 ---
 
@@ -582,8 +698,8 @@ data class ThreatSummary(
 ### Prerequisites
 - **Android Studio:** Hedgehog (2023.1.1) or newer
 - **JDK:** Java Development Kit 17
-- **Android SDK:** Compile SDK 34, Min SDK 24
-- **Google Play Services:** Installed on target device or emulator (required for unbundled ML Kit Face Detection)
+- **Android SDK:** Compile SDK 34, Target SDK 30, Min SDK 24
+- **Google Play Services:** Required on target device or emulator for unbundled ML Kit Face Detection
 
 ### Step-by-Step Instructions
 
@@ -594,9 +710,9 @@ data class ThreatSummary(
    ```
 
 2. **Configure Firebase (Optional for Cloud Sync):**
-   - Place your `google-services.json` file inside the `app/` directory.
-   - Enable **Cloud Firestore** and **Anonymous Authentication** in the Firebase Console.
-   *(If omitted, the app will operate in local-only mode and gracefully skip cloud synchronization).*
+   - Place your `google-services.json` inside the `app/` directory.
+   - Enable **Cloud Firestore** and **Anonymous Authentication** in your Firebase Console.
+   *(If omitted, the app operates in local-only mode and gracefully skips cloud synchronization).*
 
 3. **Build Debug APK:**
    ```bash
@@ -608,13 +724,12 @@ data class ThreatSummary(
    adb install app/build/outputs/apk/debug/app-debug.apk
    ```
 
-5. **First-Time Setup Flow:**
+5. **Initial Setup Flow:**
    - On initial launch, grant **Camera**, **Location**, and **Notification** permissions.
-   - You will be prompted with the **Mandatory Admin 1 Enrollment Dialog**. Align your face in the camera preview, capture the scan, and enter your name and alert email.
-   - Grant the **"Display over other apps"** permission when prompted (allows background intrusion capture).
+   - Complete the **Mandatory Admin 1 Enrollment Dialog**: align your face with the camera, capture the scan, and enter your name and alert email.
    - In the **Scanner** tab, tap **"Choose Directory to Monitor"** and select a folder (e.g., `Documents` or `Downloads`).
-   - Tap **"Deploy Decoy Files"** to populate the monitored folder with honeyfiles.
-   - Enable **"Continuous Auto-Scan"**.
+   - In the **Overview** tab, tap **"Deploy Decoy"** to open **Decoy Studio** and deploy synthetic honeyfiles into your monitored directory.
+   - Enable **"Continuous Auto-Scan"** in the Scanner tab to activate the background surveillance service.
 
 ---
 
@@ -623,17 +738,27 @@ data class ThreatSummary(
 | Parameter | Location | Default Value | Description |
 | :--- | :--- | :--- | :--- |
 | `BREACH_DEBOUNCE_MS` | `HoneyMonitoringService.kt` | `5000L` (5s) | Cooldown window preventing duplicate alert bursts. |
-| `CAMERA_WARMUP_DELAY` | `OverlayCaptureActivity.kt` | `4000L` (4s) | Camera HAL AE/AF convergence delay for stealth captures. |
-| `SCAN_INTERVAL_MS` | `FolderScannerManager.kt` | `500L` (0.5s) | Continuous SAF directory polling frequency. |
+| `DELETED_BREACH_DEBOUNCE_MS` | `HoneyMonitoringService.kt` | `6000L` (6s) | Per-file deletion cooldown window preventing duplicate delete alerts. |
+| `SCAN_INTERVAL_INOTIFY` | `FolderScannerManager.kt` | `60000L` (60s) | Adaptive periodic SAF directory polling interval when inotify is active. |
+| `SCAN_INTERVAL_FALLBACK`| `FolderScannerManager.kt` | `15000L` (15s) | Periodic SAF directory polling interval in fallback mode. |
+| `MAX_VAULT_PHOTOS` | `IntruderCaptureManager.kt` | `100` | Rolling LRU maximum retention cap for captured evidence photos. |
+| `JPEG_QUALITY` | `IntruderCaptureManager.kt` | `82` | Optimized JPEG compression quality for evidence snapshots. |
 | `BIOMETRIC_DIFF_THRESHOLD` | `FaceAuthManager.kt` | `0.12f` | Maximum Manhattan ratio delta for facial authentication match. |
 | `SMTP_HOST` | `EmailAlertManager.kt` | `smtp.gmail.com` | SMTP relay server for alert notifications. |
 | `SMTP_PORT` | `EmailAlertManager.kt` | `465` (SSL) | Secure SMTP port. |
 
 ---
 
+## 👨‍💻 Project Credits & Attributions
+
+- **Mayuresh Nanal** — *Lead Security Architect & Engineering Lead*
+- **Anirudh Kewat** — *Core Systems & Detection Engineer*
+
+---
+
 ## ⚖️ License & Ethical Security Use
 
-This software is developed for **defensive security monitoring, academic research, and personal endpoint protection**. It is designed to detect unauthorized access to personal or enterprise data on Android devices. Ensure you comply with all applicable local privacy laws and organizational policies regarding automated photography and location telemetry collection.
+This software is developed for **defensive security monitoring, academic research, and personal endpoint protection**. It is designed to detect unauthorized access to personal or enterprise data on Android devices. Ensure compliance with all applicable local privacy laws and organizational policies regarding automated photography and location telemetry collection.
 
 ---
 

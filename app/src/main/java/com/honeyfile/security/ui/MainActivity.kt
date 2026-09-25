@@ -193,7 +193,7 @@ class MainActivity : ComponentActivity() {
                     allAccessLogs = allLogs,
                     capturedPhotos = capturedPhotosState,
                     onRefreshGallery = { refreshGallery() },
-                    versionName = "v1.0.2",
+                    versionName = "v1.0.3",
                     mandatoryEnrollmentRequested = isMandatoryEnroll,
                     onMandatoryEnrollmentHandled = {
                         mandatoryEnrollmentState.value = false

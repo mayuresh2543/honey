@@ -20,7 +20,7 @@ import com.honeyfile.security.ui.theme.*
 
 @Composable
 fun AboutCreditsDialog(
-    versionName: String = "v1.0.2",
+    versionName: String = "v1.0.3",
     onDismiss: () -> Unit
 ) {
     Dialog(

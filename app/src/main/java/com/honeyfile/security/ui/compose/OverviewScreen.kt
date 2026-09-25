@@ -258,7 +258,7 @@ fun OverviewScreen(
         WideActionTile(
             modifier = Modifier.fillMaxWidth(),
             title = "About & Credits",
-            subtitle = "Honeyfile v1.0.2 • Architecture & Attributions",
+            subtitle = "Honeyfile v1.0.3 • Architecture & Attributions",
             icon = Icons.Default.Info,
             accentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             onClick = onOpenAbout

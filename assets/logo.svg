@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B0F14"/>
+      <stop offset="50%" stop-color="#111720"/>
+      <stop offset="100%" stop-color="#18202C"/>
+    </linearGradient>
+
+    <!-- Border Glow Gradient -->
+    <linearGradient id="borderGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.8"/>
+      <stop offset="50%" stop-color="#00E676" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#FFB300" stop-opacity="0.7"/>
+    </linearGradient>
+
+    <!-- Shield Honey Amber Gradient -->
+    <linearGradient id="shieldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFD54F"/>
+      <stop offset="35%" stop-color="#FFA000"/>
+      <stop offset="70%" stop-color="#FF6F00"/>
+      <stop offset="100%" stop-color="#E65100"/>
+    </linearGradient>
+
+    <!-- Shield Inner Bevel -->
+    <linearGradient id="innerShieldGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FFE082" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#FF6F00" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Core Dark Cutout Gradient -->
+    <linearGradient id="coreGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#111720"/>
+      <stop offset="100%" stop-color="#0B0F14"/>
+    </linearGradient>
+
+    <!-- Cyan Neon Accent -->
+    <linearGradient id="cyanNeon" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18FFFF"/>
+      <stop offset="100%" stop-color="#00E5FF"/>
+    </linearGradient>
+
+    <!-- Glow Filters -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+    <filter id="subtleGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <!-- Honeycomb Pattern -->
+    <pattern id="hexPattern" width="40" height="69.282" patternUnits="userSpaceOnUse" patternTransform="scale(0.8)">
+      <path d="M 40 0 L 20 11.547 L 0 0 L 0 23.094 L 20 34.641 L 40 23.094 Z M 0 34.641 L 20 46.188 L 0 57.735 L 0 80.829 L 20 92.376 L 40 80.829 L 40 57.735 L 20 46.188 Z" fill="none" stroke="#00E5FF" stroke-width="0.8" stroke-opacity="0.08"/>
+    </pattern>
+  </defs>
+
+  <!-- Squircle Base Container -->
+  <rect x="16" y="16" width="480" height="480" rx="104" ry="104" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle Honeycomb Grid Texture -->
+  <rect x="20" y="20" width="472" height="472" rx="100" ry="100" fill="url(#hexPattern)"/>
+
+  <!-- Radial Tech Vignette -->
+  <circle cx="256" cy="256" r="220" fill="none" stroke="#00E5FF" stroke-width="1.5" stroke-opacity="0.12" stroke-dasharray="8 12"/>
+  <circle cx="256" cy="256" r="236" fill="none" stroke="#00E676" stroke-width="1" stroke-opacity="0.08"/>
+
+  <!-- Container Border -->
+  <rect x="16" y="16" width="480" height="480" rx="104" ry="104" fill="none" stroke="url(#borderGrad)" stroke-width="4"/>
+
+  <!-- Outer Ambient Shield Glow Behind -->
+  <path d="M 256 86 L 116 142 L 116 254 C 116 340.8 175.6 421 256 440.6 C 336.4 421 396 340.8 396 254 L 396 142 Z" fill="#FFA000" opacity="0.18" filter="url(#glow)"/>
+
+  <!-- Primary Shield Geometry -->
+  <path d="M 256 92 L 122 146 L 122 254 C 122 336.6 179.2 413.4 256 432 C 332.8 413.4 390 336.6 390 254 L 390 146 Z" fill="url(#shieldGrad)" filter="url(#subtleGlow)"/>
+
+  <!-- Inner Top Highlight Curve -->
+  <path d="M 256 102 L 132 152 L 132 254 C 132 300 152 350 186 386 C 160 336 148 280 148 238 L 148 162 L 256 118 L 364 162 L 364 238 C 364 280 352 336 326 386 C 360 350 380 300 380 254 L 380 152 Z" fill="url(#innerShieldGrad)"/>
+
+  <!-- Cyber Honey Accent Border -->
+  <path d="M 256 114 L 144 158 L 144 254 C 144 322 192 386 256 404 C 320 386 368 322 368 254 L 368 158 Z" fill="none" stroke="#FFE082" stroke-width="3" stroke-opacity="0.4"/>
+
+  <!-- Security Keyhole / Lock Core Shield Cavity -->
+  <path d="M 256 198 C 230.6 198 210 218.6 210 244 C 210 262 220.2 277.2 235.2 284.6 L 235.2 318 C 235.2 329.5 244.5 338.8 256 338.8 C 267.5 338.8 276.8 329.5 276.8 318 L 276.8 284.6 C 291.8 277.2 302 262 302 244 C 302 218.6 281.4 198 256 198 Z" fill="url(#coreGrad)"/>
+
+  <!-- Keyhole Inner Rim / Neon Highlight -->
+  <path d="M 256 204 C 234 204 216 222 216 244 C 216 259.6 225 273 238 279.6 L 238 318 C 238 328 246 336 256 336 C 266 336 274 328 274 318 L 274 279.6 C 287 273 296 259.6 296 244 C 296 222 278 204 256 204 Z" fill="none" stroke="url(#cyanNeon)" stroke-width="3.5" filter="url(#subtleGlow)"/>
+
+  <!-- Center Security Core Dot -->
+  <circle cx="256" cy="244" r="10" fill="url(#cyanNeon)"/>
+  <rect x="253" y="254" width="6" height="32" rx="3" fill="url(#cyanNeon)"/>
+
+  <!-- Corner Tech Accents -->
+  <path d="M 48 100 L 48 48 L 100 48" fill="none" stroke="#00E5FF" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 464 100 L 464 48 L 412 48" fill="none" stroke="#00E5FF" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 48 412 L 48 464 L 100 464" fill="none" stroke="#00E676" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+  <path d="M 464 412 L 464 464 L 412 464" fill="none" stroke="#00E676" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+</svg>

@@ -1,7 +1,7 @@
 # 🛡️ Honeyfile Security — Deception & Intrusion Detection System
 
 <p align="center">
-  <img src="app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml" alt="Honeyfile Security Banner" width="120" />
+  <img src="assets/logo.png" alt="Honeyfile Security Banner" width="128" />
 </p>
 
 <p align="center">
